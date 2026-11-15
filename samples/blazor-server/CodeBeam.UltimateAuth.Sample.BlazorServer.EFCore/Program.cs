@@ -56,6 +56,9 @@ builder.Services.AddUltimateAuthServer(o =>
     o.Login.LockoutDuration = TimeSpan.FromSeconds(10);
     o.Login.IncludeFailureDetails = true;
     o.Identifiers.Behavior.AllowMultipleUsernames = true;
+
+    o.DeviceLimits.MaxDevices = 3;
+    o.DeviceLimits.TypeLimits["web"] = 2;
 })
     .AddUltimateAuthEntityFrameworkCore(db =>
     {

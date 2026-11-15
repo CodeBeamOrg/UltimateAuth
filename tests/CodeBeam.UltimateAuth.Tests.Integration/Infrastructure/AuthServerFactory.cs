@@ -66,6 +66,8 @@ public class AuthServerFactory : WebApplicationFactory<Program>
             {
                 options.RateLimiting.Enabled = false;
                 options.Login.IncludeFailureDetails = false;
+                options.DeviceLimits.MaxDevices = null;
+                options.DeviceLimits.TypeLimits.Clear();
             });
 
             if (_configureServer is not null)

@@ -7,6 +7,8 @@ public interface ISessionStore
 {
     Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken ct = default);
     Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> action, CancellationToken ct = default);
+    Task<TResult> ExecuteAdmissionAsync<TResult>(Func<CancellationToken, Task<TResult>> action, CancellationToken ct = default);
+
 
     Task<UAuthSession?> GetSessionAsync(AuthSessionId sessionId, CancellationToken ct = default);
     Task SaveSessionAsync(UAuthSession session, long expectedVersion, CancellationToken ct = default);

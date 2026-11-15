@@ -35,7 +35,7 @@ public sealed class DeviceResolver : IDeviceResolver
         var deviceInfo = new DeviceInfo
         {
             DeviceId = deviceId,
-            DeviceType = parsed.DeviceType,
+            DeviceType = await ResolveDeviceTypeAsync(context),
             Platform = parsed.Platform,
             OperatingSystem = parsed.OperatingSystem,
             Browser = parsed.Browser,
@@ -67,5 +67,38 @@ public sealed class DeviceResolver : IDeviceResolver
             return cookie;
 
         return null;
+    }
+
+    private static async Task<string> ResolveDeviceTypeAsync(HttpContext context)
+    {
+        var request = context.Request;
+
+        if (request.Headers.TryGetValue(UAuthConstants.Headers.DeviceType, out var header))
+        {
+            var type = NormalizeDeviceType(header.ToString());
+
+            if (type is not null)
+                return type;
+        }
+
+        if (request.HasFormContentType)
+        {
+            var form = await context.GetCachedFormAsync();
+
+            if (form is not null && form.TryGetValue(UAuthConstants.Form.DeviceType, out var value))
+            {
+                var type = NormalizeDeviceType(value.ToString());
+
+                if (type is not null)
+                    return type;
+            }
+        }
+
+        return "web";
+    }
+
+    private static string? NormalizeDeviceType(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToLowerInvariant();
     }
 }

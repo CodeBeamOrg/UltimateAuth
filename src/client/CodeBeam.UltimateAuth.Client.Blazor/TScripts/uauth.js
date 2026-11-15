@@ -780,7 +780,20 @@ window.uauth.submitLoginForm = async function (form, options) {
 
     // Commit always uses the original form.
     // No second form and no hidden password copy.
-    form.action = validatedCommitUrl;
+    if (isPkce) {
+        const hubId = fields.get("hub_session_id");
+
+        if (typeof hubId !== "string" || !hubId) {
+            throw new Error("Missing PKCE Hub session ID.");
+        }
+
+        const target = new URL(validatedCommitUrl);
+        target.searchParams.set("uauth_hub", hubId);
+
+        form.action = target.href;
+    } else {
+        form.action = validatedCommitUrl;
+    }
 
     if (mode === "DirectCommit") {
         await window.uauth.submitForm(form, trustedOrigin);

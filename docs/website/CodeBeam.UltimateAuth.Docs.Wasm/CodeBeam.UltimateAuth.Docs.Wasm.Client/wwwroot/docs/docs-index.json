@@ -119,6 +119,13 @@
     "GroupOrder": 4
   },
   {
+    "Title": "Device Limits",
+    "Slug": "sessions-devices/device-limits",
+    "Order": 3,
+    "Group": "sessions-devices",
+    "GroupOrder": 4
+  },
+  {
     "Title": "Plugin-Domains Overview",
     "Slug": "plugin-domains/overview",
     "Order": 1,

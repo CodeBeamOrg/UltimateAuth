@@ -228,6 +228,36 @@ options.Session.MaxChainsPerUser = 1;
 
 as a production guarantee that only one device chain can exist unless the current runtime implementation has been verified to enforce that restriction.
 
+
+### Enforced Device Limits
+
+Active-device admission limits are configured separately from `options.Session`:
+
+```csharp
+builder.Services.AddUltimateAuthServer(options =>
+{
+    options.DeviceLimits.MaxDevices = 3;
+    options.DeviceLimits.TypeLimits["web"] = 2;
+    options.DeviceLimits.Behavior = DeviceLimitBehavior.RejectNewLogin;
+});
+```
+
+| Property | Default | Description |
+|---|---|---|
+| `DeviceLimits.MaxDevices` | `null` | Optional maximum distinct active device IDs per user and tenant |
+| `DeviceLimits.TypeLimits` | Empty | Optional per-type limits (case-insensitive keys) |
+| `DeviceLimits.Behavior` | `RejectNewLogin` | Reject a new device or revoke oldest eligible active device(s) |
+
+The feature is disabled until one or more quotas are configured.
+
+Multiple active chains sharing the same `DeviceId` count as one device.
+
+Built-in browser clients are classified as `web`, regardless of operating system.
+
+`DeviceLimits` is the supported active-device enforcement mechanism. Reserved `Session.MaxChainsPerUser`, `MaxChainsPerPlatform`, and category-based chain settings do not enforce these quotas.
+
+See [Device Limits](/docs/sessions-devices/device-limits) for admission, eviction, persistence, and migration behavior.
+
 ### Mode-Specific Session Defaults
 
 Session settings can also be affected by authentication mode defaults.
@@ -1518,32 +1548,33 @@ Startup validation does not replace testing, infrastructure security, or validat
 
 | Configuration group | Typical use |
 |---|---|
-| `Login` | Login attempts and lockout |
-| `Session` | Session expiration and lifecycle |
-| `Token` | Token issuance and lifetime |
-| `Pkce` | PKCE code lifetime |
 | `AllowedModes` | Permitted authentication modes |
-| `MultiTenant` | Tenant resolution |
-| `Pagination` | Query page limits |
-| `Endpoints` | Endpoint exposure |
-| `SessionResolution` | Credential source precedence |
-| `Cookie` | Cookie security and scope |
-| `HubDeploymentMode` | Hub deployment topology |
-| `Hub` | Hub integration |
-| `PrimaryCredential` | UI/API primary credential selection |
+| `AuthArtifacts` | In-memory authentication artifact capacity and expiration cleanup |
 | `AuthResponse` | Credential delivery |
+| `ConfigureMode()` | Mode-specific option overrides |
+| `Cookie` | Cookie security and scope |
 | `CredentialSessionPolicy` | Session invalidation after credential changes |
-| `ResetCredential` | Credential recovery rules |
+| `DeviceLimits` | Enforced global and per-type active-device admission limits |
+| `Diagnostics` | Refresh diagnostics |
+| `Endpoints` | Endpoint exposure |
+| `Events` | Authentication lifecycle callbacks |
+| `Hub` | Hub integration |
+| `HubDeploymentMode` | Hub deployment topology |
 | `Identifiers` | Identifier behavior |
 | `IdentifierValidation` | Identifier validation |
+| `Login` | Login attempts and lockout |
 | `LoginIdentifiers` | Login identifier eligibility |
-| `UserProfile` | Multi-profile capability |
+| `MultiTenant` | Tenant resolution |
 | `Navigation` | Authentication redirects |
-| `Diagnostics` | Refresh diagnostics |
-| `Events` | Authentication lifecycle callbacks |
-| `AuthArtifacts` | In-memory authentication artifact capacity and expiration cleanup |
-| `ConfigureMode()` | Mode-specific option overrides |
 | `OnConfigureEndpoints` | Advanced endpoint customization |
+| `Pagination` | Query page limits |
+| `Pkce` | PKCE code lifetime |
+| `PrimaryCredential` | UI/API primary credential selection |
+| `ResetCredential` | Credential recovery rules |
+| `Session` | Session expiration and lifecycle |
+| `SessionResolution` | Credential source precedence |
+| `Token` | Token issuance and lifetime |
+| `UserProfile` | Multi-profile capability |
 
 ## Next Steps
 

@@ -69,6 +69,9 @@ public partial class SampleLogin : UAuthPageBase
             AuthFailureReason.LockedOut
                 => "Your account is locked.",
 
+            AuthFailureReason.DeviceLimitExceeded
+                => "Device limit exceeded. Sign out from another device.",
+
             _ => "Login failed."
         };
 

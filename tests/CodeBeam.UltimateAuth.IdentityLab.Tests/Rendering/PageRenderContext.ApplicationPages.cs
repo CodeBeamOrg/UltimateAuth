@@ -118,7 +118,6 @@ internal sealed partial class PageRenderContext
     public void AddDiagnosticsServices()
     {
         Services.AddSingleton(new UAuthClientDiagnostics());
-        Services.AddScoped<LabSessionDiagnosticsPolicyService>();
         var chainId = SessionChainId.New();
         var sessionId = AuthSessionId.Parse(new string('s', 32));
         var now = DateTimeOffset.UtcNow;

@@ -262,7 +262,18 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         };
 
         var authContext = flow.ToAuthContext(now);
-        var issuedSession = await _sessionOrchestrator.ExecuteAsync(authContext, new CreateLoginSessionCommand(sessionContext), ct);
+
+        IssuedSession issuedSession;
+
+        try
+        {
+            issuedSession = await _sessionOrchestrator.ExecuteAsync(authContext, new CreateLoginSessionCommand(sessionContext), ct);
+        }
+        catch (UAuthConflictException ex)
+            when (ex.Code == "device_limit_exceeded")
+        {
+            return LoginResult.Failed(AuthFailureReason.DeviceLimitExceeded);
+        }
 
         AuthTokens? tokens = null;
 

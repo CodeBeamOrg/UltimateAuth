@@ -5,13 +5,13 @@ using Microsoft.JSInterop;
 
 namespace CodeBeam.UltimateAuth.Client.Blazor;
 
-internal sealed class ClientDeviceProvider : IClientDeviceProvider
+internal sealed class WebClientDeviceProvider : IClientDeviceProvider
 {
     private readonly IJSRuntime _js;
     private readonly IDeviceIdProvider _deviceIdProvider;
     private readonly IUserAgentParser _userAgentParser;
 
-    public ClientDeviceProvider(IJSRuntime js, IDeviceIdProvider deviceIdProvider, IUserAgentParser userAgentParser)
+    public WebClientDeviceProvider(IJSRuntime js, IDeviceIdProvider deviceIdProvider, IUserAgentParser userAgentParser)
     {
         _js = js;
         _deviceIdProvider = deviceIdProvider;
@@ -27,7 +27,7 @@ internal sealed class ClientDeviceProvider : IClientDeviceProvider
 
         return DeviceContext.Create(
             deviceId,
-            deviceType: parsed.DeviceType,
+            deviceType: "web",
             platform: parsed.Platform,
             operatingSystem: parsed.OperatingSystem,
             browser: parsed.Browser,

@@ -78,12 +78,8 @@ public sealed class PkceServiceTests
     public async Task AuthorizeAsync_ShouldStorePkceAuthorizationArtifact()
     {
         var fixture = CreateFixture();
-
         var device = CreateDevice();
-
-        var command = CreateAuthorizeCommand(
-            device: device,
-            redirectUri: "/callback");
+        var command = CreateAuthorizeCommand(device: device, redirectUri: "/callback");
 
         AuthArtifactKey? capturedKey = null;
         PkceAuthorizationArtifact? capturedArtifact = null;
@@ -102,41 +98,20 @@ public sealed class PkceServiceTests
                 })
             .Returns(Task.CompletedTask);
 
-        var result =
-            await fixture.Sut.AuthorizeAsync(command, ct: TestContext.Current.CancellationToken);
+        var result = await fixture.Sut.AuthorizeAsync(command, ct: TestContext.Current.CancellationToken);
 
         capturedKey.Should().NotBeNull();
         capturedArtifact.Should().NotBeNull();
+        capturedArtifact!.AuthorizationCode.Should().Be(capturedKey);
+        capturedArtifact.CodeChallenge.Should().Be(command.CodeChallenge);
+        capturedArtifact.ChallengeMethod.Should().Be(PkceChallengeMethod.S256);
+        capturedArtifact.ExpiresAt.Should().Be(Now.AddSeconds(AuthorizationCodeLifetimeSeconds));
+        capturedArtifact.Context.ClientProfile.Should().Be(command.ClientProfile);
+        capturedArtifact.Context.Tenant.Should().Be(command.Tenant);
+        capturedArtifact.Context.RedirectUri.Should().Be(command.RedirectUri);
+        capturedArtifact.Context.Device.Should().BeEquivalentTo(device);
 
-        capturedArtifact!.AuthorizationCode
-            .Should().Be(capturedKey);
-
-        capturedArtifact.CodeChallenge
-            .Should().Be(command.CodeChallenge);
-
-        capturedArtifact.ChallengeMethod
-            .Should().Be(PkceChallengeMethod.S256);
-
-        capturedArtifact.ExpiresAt
-            .Should().Be(
-                Now.AddSeconds(
-                    AuthorizationCodeLifetimeSeconds));
-
-        capturedArtifact.Context.ClientProfile
-            .Should().Be(command.ClientProfile);
-
-        capturedArtifact.Context.Tenant
-            .Should().Be(command.Tenant);
-
-        capturedArtifact.Context.RedirectUri
-            .Should().Be(command.RedirectUri);
-
-        capturedArtifact.Context.Device
-            .Should().BeSameAs(device);
-
-        result.ExpiresIn
-            .Should().Be(
-                AuthorizationCodeLifetimeSeconds);
+        result.ExpiresIn.Should().Be(AuthorizationCodeLifetimeSeconds);
     }
 
     [Fact]

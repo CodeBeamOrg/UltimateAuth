@@ -2,7 +2,6 @@ using System.Reflection;
 using System.Security.Claims;
 using Bunit;
 using CodeBeam.UltimateAuth.Authorization;
-using CodeBeam.UltimateAuth.Authorization.Contracts;
 using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
@@ -19,7 +18,6 @@ using CodeBeam.UltimateAuth.IdentityLab.Services;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
-using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
 using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
@@ -61,6 +59,7 @@ internal sealed partial class PageRenderContext : BunitContext
         Services.AddSingleton(Requests.Object);
         Services.AddSingleton(Options.Create(new UAuthClientOptions()));
         Services.AddSingleton(Options.Create(new UAuthServerOptions()));
+        Services.AddScoped<LabSessionDiagnosticsPolicyService>();
         var device = new Mock<IDeviceIdProvider>();
         device.Setup(x => x.GetOrCreateAsync(It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<DeviceId>(DeviceId.Create("render-test-device-0001")));

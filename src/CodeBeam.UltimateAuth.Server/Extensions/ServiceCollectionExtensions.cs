@@ -146,6 +146,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerPasswordPolicyOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthConcurrencyLimitingValidator>();
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthArtifactStoreOptionsValidator>();
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthDeviceLimitOptionsValidator>();
         services.AddScoped<IUAuthMultiTenantOptionsAccessor, ServerMultiTenantOptionsAccessor>();
 
         services.TryAddSingleton<IUAuthPaginationPolicy>(sp =>

@@ -352,7 +352,8 @@ internal class UAuthFlowClient : IFlowClient
             ["authorization_code"] = request.AuthorizationCode,
             ["code_verifier"] = request.CodeVerifier,
             ["Identifier"] = request.Identifier ?? string.Empty,
-            ["Secret"] = request.Secret ?? string.Empty
+            ["Secret"] = request.Secret ?? string.Empty,
+            ["hub_session_id"] = request.HubSessionId ?? string.Empty
         };
 
         if (!string.IsNullOrWhiteSpace(request.ReturnUrl))

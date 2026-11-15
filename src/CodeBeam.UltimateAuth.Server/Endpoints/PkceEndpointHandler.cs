@@ -183,7 +183,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
             return Results.Unauthorized();
 
         if (!result.IsSuccess)
-            return await RedirectToLoginWithErrorAsync(ctx, auth, "invalid");
+            return await RedirectToLoginWithErrorAsync(ctx, auth, request.HubSessionId, result.FailureReason);
 
         var login = result.LoginResult!;
 
@@ -275,6 +275,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
             var identifier = form?["Identifier"].FirstOrDefault();
             var secret = form?["Secret"].FirstOrDefault();
             var returnUrl = form?[UAuthConstants.Form.ReturnUrl].FirstOrDefault();
+            var hubSessionId = form?["hub_session_id"].FirstOrDefault();
 
             if (string.IsNullOrWhiteSpace(authorizationCode))
                 throw new UAuthValidationException("authorization_code is required");
@@ -288,31 +289,58 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
                 CodeVerifier = codeVerifier,
                 Identifier = identifier ?? string.Empty,
                 Secret = secret ?? string.Empty,
-                ReturnUrl = returnUrl ?? string.Empty
+                ReturnUrl = returnUrl ?? string.Empty,
+                HubSessionId = hubSessionId
             };
         }
 
         return null;
     }
 
-    private async Task<IResult> RedirectToLoginWithErrorAsync(HttpContext ctx, AuthFlowContext auth, string error)
+    private async Task<IResult> RedirectToLoginWithErrorAsync(HttpContext ctx, AuthFlowContext auth, string? hubSessionId, AuthFailureReason? reason)
     {
         var basePath = auth.Options.Hub.LoginPath ?? "/login";
-        var hubKey = await ResolveHubKeyAsync(ctx);
 
-        if (!string.IsNullOrWhiteSpace(hubKey))
+        var hubKey = !string.IsNullOrWhiteSpace(hubSessionId)
+            ? hubSessionId
+            : await ResolveHubKeyAsync(ctx);
+
+        if (!string.IsNullOrWhiteSpace(hubKey) && HubSessionId.TryParse(hubKey, out var parsedHubId))
         {
-            var key = new AuthArtifactKey(hubKey);
+            var key = new AuthArtifactKey(parsedHubId.Value);
             var artifact = await _authStore.GetAsync(key, ctx.RequestAborted);
 
-            if (artifact is HubFlowArtifact hub)
+            if (artifact is HubFlowArtifact hub &&
+                !hub.IsExpired(_clock.UtcNow) &&
+                !hub.IsCompleted &&
+                hub.Tenant == auth.Tenant &&
+                hub.FlowType == HubFlowType.Login)
             {
-                hub.SetError(HubErrorCode.InvalidCredentials);
-                await _authStore.StoreAsync(key, hub);
+                var error = reason switch
+                {
+                    AuthFailureReason.InvalidCredentials =>
+                        HubErrorCode.InvalidCredentials,
 
-                return Results.Redirect($"{basePath}?{UAuthConstants.Query.Hub}={Uri.EscapeDataString(hubKey)}");
+                    AuthFailureReason.LockedOut =>
+                        HubErrorCode.LockedOut,
+
+                    AuthFailureReason.RequiresMfa =>
+                        HubErrorCode.RequiresMfa,
+
+                    AuthFailureReason.DeviceLimitExceeded =>
+                        HubErrorCode.DeviceLimitExceeded,
+
+                    _ => HubErrorCode.Unknown
+                };
+
+                hub.SetError(error);
+
+                await _authStore.StoreAsync(key, hub, ctx.RequestAborted);
+
+                return Results.Redirect($"{basePath}?{UAuthConstants.Query.Hub}=" + Uri.EscapeDataString(parsedHubId.Value));
             }
         }
+
         return Results.Redirect(basePath);
     }
 
