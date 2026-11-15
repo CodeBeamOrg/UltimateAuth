@@ -983,7 +983,7 @@ public sealed class UAuthTokenIssuerTests
     }
 
     [Fact]
-    public async Task IssueAccessTokenAsync_WhenCustomSidExists_ShouldUseFrameworkSessionId()
+    public async Task IssueAccessTokenAsync_WhenPureJwtHasSession_ShouldReject()
     {
         var fixture = CreateFixture();
         var flow = CreateFlow(UAuthMode.PureJwt);
@@ -996,17 +996,21 @@ public sealed class UAuthTokenIssuerTests
             claims: ClaimsSnapshot.From(
                 ("sid", "attacker-session")));
 
-        UAuthJwtTokenDescriptor? captured = null;
+        Func<Task> act = async () =>
+            await fixture.Sut.IssueAccessTokenAsync(
+                flow,
+                context,
+                ct: TestContext.Current.CancellationToken);
 
-        fixture.JwtGenerator
-            .Setup(x => x.CreateToken(It.IsAny<UAuthJwtTokenDescriptor>()))
-            .Callback<UAuthJwtTokenDescriptor>(d => captured = d)
-            .Returns(Jwt);
+        await act.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage(
+                "PureJwt access tokens must not be bound to a session or chain.");
 
-        await fixture.Sut.IssueAccessTokenAsync(flow, context, ct: TestContext.Current.CancellationToken);
-
-        captured!.Claims!["sid"]
-            .Should().Be(sessionId.Value);
+        fixture.JwtGenerator.Verify(
+            x => x.CreateToken(
+                It.IsAny<UAuthJwtTokenDescriptor>()),
+            Times.Never);
     }
 
     [Fact]

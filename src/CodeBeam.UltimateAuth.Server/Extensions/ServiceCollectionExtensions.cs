@@ -41,6 +41,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 
 namespace CodeBeam.UltimateAuth.Server.Extensions;
@@ -266,6 +267,58 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IUserIdentifierValidator, UserIdentifierValidator>();
         services.TryAddScoped<IUserProfileValidator, UserProfileValidator>();
         services.TryAddScoped<IUAuthJwtValidator, UAuthJwtValidator>();
+
+
+        services.TryAddSingleton<IJwtVerificationKeyProvider>(sp =>
+        {
+            var signingProvider =
+                sp.GetRequiredService<IJwtSigningKeyProvider>();
+
+            // This fallback is intentionally development-only.
+            if (signingProvider is not DevelopmentJwtSigningKeyProvider)
+            {
+                throw new InvalidOperationException(
+                    "Configure IJwtVerificationKeyProvider explicitly " +
+                    "when using a custom JWT signing key provider.");
+            }
+
+            var environment =
+                sp.GetRequiredService<IHostEnvironment>();
+
+            if (!environment.IsDevelopment())
+            {
+                throw new InvalidOperationException(
+                    "The development JWT verification key cannot be " +
+                    "used outside the Development environment.");
+            }
+
+            var signingKey = signingProvider.Resolve(null);
+
+            return new StaticJwtVerificationKeyProvider(
+                new[] { signingKey.Key });
+        });
+
+        services.TryAddSingleton<IOptions<UAuthJwtValidationOptions>>(sp =>
+        {
+            var serverOptions =
+                sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+
+            var signingProvider =
+                sp.GetRequiredService<IJwtSigningKeyProvider>();
+
+            var signingKey = signingProvider.Resolve(
+                serverOptions.Token.KeyId);
+
+            return Microsoft.Extensions.Options.Options.Create(
+                new UAuthJwtValidationOptions
+                {
+                    Issuer = serverOptions.Token.Issuer,
+                    Audience = serverOptions.Token.Audience,
+                    ValidAlgorithms = new[] { signingKey.Algorithm },
+                    ClockSkew = TimeSpan.FromSeconds(30),
+                    MaximumTokenSizeInBytes = 16 * 1024
+                });
+        });
 
         services.TryAddScoped<ICredentialResponseWriter, CredentialResponseWriter>();
         services.TryAddScoped<IRefreshResponseWriter, RefreshResponseWriter>();

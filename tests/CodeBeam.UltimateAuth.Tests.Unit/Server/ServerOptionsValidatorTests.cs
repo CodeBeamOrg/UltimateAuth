@@ -850,7 +850,6 @@ public class ServerOptionsValidatorTests
 
     [Theory]
     [InlineData(UAuthMode.SemiHybrid)]
-    [InlineData(UAuthMode.PureJwt)]
     public void Server_unimplemented_mode_fails(UAuthMode mode) =>
         ShouldReject<UAuthServerOptionsValidator>(o =>
         {
