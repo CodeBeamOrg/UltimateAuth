@@ -47,6 +47,46 @@ internal sealed class InMemorySessionStore : ISessionStore
         }
     }
 
+    public async Task<TResult> ExecuteAdmissionAsync<TResult>(Func<CancellationToken, Task<TResult>> action, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+
+        await _tx.WaitAsync(ct);
+
+        try
+        {
+            var sessions = _sessions.ToArray();
+            var chains = _chains.ToArray();
+            var roots = _roots.ToArray();
+
+            try
+            {
+                return await action(ct);
+            }
+            catch
+            {
+                _sessions.Clear();
+                _chains.Clear();
+                _roots.Clear();
+
+                foreach (var item in sessions)
+                    _sessions[item.Key] = item.Value;
+
+                foreach (var item in chains)
+                    _chains[item.Key] = item.Value;
+
+                foreach (var item in roots)
+                    _roots[item.Key] = item.Value;
+
+                throw;
+            }
+        }
+        finally
+        {
+            _tx.Release();
+        }
+    }
+
     public Task<UAuthSession?> GetSessionAsync(AuthSessionId sessionId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();

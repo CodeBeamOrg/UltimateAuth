@@ -12,6 +12,7 @@ using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using AwesomeAssertions;
 using Moq;
 using System.Security;
+using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -1687,7 +1688,8 @@ public sealed class UAuthSessionIssuerTests
         var sut =
             new UAuthSessionIssuer(
                 storeFactory.Object,
-                tokenGenerator.Object);
+                tokenGenerator.Object,
+                Options.Create(options));
 
         return new Fixture(
             sut,
