@@ -117,6 +117,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 return created;
             }
 
+            bool reusedExistingChain = false;
             UAuthSessionChain chain;
             if (context.ChainId is not null)
             {
@@ -129,6 +130,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 // decide whether this should instead fail closed (e.g. chain-not-found/validation failure).
                 // Do not change without reviewing login, refresh, reauthentication and device-chain flows.
                 chain = existing ?? await CreateNewChainAsync();
+                reusedExistingChain = existing is not null;
 
                 //chain = await kernel.GetChainAsync(context.ChainId.Value)
                 //    ?? throw new UAuthNotFoundException("Chain not found.");
@@ -140,8 +142,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                     throw new UAuthValidationException("Invalid chain ownership.");
 
                 if (chain.RootId != root.RootId)
-                    throw new UAuthValidationException(
-                        "Chain does not belong to the active session root.");
+                    throw new UAuthValidationException("Chain does not belong to the active session root.");
 
                 // A supplied chain must not be reused with a different device identity.
                 if (enforceDeviceLimits &&
@@ -155,6 +156,26 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
             else
             {
                 chain = await CreateNewChainAsync();
+            }
+
+            if (enforceDeviceLimits && reusedExistingChain)
+            {
+                var activeChains = await GetActiveDeviceChainsAsync(
+                    kernel,
+                    root.RootId,
+                    context.UserKey,
+                    now,
+                    sessionOptions.IdleTimeout,
+                    innerCt);
+
+                // The existing chain may be passive after logout.
+                // Reusing its ChainId must not bypass device admission.
+                var chainsToRevoke = EvaluateDeviceLimits(_deviceLimits, activeChains, chain.Device);
+
+                foreach (var chainId in chainsToRevoke)
+                {
+                    await kernel.RevokeChainCascadeAsync(chainId, now, innerCt);
+                }
             }
 
             var sessions = await kernel.GetSessionsByChainAsync(chain.ChainId, innerCt);

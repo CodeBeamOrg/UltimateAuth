@@ -34,6 +34,9 @@ builder.Services.AddUltimateAuthServer(o => {
     o.Identifiers.Behavior.AllowMultipleUsernames = true;
     o.UserProfile.EnableMultiProfile = true;
 
+    o.DeviceLimits.MaxDevices = 3;
+    o.DeviceLimits.TypeLimits["web"] = 2;
+
     //o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
     //o.Session.Lifetime = TimeSpan.FromSeconds(32);
     //o.Session.TouchInterval = TimeSpan.FromSeconds(9);

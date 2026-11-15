@@ -699,6 +699,74 @@ public sealed class PkceEndpointHandlerTests
         redirect.Url.Should().Be("/app");
     }
 
+    [Fact]
+    public async Task CompleteAsync_WhenDeviceLimitExceeded_PreservesHubFromForm()
+    {
+        var fixture = CreateFixture();
+        var (pkceArtifact, _) = TestPkceFactory.Create();
+        var hub = TestHubFactory.Create(pkceArtifact);
+        var hubKey = hub.HubSessionId.Value;
+
+        var form = new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>
+        {
+            ["authorization_code"] = "code",
+            ["code_verifier"] = "verifier",
+            ["Identifier"] = "alice",
+            ["Secret"] = "secret",
+            ["hub_session_id"] = hubKey
+        };
+
+        fixture.HttpContext.Request.ContentType =
+            "application/x-www-form-urlencoded";
+
+        fixture.HttpContext.Request.Form =
+            new FormCollection(form);
+
+        PkceCompleteRequest? captured = null;
+
+        fixture.PkceService
+            .Setup(x => x.CompleteAsync(
+                fixture.Flow,
+                It.IsAny<PkceCompleteRequest>(),
+                fixture.HttpContext.RequestAborted))
+            .Callback<AuthFlowContext, PkceCompleteRequest, CancellationToken>(
+                (_, request, _) => captured = request)
+            .ReturnsAsync(new PkceCompleteResult
+            {
+                IsSuccess = false,
+                FailureReason = AuthFailureReason.DeviceLimitExceeded
+            });
+
+        fixture.AuthStore
+            .Setup(x => x.GetAsync(
+                new AuthArtifactKey(hubKey),
+                fixture.HttpContext.RequestAborted))
+            .ReturnsAsync(hub);
+
+        fixture.AuthStore
+            .Setup(x => x.StoreAsync(
+                new AuthArtifactKey(hubKey),
+                hub,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var result = await fixture.Sut.CompleteAsync(
+            fixture.HttpContext);
+
+        Assert.NotNull(captured);
+        Assert.Equal(hubKey, captured.HubSessionId);
+
+        var redirect = Assert.IsType<RedirectHttpResult>(result);
+
+        Assert.Contains(
+            $"uauth_hub={Uri.EscapeDataString(hubKey)}",
+            redirect.Url);
+
+        Assert.Equal(
+            HubErrorCode.DeviceLimitExceeded,
+            hub.Error);
+    }
+
     // ---------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------

@@ -290,6 +290,107 @@ public sealed class DeviceLimitAdmissionTests
         Assert.Single(await factory.Create(Tenant).GetChainsByUserAsync(userB, ct: TestContext.Current.CancellationToken));
     }
 
+    [Fact]
+    public async Task DeviceLimitRejection_PreservesErrorCodeContract()
+    {
+        var factory = new InMemorySessionStoreFactory();
+        var issuer = CreateIssuer(factory, maxDevices: 1);
+        var user = UserKey.New();
+        var ct = TestContext.Current.CancellationToken;
+
+        await issuer.IssueSessionAsync(
+            Context(
+                user,
+                Device("first-device-00000000000000000001", "web")),
+            ct);
+
+        var exception = await Assert.ThrowsAsync<UAuthConflictException>(
+            () => issuer.IssueSessionAsync(
+                Context(
+                    user,
+                    Device("second-device-00000000000000000002", "web"),
+                    Now.AddMinutes(1)),
+                ct));
+
+        Assert.Equal("device_limit_exceeded", exception.Code);
+    }
+
+    [Fact]
+    public async Task ReusingLoggedOutChain_MustNotBypassDeviceLimit()
+    {
+        var factory = new InMemorySessionStoreFactory();
+
+        var issuer = CreateIssuer(
+            factory,
+            maxDevices: 2,
+            configure: limits => limits.TypeLimits["web"] = 2);
+
+        var user = UserKey.New();
+        var store = factory.Create(Tenant);
+        var ct = TestContext.Current.CancellationToken;
+
+        var chrome = Device(
+            "chrome-device-000000000000000001", "web");
+
+        var firefox = Device(
+            "firefox-device-00000000000000001", "web");
+
+        var edge = Device(
+            "edge-device-0000000000000000001", "web");
+
+        // Chrome and Firefox occupy both available slots.
+        var chromeSession = await issuer.IssueSessionAsync(
+            Context(user, chrome),
+            ct);
+
+        var firefoxSession = await issuer.IssueSessionAsync(
+            Context(user, firefox, Now.AddMinutes(1)),
+            ct);
+
+        // Firefox logs out, releasing its active slot.
+        await store.LogoutChainAsync(
+            firefoxSession.Session.ChainId,
+            Now.AddMinutes(2),
+            ct);
+
+        // Edge occupies the released slot.
+        var edgeSession = await issuer.IssueSessionAsync(
+            Context(user, edge, Now.AddMinutes(3)),
+            ct);
+
+        // Firefox must not bypass admission by reusing its old chain.
+        await Assert.ThrowsAsync<UAuthConflictException>(
+            () => issuer.IssueSessionAsync(
+                Context(
+                    user,
+                    firefox,
+                    Now.AddMinutes(4),
+                    firefoxSession.Session.ChainId),
+                ct));
+
+        // Existing sessions must remain valid.
+        var storedChrome = await store.GetSessionAsync(
+            chromeSession.Session.SessionId,
+            ct);
+
+        var storedEdge = await store.GetSessionAsync(
+            edgeSession.Session.SessionId,
+            ct);
+
+        Assert.NotNull(storedChrome);
+        Assert.NotNull(storedEdge);
+
+        Assert.False(storedChrome.IsRevoked);
+        Assert.False(storedEdge.IsRevoked);
+
+        // Exactly two active device chains remain.
+        var chains = await store.GetChainsByUserAsync(user, ct: ct);
+
+        Assert.Equal(
+            2,
+            chains.Count(x => x.IsActive && !x.IsRevoked));
+    }
+
     private static UAuthSessionIssuer CreateIssuer(
         ISessionStoreFactory factory,
         int? maxDevices = null,

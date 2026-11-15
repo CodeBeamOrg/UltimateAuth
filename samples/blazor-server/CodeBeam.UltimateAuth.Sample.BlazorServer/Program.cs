@@ -10,6 +10,7 @@ using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
 using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 using CodeBeam.UltimateAuth.Sample.Shared.ResourceApi;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Infrastructure;
@@ -52,6 +53,9 @@ builder.Services.AddUltimateAuthServer(o =>
     o.Login.LockoutDuration = TimeSpan.FromSeconds(10);
     o.Login.IncludeFailureDetails = true;
     o.Identifiers.Behavior.AllowMultipleUsernames = true;
+
+    o.DeviceLimits.MaxDevices = 3;
+    o.DeviceLimits.TypeLimits["web"] = 2;
 
     // No-op and touch with max lifetime example
     //o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
