@@ -1014,6 +1014,38 @@ public sealed class UAuthTokenIssuerTests
     }
 
     [Fact]
+    public async Task IssueAccessTokenAsync_WhenPureJwtHasCustomSid_ShouldExcludeSid()
+    {
+        var fixture = CreateFixture();
+        var flow = CreateFlow(UAuthMode.PureJwt);
+
+        var context = CreateTokenContext(
+            claims: ClaimsSnapshot.From(
+                ("sid", "attacker-session")));
+
+        UAuthJwtTokenDescriptor? captured = null;
+
+        fixture.JwtGenerator
+            .Setup(x => x.CreateToken(
+                It.IsAny<UAuthJwtTokenDescriptor>()))
+            .Callback<UAuthJwtTokenDescriptor>(
+                descriptor => captured = descriptor)
+            .Returns(Jwt);
+
+        var result = await fixture.Sut.IssueAccessTokenAsync(
+            flow,
+            context,
+            ct: TestContext.Current.CancellationToken);
+
+        captured.Should().NotBeNull();
+
+        captured!.Claims.Should()
+            .NotContainKey("sid");
+
+        result.SessionId.Should().BeNull();
+    }
+
+    [Fact]
     public async Task IssueAccessTokenAsync_WhenCustomJtiExists_ShouldUseGeneratedJti()
     {
         var fixture = CreateFixture();

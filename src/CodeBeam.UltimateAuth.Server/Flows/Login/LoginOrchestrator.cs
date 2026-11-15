@@ -72,6 +72,11 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         if (request.CredentialType != CredentialType.Password)
             throw new UAuthValidationException("unsupported_credential_type");
 
+        if (flow.EffectiveMode == UAuthMode.PureJwt && loginExecution.Mode == LoginExecutionMode.Commit && !request.RequestTokens)
+        {
+            throw new UAuthValidationException("pure_jwt_requires_token_delivery");
+        }
+
         var now = _clock.UtcNow;
         var resolution = await _identifierResolver.ResolveAsync(flow.Tenant, request.Identifier, ct);
         var userKey = resolution?.UserKey;
@@ -243,11 +248,6 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
 
         if (flow.EffectiveMode == UAuthMode.PureJwt)
         {
-            if (!request.RequestTokens)
-            {
-                throw new UAuthValidationException("pure_jwt_requires_token_delivery");
-            }
-
             var tokenContext = new TokenIssuanceContext
             {
                 Tenant = flow.Tenant,
