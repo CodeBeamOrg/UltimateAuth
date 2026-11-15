@@ -36,6 +36,19 @@ public sealed record LoginResult
             RefreshToken = tokens?.RefreshToken
         };
 
+    public static LoginResult Success(AuthTokens tokens)
+    {
+        ArgumentNullException.ThrowIfNull(tokens);
+
+        return new LoginResult
+        {
+            Status = LoginStatus.Success,
+            SessionId = null,
+            AccessToken = tokens.AccessToken,
+            RefreshToken = tokens.RefreshToken
+        };
+    }
+
     public static LoginResult SuccessPreview()
     {
         return new LoginResult

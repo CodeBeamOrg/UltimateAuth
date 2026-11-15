@@ -10,9 +10,7 @@ using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users;
-using Microsoft.Extensions.Options;
 
 // TODO: Identifier-based throttling, Exponential lockout
 
@@ -137,21 +135,16 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         }
 
         // TODO: Add create-time uniqueness guard for chain id for concurrency
-        var sessionStore = _storeFactory.Create(flow.Tenant);
         SessionChainId? chainId = null;
 
-        if (userKey is not null)
+        if (flow.EffectiveMode != UAuthMode.PureJwt && userKey is not null)
         {
+            var sessionStore = _storeFactory.Create(flow.Tenant);
             var chain = await sessionStore.GetChainByDeviceAsync(userKey.Value, deviceId, ct);
 
-            if (chain is not null)
+            if (chain is not null && chain.GetState(now, flow.Options.Session.IdleTimeout) == SessionState.Active)
             {
-                var chainState = chain.GetState(now, flow.Options.Session.IdleTimeout);
-
-                if (chainState == SessionState.Active)
-                {
-                    chainId = chain.ChainId;
-                }
+                chainId = chain.ChainId;
             }
         }
 
@@ -247,6 +240,42 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         }
 
         var claims = await _claimsProvider.GetClaimsAsync(flow.Tenant, userKey.Value, ct);
+
+        if (flow.EffectiveMode == UAuthMode.PureJwt)
+        {
+            if (!request.RequestTokens)
+            {
+                throw new UAuthValidationException("pure_jwt_requires_token_delivery");
+            }
+
+            var tokenContext = new TokenIssuanceContext
+            {
+                Tenant = flow.Tenant,
+                UserKey = userKey.Value,
+                Claims = claims,
+                SessionId = null,
+                ChainId = null
+            };
+
+            var accessToken = await _tokens.IssueAccessTokenAsync(flow, tokenContext, ct);
+
+            if (accessToken.Format != TokenFormat.Jwt)
+            {
+                throw new InvalidOperationException("PureJwt must issue a JWT access token.");
+            }
+
+            // Refresh issuance is deliberately not called here yet.
+            // It requires an independent, session-free refresh family.
+            var authTokens = new AuthTokens
+            {
+                AccessToken = accessToken,
+                RefreshToken = null
+            };
+
+            await _events.DispatchAsync(new UserLoggedInContext(flow.Tenant, userKey.Value, now, flow.Device, sessionId: null));
+
+            return LoginResult.Success(authTokens);
+        }
 
         var sessionContext = new SessionIssuanceContext
         {

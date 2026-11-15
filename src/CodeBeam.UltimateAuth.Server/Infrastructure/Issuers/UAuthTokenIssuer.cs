@@ -38,15 +38,20 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
 
         return flow.EffectiveMode switch
         {
-            // TODO: Discuss, Hybrid token may be JWT.
             UAuthMode.PureOpaque or UAuthMode.Hybrid =>
                 Task.FromResult(IssueOpaqueAccessToken(expires, context.SessionId)),
 
-            UAuthMode.SemiHybrid or
-            UAuthMode.PureJwt =>
+            UAuthMode.SemiHybrid =>
                 Task.FromResult(IssueJwtAccessToken(context, tokens, expires)),
 
-            _ => throw new InvalidOperationException($"Unsupported auth mode: {flow.EffectiveMode}")
+            UAuthMode.PureJwt when context.SessionId is null && context.ChainId is null =>
+                Task.FromResult(IssueJwtAccessToken(context, tokens, expires)),
+
+            UAuthMode.PureJwt =>
+                throw new InvalidOperationException("PureJwt access tokens must not be bound to a session or chain."),
+
+            _ => throw new InvalidOperationException(
+                $"Unsupported auth mode: {flow.EffectiveMode}")
         };
     }
 
