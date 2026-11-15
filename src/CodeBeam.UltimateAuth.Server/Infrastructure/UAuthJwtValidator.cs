@@ -1,83 +1,178 @@
-﻿//using CodeBeam.UltimateAuth.Core.Abstractions;
-//using CodeBeam.UltimateAuth.Core.Domain;
-//using CodeBeam.UltimateAuth.Core.Contracts;
-//using Microsoft.IdentityModel.JsonWebTokens;
-//using Microsoft.IdentityModel.Tokens;
-//using System.Security.Claims;
-//using CodeBeam.UltimateAuth.Core.MultiTenancy;
+﻿using System.Text;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Server.Abstractions;
+using CodeBeam.UltimateAuth.Server.Contracts;
+using CodeBeam.UltimateAuth.Server.Options;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 
-//namespace CodeBeam.UltimateAuth.Server.Infrastructure;
+namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
-//internal sealed class UAuthJwtValidator : IJwtValidator
-//{
-//    private readonly JsonWebTokenHandler _jwtHandler;
-//    private readonly TokenValidationParameters _jwtParameters;
-//    private readonly IUserIdConverterResolver _converters;
+public sealed class UAuthJwtValidator : IUAuthJwtValidator
+{
+    private const string AccessTokenType = "uauth-access+jwt";
 
-//    public UAuthJwtValidator(TokenValidationParameters jwtParameters, IUserIdConverterResolver converters)
-//    {
-//        _jwtHandler = new JsonWebTokenHandler();
-//        _jwtParameters = jwtParameters;
-//        _converters = converters;
-//    }
+    private readonly IJwtVerificationKeyProvider _keys;
+    private readonly UAuthJwtValidationOptions _options;
+    private readonly JsonWebTokenHandler _handler = new();
 
-//    public async Task<TokenValidationResult<TUserId>> ValidateAsync<TUserId>(string token, CancellationToken ct = default)
-//    {
-//        var result = await _jwtHandler.ValidateTokenAsync(token, _jwtParameters);
+    public UAuthJwtValidator(IJwtVerificationKeyProvider keys, IOptions<UAuthJwtValidationOptions> options)
+    {
+        _keys = keys;
+        _options = options.Value;
 
-//        if (!result.IsValid)
-//        {
-//            return TokenValidationResult<TUserId>.Invalid(TokenFormat.Jwt, MapJwtError(result.Exception));
-//        }
+        if (string.IsNullOrWhiteSpace(_options.Issuer) ||
+            string.IsNullOrWhiteSpace(_options.Audience) ||
+            _options.ValidAlgorithms is null ||
+            _options.ValidAlgorithms.Count == 0 ||
+            _options.ClockSkew < TimeSpan.Zero ||
+            _options.MaximumTokenSizeInBytes <= 0)
+        {
+            throw new InvalidOperationException("JWT validation configuration is invalid.");
+        }
+    }
 
-//        var jwt = (JsonWebToken)result.SecurityToken;
-//        var claims = jwt.Claims.ToArray();
+    public async Task<ValidatedJwtIdentity?> ValidateAsync(string token, TenantKey expectedTenant, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
 
-//        var converter = _converters.GetConverter<TUserId>();
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return null;
+        }
 
-//        var userIdString = jwt.GetClaim(ClaimTypes.NameIdentifier)?.Value ?? jwt.GetClaim("sub")?.Value;
-//        if (string.IsNullOrWhiteSpace(userIdString))
-//        {
-//            return TokenValidationResult<TUserId>.Invalid(TokenFormat.Jwt, TokenInvalidReason.MissingSubject);
-//        }
+        if (Encoding.UTF8.GetByteCount(token) > _options.MaximumTokenSizeInBytes)
+        {
+            return null;
+        }
 
-//        TUserId userId;
-//        try
-//        {
-//            userId = converter.FromString(userIdString);
-//        }
-//        catch
-//        {
-//            return TokenValidationResult<TUserId>.Invalid(TokenFormat.Jwt, TokenInvalidReason.Malformed);
-//        }
+        if (!expectedTenant.IsValid || !JwtPayloadGuard.IsValid(token))
+        {
+            return null;
+        }
 
-//        var tenantId = jwt.GetClaim("tenant")?.Value ?? jwt.GetClaim("tid")?.Value;
-//        AuthSessionId? sessionId = null;
-//        var sid = jwt.GetClaim("sid")?.Value;
-//        if (AuthSessionId.TryCreate(sid, out AuthSessionId ssid))
-//        {
-//            sessionId = ssid;
-//        }
+        if (!_handler.CanReadToken(token))
+            return null;
 
-//        return TokenValidationResult<TUserId>.Valid(
-//            format: TokenFormat.Jwt,
-//            tenant: TenantKey.FromExternal(tenantId),
-//            userId,
-//            sessionId: sessionId,
-//            claims: claims,
-//            expiresAt: jwt.ValidTo);
-//    }
+        JsonWebToken jwt;
 
-//    private static TokenInvalidReason MapJwtError(Exception? ex)
-//    {
-//        return ex switch
-//        {
-//            SecurityTokenExpiredException => TokenInvalidReason.Expired,
-//            SecurityTokenInvalidSignatureException => TokenInvalidReason.SignatureInvalid,
-//            SecurityTokenInvalidAudienceException => TokenInvalidReason.AudienceMismatch,
-//            SecurityTokenInvalidIssuerException => TokenInvalidReason.IssuerMismatch,
-//            _ => TokenInvalidReason.Invalid
-//        };
-//    }
+        try
+        {
+            jwt = _handler.ReadJsonWebToken(token);
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
 
-//}
+        if (jwt.Typ != AccessTokenType ||
+            string.IsNullOrWhiteSpace(jwt.Kid) ||
+            !_options.ValidAlgorithms.Contains(jwt.Alg, StringComparer.Ordinal))
+        {
+            return null;
+        }
+
+        var matchingKeys = _keys.GetVerificationKeys()
+            .Where(key => string.Equals(key.KeyId, jwt.Kid, StringComparison.Ordinal) && IsCompatibleKey(key, jwt.Alg))
+            .ToArray();
+
+        if (matchingKeys.Length == 0)
+            return null;
+
+        var parameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = _options.Issuer,
+
+            ValidateAudience = true,
+            ValidAudience = _options.Audience,
+
+            ValidateLifetime = true,
+            RequireExpirationTime = true,
+            ClockSkew = _options.ClockSkew,
+
+            RequireSignedTokens = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKeys = matchingKeys,
+
+            ValidAlgorithms = _options.ValidAlgorithms,
+
+            ValidTypes = new[] { AccessTokenType },
+
+            TryAllIssuerSigningKeys = false
+        };
+
+        var result = await _handler.ValidateTokenAsync(token, parameters);
+
+        ct.ThrowIfCancellationRequested();
+
+        if (!result.IsValid || result.SecurityToken is not JsonWebToken validated)
+        {
+            return null;
+        }
+
+        var subjectClaims = validated.Claims
+            .Where(x => x.Type == "sub")
+            .ToArray();
+
+        var tenantClaims = validated.Claims
+            .Where(x => x.Type == "tenant")
+            .ToArray();
+
+        if (subjectClaims.Length != 1 || tenantClaims.Length != 1)
+        {
+            return null;
+        }
+
+        var subject = subjectClaims[0].Value;
+        var tenant = tenantClaims[0].Value;
+
+        if (string.IsNullOrWhiteSpace(subject))
+            return null;
+
+        if (!string.Equals(tenant, expectedTenant.Value, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        if (validated.ValidTo == DateTime.MinValue)
+            return null;
+
+        return new ValidatedJwtIdentity
+        {
+            Subject = subject,
+            TenantId = tenant,
+            Issuer = validated.Issuer,
+            Audience = _options.Audience,
+            ExpiresAt = new DateTimeOffset(DateTime.SpecifyKind(validated.ValidTo, DateTimeKind.Utc)),
+            Claims = validated.Claims.ToArray()
+        };
+    }
+
+    private static bool IsCompatibleKey(SecurityKey key, string algorithm)
+    {
+        return algorithm switch
+        {
+            SecurityAlgorithms.HmacSha256 or
+            SecurityAlgorithms.HmacSha384 or
+            SecurityAlgorithms.HmacSha512
+                => key is SymmetricSecurityKey,
+
+            SecurityAlgorithms.RsaSha256 or
+            SecurityAlgorithms.RsaSha384 or
+            SecurityAlgorithms.RsaSha512 or
+            SecurityAlgorithms.RsaSsaPssSha256 or
+            SecurityAlgorithms.RsaSsaPssSha384 or
+            SecurityAlgorithms.RsaSsaPssSha512
+                => key is RsaSecurityKey or X509SecurityKey,
+
+            SecurityAlgorithms.EcdsaSha256 or
+            SecurityAlgorithms.EcdsaSha384 or
+            SecurityAlgorithms.EcdsaSha512
+                => key is ECDsaSecurityKey,
+
+            _ => false
+        };
+    }
+}

@@ -10,24 +10,20 @@ namespace CodeBeam.UltimateAuth.Tests.Unit;
 
 public sealed class JwtTokenGeneratorTests
 {
-    private static readonly DateTimeOffset Now =
-        new(2026, 10, 10, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Now = new(2026, 10, 10, 12, 0, 0, TimeSpan.Zero);
 
     private const string Subject = "test-user-123";
     private const string Issuer = "https://auth.example.test";
     private const string Audience = "ultimateauth-api";
 
-    private static readonly TenantKey Tenant =
-        TenantKey.FromExternal("tenant-a");
+    private static readonly TenantKey Tenant = TenantKey.FromExternal("tenant-a");
 
     private static JwtTokenGenerator CreateSut()
     {
-        return new JwtTokenGenerator(
-            new DevelopmentJwtSigningKeyProvider());
+        return new JwtTokenGenerator(new DevelopmentJwtSigningKeyProvider());
     }
 
-    private static UAuthJwtTokenDescriptor CreateDescriptor(
-        IReadOnlyDictionary<string, object>? claims = null)
+    private static UAuthJwtTokenDescriptor CreateDescriptor(IReadOnlyDictionary<string, object>? claims = null)
     {
         return new UAuthJwtTokenDescriptor
         {
@@ -224,5 +220,120 @@ public sealed class JwtTokenGeneratorTests
 
         token.Kid.Should().Be("dev-uauth");
         token.Alg.Should().Be(SecurityAlgorithms.HmacSha256);
+    }
+
+    [Fact]
+    public void CreateToken_ShouldRejectUnknownSigningKeyId()
+    {
+        var provider = new DevelopmentJwtSigningKeyProvider();
+
+        var act = () => provider.Resolve("unknown-key");
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void CreateToken_ShouldAllowDefaultSigningKey()
+    {
+        var provider = new DevelopmentJwtSigningKeyProvider();
+
+        var key = provider.Resolve(null);
+
+        key.KeyId.Should().Be("dev-uauth");
+    }
+
+    [Fact]
+    public void CreateToken_ShouldRejectEmptySubject()
+    {
+        var descriptor = new UAuthJwtTokenDescriptor
+        {
+            Subject = "",
+            Issuer = Issuer,
+            Audience = Audience,
+            Tenant = Tenant,
+            IssuedAt = Now,
+            ExpiresAt = Now.AddMinutes(15),
+            KeyId = "dev-uauth"
+        };
+
+        var act = () => CreateSut().CreateToken(descriptor);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void CreateToken_ShouldRejectEmptyIssuer()
+    {
+        var descriptor = new UAuthJwtTokenDescriptor
+        {
+            Subject = Subject,
+            Issuer = "",
+            Audience = Audience,
+            Tenant = Tenant,
+            IssuedAt = Now,
+            ExpiresAt = Now.AddMinutes(15),
+            KeyId = "dev-uauth"
+        };
+
+        var act = () => CreateSut().CreateToken(descriptor);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void CreateToken_ShouldRejectEmptyAudience()
+    {
+        var descriptor = new UAuthJwtTokenDescriptor
+        {
+            Subject = Subject,
+            Issuer = Issuer,
+            Audience = "",
+            Tenant = Tenant,
+            IssuedAt = Now,
+            ExpiresAt = Now.AddMinutes(15),
+            KeyId = "dev-uauth"
+        };
+
+        var act = () => CreateSut().CreateToken(descriptor);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void CreateToken_ShouldRejectInvalidLifetime()
+    {
+        var descriptor = new UAuthJwtTokenDescriptor
+        {
+            Subject = Subject,
+            Issuer = Issuer,
+            Audience = Audience,
+            Tenant = Tenant,
+            IssuedAt = Now,
+            ExpiresAt = Now,
+            KeyId = "dev-uauth"
+        };
+
+        var act = () => CreateSut().CreateToken(descriptor);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void CreateToken_ShouldRejectUnknownDescriptorKeyId()
+    {
+        var descriptor = new UAuthJwtTokenDescriptor
+        {
+            Subject = Subject,
+            Issuer = Issuer,
+            Audience = Audience,
+            Tenant = Tenant,
+            IssuedAt = Now,
+            ExpiresAt = Now.AddMinutes(15),
+            KeyId = "unknown-key"
+        };
+
+        var act = () => CreateSut().CreateToken(descriptor);
+
+        act.Should().Throw<InvalidOperationException>();
     }
 }

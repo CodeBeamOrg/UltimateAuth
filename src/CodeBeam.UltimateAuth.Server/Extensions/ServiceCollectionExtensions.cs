@@ -241,8 +241,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IClientBaseAddressProvider, RefererHeaderBaseAddressProvider>();
         services.AddSingleton<IClientBaseAddressProvider, ConfiguredClientBaseAddressProvider>();
         services.AddSingleton<IClientBaseAddressProvider, RequestHostBaseAddressProvider>();
-        services.AddSingleton<ClientBaseAddressResolver>();
 
+        services.AddSingleton<ClientBaseAddressResolver>();
         services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
         services.TryAddScoped<IRefreshTokenResolver, RefreshTokenResolver>();
         services.TryAddScoped<IDeviceResolver, DeviceResolver>();
@@ -265,6 +265,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IPkceAuthorizationValidator, PkceAuthorizationValidator>();
         services.TryAddScoped<IUserIdentifierValidator, UserIdentifierValidator>();
         services.TryAddScoped<IUserProfileValidator, UserProfileValidator>();
+        services.TryAddScoped<IUAuthJwtValidator, UAuthJwtValidator>();
 
         services.TryAddScoped<ICredentialResponseWriter, CredentialResponseWriter>();
         services.TryAddScoped<IRefreshResponseWriter, RefreshResponseWriter>();

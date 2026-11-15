@@ -7,6 +7,8 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public sealed class DevelopmentJwtSigningKeyProvider : IJwtSigningKeyProvider
 {
+    private const string DevelopmentKeyId = "dev-uauth";
+
     private readonly JwtSigningKey _key;
 
     public DevelopmentJwtSigningKeyProvider()
@@ -15,17 +17,22 @@ public sealed class DevelopmentJwtSigningKeyProvider : IJwtSigningKeyProvider
 
         _key = new JwtSigningKey
         {
-            KeyId = "dev-uauth",
+            KeyId = DevelopmentKeyId,
             Algorithm = SecurityAlgorithms.HmacSha256,
             Key = new SymmetricSecurityKey(rawKey)
             {
-                KeyId = "dev-uauth"
+                KeyId = DevelopmentKeyId
             }
         };
     }
 
     public JwtSigningKey Resolve(string? keyId)
     {
+        if (keyId is not null && !string.Equals(keyId, DevelopmentKeyId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"Unknown JWT signing key ID: '{keyId}'.");
+        }
+
         return _key;
     }
 }

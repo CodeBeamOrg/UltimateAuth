@@ -127,6 +127,7 @@ internal class ConfigureDefaults
 
         t.IssueJwt = true;
         t.IssueOpaque = false;
+        t.IssueRefresh = true;
         t.AccessTokenLifetime = TimeSpan.FromMinutes(10);
         t.RefreshTokenLifetime = TimeSpan.FromDays(7);
         t.AddJwtIdClaim = true;
@@ -134,5 +135,4 @@ internal class ConfigureDefaults
         c.AccessToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
         c.RefreshToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
     }
-
 }
