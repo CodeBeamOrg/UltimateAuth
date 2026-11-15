@@ -41,6 +41,9 @@ builder.Services.AddUltimateAuthServer(o => {
     o.Login.IncludeFailureDetails = true;
     o.Identifiers.Behavior.AllowMultipleUsernames = true;
     o.UserProfile.EnableMultiProfile = true;
+
+    o.DeviceLimits.MaxDevices = 3;
+    o.DeviceLimits.TypeLimits["web"] = 2;
 })
     .AddUltimateAuthEntityFrameworkCore(db =>
     {
