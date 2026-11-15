@@ -228,10 +228,6 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
             };
         }
 
-        // TODO(DeviceLimits): ExecuteAdmissionAsync must guarantee rollback and
-        // serializable admission across concurrent instances, including retry.
-        // Do not enable configured limits until EF Core and InMemory implementations
-        // satisfy this contract.
         return enforceDeviceLimits
             ? await kernel.ExecuteAdmissionAsync(IssueCoreAsync, ct)
             : await kernel.ExecuteAsync(IssueCoreAsync, ct);
