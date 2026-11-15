@@ -565,8 +565,7 @@ public sealed class PkceEndpointHandlerTests
         var hub = TestHubFactory.Create(pkceArtifact);
         var hubKey = hub.HubSessionId.Value;
 
-        fixture.HttpContext.Request.QueryString =
-            new QueryString($"?uauth_hub={Uri.EscapeDataString(hubKey)}");
+        fixture.HttpContext.Request.QueryString = new QueryString($"?uauth_hub={Uri.EscapeDataString(hubKey)}");
 
         SetCompleteJson(fixture, "code", "verifier");
 
@@ -592,6 +591,17 @@ public sealed class PkceEndpointHandlerTests
                 hub,
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+
+        fixture.PkceService
+            .Setup(x => x.CompleteAsync(
+                fixture.Flow,
+                It.IsAny<PkceCompleteRequest>(),
+                fixture.HttpContext.RequestAborted))
+            .ReturnsAsync(new PkceCompleteResult
+            {
+                IsSuccess = false,
+                FailureReason = AuthFailureReason.InvalidCredentials
+            });
 
         var result = await fixture.Sut.CompleteAsync(
             fixture.HttpContext);

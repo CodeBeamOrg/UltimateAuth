@@ -1,5 +1,6 @@
 ﻿@page "/login"
 @layout PublicLayout
+@inherits UAuthPageBase
 @inject IUAuthClient UAuthClient
 @inject IOptions<UAuthServerOptions> Options
 @inject NavigationManager NavigationManager
@@ -132,7 +133,7 @@
                                     {
                                         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Shield" Class="mb-2">
                                             <MudStack Spacing="2">
-                                                <MudText Typo="Typo.subtitle2">Incorrect credentials</MudText>
+                                                <MudText Typo="Typo.subtitle2">@(_loginError?.StartsWith("Device limit reached.") == true ? "Device limit reached" : "Sign-in failed")</MudText>
                                                 <MudText Typo="Typo.body2">@_loginError</MudText>
 
                                                 @if (_remainingAttempts is { } remaining)
@@ -278,9 +279,6 @@
 </div>
 
 @code {
-    [CascadingParameter]
-    private UAuthState AuthState { get; set; } = default!;
-
     private string _identifier = string.Empty;
     private string _password = string.Empty;
     private string? _loginError;
@@ -386,7 +384,13 @@
             return;
         }
 
-        _loginError = "Please check your email or username and password.";
+        _loginError = result.Reason switch
+        {
+            AuthFailureReason.DeviceLimitExceeded =>
+                "Device limit reached. Sign out from another device before signing in.",
+
+            _ => "Please check your email or username and password."
+        };
     }
 
     private void StartLockoutTimer()
@@ -478,8 +482,33 @@
         }
     }
 
-    public void Dispose()
+    protected override Task OnUAuthPayloadAsync(AuthFlowPayload payload)
     {
+        if (payload.Flow != AuthFlowType.Login ||
+            payload.Status != "failed")
+        {
+            return Task.CompletedTask;
+        }
+
         StopLockoutTimer();
+
+        _remainingAttempts = null;
+        _lockoutUntilUtc = null;
+
+        _loginError = payload.Reason switch
+        {
+            AuthFailureReason.DeviceLimitExceeded =>
+                "Device limit reached. Sign out from another device before signing in.",
+
+            AuthFailureReason.InvalidCredentials =>
+                "Please check your email or username and password.",
+
+            AuthFailureReason.LockedOut =>
+                "Your account is temporarily locked.",
+
+            _ => "Unable to sign in. Please try again."
+        };
+
+        return InvokeAsync(StateHasChanged);
     }
 }
