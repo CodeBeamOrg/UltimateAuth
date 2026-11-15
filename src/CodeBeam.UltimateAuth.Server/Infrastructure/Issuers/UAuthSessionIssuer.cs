@@ -61,8 +61,13 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
 
             async Task<UAuthSessionChain> CreateNewChainAsync()
             {
+                var chainDevice = context.Device;
+
                 if (enforceDeviceLimits)
                 {
+                    if (context.Device.DeviceId is not DeviceId incomingId)
+                        throw new UAuthValidationException("device_id_required");
+
                     var activeChains = await GetActiveDeviceChainsAsync(
                         kernel,
                         root.RootId,
@@ -71,10 +76,30 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                         sessionOptions.IdleTimeout,
                         innerCt);
 
-                    var chainsToRevoke = EvaluateDeviceLimits(_deviceLimits, activeChains, context.Device);
+                    // Preserve the original classification when the device already has an active chain.
+                    var existingDevice = activeChains
+                        .Where(x => x.Device.DeviceId == incomingId)
+                        .OrderBy(x => x.CreatedAt)
+                        .ThenBy(x => x.ChainId.ToString(), StringComparer.Ordinal)
+                        .FirstOrDefault();
+
+                    if (existingDevice is not null)
+                    {
+                        chainDevice = DeviceContext.Create(
+                            incomingId,
+                            deviceType: existingDevice.Device.DeviceType,
+                            platform: context.Device.Platform,
+                            operatingSystem: context.Device.OperatingSystem,
+                            browser: context.Device.Browser,
+                            ipAddress: context.Device.IpAddress);
+                    }
+
+                    var chainsToRevoke = EvaluateDeviceLimits(_deviceLimits, activeChains, chainDevice);
 
                     foreach (var chainId in chainsToRevoke)
+                    {
                         await kernel.RevokeChainCascadeAsync(chainId, now, innerCt);
+                    }
                 }
 
                 var created = UAuthSessionChain.Create(
@@ -84,7 +109,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                     context.UserKey,
                     now,
                     absoluteExpiresAt,
-                    context.Device,
+                    chainDevice,
                     ClaimsSnapshot.Empty,
                     root.SecurityVersion);
 
@@ -145,6 +170,19 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                     await kernel.RemoveSessionAsync(old.SessionId, innerCt);
             }
 
+            var sessionDevice = context.Device;
+
+            if (enforceDeviceLimits && context.Device.DeviceId is DeviceId sessionDeviceId)
+            {
+                sessionDevice = DeviceContext.Create(
+                    sessionDeviceId,
+                    deviceType: chain.Device.DeviceType,
+                    platform: context.Device.Platform,
+                    operatingSystem: context.Device.OperatingSystem,
+                    browser: context.Device.Browser,
+                    ipAddress: context.Device.IpAddress);
+            }
+
             var session = UAuthSession.Create(
                 sessionId: sessionId,
                 tenant: context.Tenant,
@@ -153,7 +191,7 @@ public sealed class UAuthSessionIssuer : ISessionIssuer
                 now: now,
                 expiresAt: sessionExpiresAt,
                 securityVersion: root.SecurityVersion,
-                device: context.Device,
+                device: sessionDevice,
                 claims: context.Claims,
                 metadata: context.Metadata);
 

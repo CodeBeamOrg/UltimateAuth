@@ -97,10 +97,9 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
         ArgumentNullException.ThrowIfNull(action);
         ct.ThrowIfCancellationRequested();
 
-        // Admission cannot safely inherit a weaker transaction.
         if (_db.Database.CurrentTransaction is not null)
         {
-            throw new InvalidOperationException("Device admission requires its own serializable transaction.");
+            throw new InvalidOperationException("Device admission cannot participate in an existing transaction.");
         }
 
         var strategy = _db.Database.CreateExecutionStrategy();
@@ -117,8 +116,15 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
             }
             catch
             {
-                await transaction.RollbackAsync(CancellationToken.None);
-                _db.ChangeTracker.Clear();
+                try
+                {
+                    await transaction.RollbackAsync(CancellationToken.None);
+                }
+                finally
+                {
+                    _db.ChangeTracker.Clear();
+                }
+
                 throw;
             }
         });
