@@ -18,6 +18,36 @@ public sealed class UAuthServerOptionsValidator : IValidateOptions<UAuthServerOp
         if (options.Endpoints.BasePath.Contains("//"))
             return ValidateOptionsResult.Fail("BasePath cannot contain '//'.");
 
+        if (options.AuthMode is { } configuredMode)
+        {
+            if (!Enum.IsDefined(configuredMode))
+                return ValidateOptionsResult.Fail($"Invalid AuthMode value: {configuredMode}.");
+
+            if (options.ClientProfileModes.Count > 0)
+                return ValidateOptionsResult.Fail("AuthMode and ClientProfileModes cannot be configured together.");
+        }
+
+        foreach (var (profile, mode) in options.ClientProfileModes)
+        {
+            if (!Enum.IsDefined(profile))
+                return ValidateOptionsResult.Fail($"Invalid client profile: {profile}.");
+
+            if (!Enum.IsDefined(mode))
+                return ValidateOptionsResult.Fail($"Invalid authentication mode: {mode}.");
+        }
+
+        var configuredModes = options.AuthMode is { } selected
+            ? new[] { selected }
+            : options.ClientProfileModes.Values.Distinct();
+
+        foreach (var mode in configuredModes)
+        {
+            if (options.AllowedModes is { Count: > 0 } allowed && !allowed.Contains(mode))
+            {
+                return ValidateOptionsResult.Fail($"Configured authentication mode '{mode}' is not allowed.");
+            }
+        }
+
         var allowedModes = options.AllowedModes;
 
         if (allowedModes is { Count: > 0 })

@@ -53,7 +53,36 @@ public sealed class UAuthServerOptions
     // SERVER-ONLY BEHAVIOR
     // -------------------------------------------------------
 
-    /// <summary>Startup-only native endpoint throttling; application policies take precedence.</summary>
+    /// <summary>
+    /// Gets or sets the authentication mode used for all client profiles when explicitly configured.
+    /// </summary>
+    /// <remarks>
+    /// When null, mode selection uses the configured client profile mappings or the registered authentication mode resolver.
+    /// <br/><br/>
+    /// Setting this property establishes a server-controlled mode selection that cannot be changed by client profile headers.
+    /// <br/><br/>
+    /// This setting is mutually exclusive with ClientProfileModes.
+    /// The selected mode must be included in AllowedModes when an allowlist is configured.
+    /// </remarks>
+    public UAuthMode? AuthMode { get; set; }
+
+    /// <summary>
+    /// Gets or sets explicit authentication mode mappings for individual client profiles.
+    /// </summary>
+    /// <remarks>
+    /// Mappings override the default automatic selection for the specified profiles.
+    /// Profiles without mappings use the registered resolver.
+    /// <br/><br/>
+    /// Client profiles describe client environments and are not authenticated client identities.
+    /// Use a server-controlled authentication policy when selecting modes is security-sensitive.
+    /// <br/><br/>
+    /// Cannot be combined with an explicit AuthMode.
+    /// </remarks>
+    public Dictionary<UAuthClientProfile, UAuthMode> ClientProfileModes { get; set; } = new();
+
+    /// <summary>
+    /// Startup-only native endpoint throttling; application policies take precedence.
+    /// </summary>
     public UAuthRateLimitingOptions RateLimiting { get; set; } = new();
 
     public UAuthConcurrencyLimitingOptions ConcurrencyLimiting { get; set; } = new();
@@ -154,6 +183,8 @@ public sealed class UAuthServerOptions
     {
         return new UAuthServerOptions
         {
+            AuthMode = AuthMode,
+            ClientProfileModes = new(ClientProfileModes),
             AllowedModes = AllowedModes?.ToArray(),
             HubDeploymentMode = HubDeploymentMode,
 

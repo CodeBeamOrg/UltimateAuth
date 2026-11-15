@@ -58,9 +58,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         var allowedModes = options.AllowedModes;
 
         if (allowedModes is { Count: > 0 } && !allowedModes.Contains(effectiveMode))
-        {
             throw new InvalidOperationException($"Auth mode '{effectiveMode}' is not allowed by server configuration.");
-        }
 
         var primaryTokenKind = _primaryTokenResolver.Resolve(effectiveMode);
         var response = _authResponseResolver.Resolve(effectiveMode, flowType, clientProfile, effective);
@@ -73,7 +71,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         var isAuthenticated = user?.IsAuthenticated ?? false;
         var userKey = user?.UserId;
 
-        if (!sessionCtx.IsAnonymous)
+        if (effectiveMode is UAuthMode.PureOpaque or UAuthMode.Hybrid && !sessionCtx.IsAnonymous)
         {
             var validation = await _sessionValidator.ValidateSessionAsync(
                 new SessionValidationContext

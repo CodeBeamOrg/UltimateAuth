@@ -64,7 +64,7 @@ public class RedirectTests
     public void ClientProfile_Resolves_To_Correct_Mode(UAuthClientProfile profile, UAuthMode expected)
     {
         var resolver = new EffectiveAuthModeResolver();
-        var mode = resolver.Resolve(profile);
+        var mode = resolver.Resolve(new AuthModeResolutionContext() { ClientProfile = profile, Tenant = TenantKey.Single });
         mode.Should().Be(expected);
     }
 

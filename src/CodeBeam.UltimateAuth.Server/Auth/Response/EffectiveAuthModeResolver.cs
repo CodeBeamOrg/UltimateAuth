@@ -1,14 +1,13 @@
 ﻿using CodeBeam.UltimateAuth.Core;
-using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Auth;
 
 internal sealed class EffectiveAuthModeResolver : IEffectiveAuthModeResolver
 {
-    public UAuthMode Resolve(UAuthClientProfile clientProfile)
+    public UAuthMode Resolve(AuthModeResolutionContext context)
     {
-        return clientProfile switch
+        return context.ClientProfile switch
         {
             UAuthClientProfile.BlazorServer => UAuthMode.PureOpaque,
             UAuthClientProfile.WebServer => UAuthMode.Hybrid,

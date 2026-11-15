@@ -1,13 +1,18 @@
 using CodeBeam.UltimateAuth.IdentityLab.Authorization;
 using CodeBeam.UltimateAuth.IdentityLab.Endpoints;
 using CodeBeam.UltimateAuth.IdentityLab.Services;
+using CodeBeam.UltimateAuth.Server.Abstractions;
+using CodeBeam.UltimateAuth.Server.Contracts;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Tests.Infrastructure;
 
@@ -19,6 +24,15 @@ internal sealed class LabHttpHost(WebApplication app) : IAsyncDisposable
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         LabRuntime.ConfigureServices(builder.Services, database);
+
+        var key = new SymmetricSecurityKey(RandomNumberGenerator.GetBytes(32))
+        {
+            KeyId = "identitylab-test-key"
+        };
+
+        builder.Services.AddSingleton<IJwtSigningKeyProvider>(new TestJwtSigningKeyProvider(key));
+        builder.Services.AddSingleton<IJwtVerificationKeyProvider>(new StaticJwtVerificationKeyProvider([key]));
+
         builder.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
         builder.Services.AddScoped<LabAccessContextProvider>();
         builder.Services.AddScoped<LabManagementAuthorizationFilter>();
@@ -85,4 +99,22 @@ internal sealed class LabHttpHost(WebApplication app) : IAsyncDisposable
 
     private sealed record Token(string HeaderName, string RequestToken);
     public async ValueTask DisposeAsync() { await app.StopAsync(); await app.DisposeAsync(); }
+
+    private sealed class TestJwtSigningKeyProvider(SymmetricSecurityKey key) : IJwtSigningKeyProvider
+    {
+        public JwtSigningKey Resolve(string? keyId)
+        {
+            if (keyId is not null && !string.Equals(keyId, key.KeyId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException($"Unknown JWT signing key ID: '{keyId}'.");
+            }
+
+            return new JwtSigningKey
+            {
+                KeyId = key.KeyId!,
+                Algorithm = SecurityAlgorithms.HmacSha256,
+                Key = key
+            };
+        }
+    }
 }

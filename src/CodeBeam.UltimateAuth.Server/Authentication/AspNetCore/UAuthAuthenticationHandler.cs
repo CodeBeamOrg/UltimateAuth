@@ -1,8 +1,12 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Extensions;
-using CodeBeam.UltimateAuth.Core.Defaults;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Server.Abstractions;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
@@ -10,6 +14,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Security.Claims;
 using System.Text.Encodings.Web;
 
 namespace CodeBeam.UltimateAuth.Server.Authentication;
@@ -20,6 +25,9 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
     private readonly ISessionValidator _sessionValidator;
     private readonly IDeviceContextFactory _deviceContextFactory;
     private readonly IAuthStateSnapshotFactory _snapshotFactory;
+    private readonly IUAuthJwtValidator _jwtValidator;
+    private readonly IEffectiveServerOptionsProvider _effectiveOptions;
+    private readonly IClientProfileReader _clientProfileReader;
     private readonly UAuthServerOptions _serverOptions;
     private readonly IClock _clock;
 
@@ -31,6 +39,9 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         ISessionValidator sessionValidator,
         IDeviceContextFactory deviceContextFactory,
         IAuthStateSnapshotFactory snapshotFactory,
+        IUAuthJwtValidator jwtValidator,
+        IEffectiveServerOptionsProvider effectiveOptions,
+        IClientProfileReader clientProfileReader,
         IOptions<UAuthServerOptions> serverOptions,
         IClock uauthClock)
         : base(options, logger, encoder)
@@ -39,21 +50,37 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         _sessionValidator = sessionValidator;
         _deviceContextFactory = deviceContextFactory;
         _snapshotFactory = snapshotFactory;
+        _jwtValidator = jwtValidator;
+        _effectiveOptions = effectiveOptions;
+        _clientProfileReader = clientProfileReader;
         _serverOptions = serverOptions.Value;
         _clock = uauthClock;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
+        var clientProfile = await _clientProfileReader.ReadAsync(Context);
+        var tenant = Context.GetTenant();
+        var mode = _effectiveOptions.GetEffective(tenant, clientProfile).Mode;
+
         var credential = await _transportCredentialResolver.ResolveAsync(Context);
+
+        if (mode == UAuthMode.PureJwt)
+        {
+            if (credential is null)
+                return AuthenticateResult.NoResult();
+
+            if (credential.Kind != TransportCredentialKind.AccessToken)
+                return AuthenticateResult.Fail("PureJwt requires an access token.");
+
+            return await AuthenticateJwtAsync(credential.Value, tenant);
+        }
 
         if (credential is null)
             return AuthenticateResult.NoResult();
 
         if (!AuthSessionId.TryCreate(credential.Value, out var sessionId))
             return AuthenticateResult.Fail("Invalid credential");
-
-        var tenant = Context.GetTenant();
 
         var result = await _sessionValidator.ValidateSessionAsync(
             new SessionValidationContext
@@ -132,5 +159,34 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         Context.Response.StatusCode = StatusCodes.Status403Forbidden;
         Context.Response.Headers[UAuthConstants.Headers.AuthState] = "forbidden";
         return Task.CompletedTask;
+    }
+
+    private async Task<AuthenticateResult> AuthenticateJwtAsync(string token, TenantKey tenant)
+    {
+        var validated = await _jwtValidator.ValidateAsync(token, tenant, Context.RequestAborted);
+
+        if (validated is null)
+            return AuthenticateResult.Fail("Invalid JWT access token.");
+
+        // PureJwt credentials must not carry framework session identity.
+        if (validated.Claims.Any(x => x.Type == "sid"))
+        {
+            return AuthenticateResult.Fail("Session-bound JWT is not valid in PureJwt mode.");
+        }
+
+        var claims = validated.Claims.ToList();
+
+        // Use the cryptographically validated subject, not an untrusted request header or client-provided identifier.
+        claims.RemoveAll(x => x.Type == ClaimTypes.NameIdentifier);
+
+        claims.Add(new Claim(ClaimTypes.NameIdentifier, validated.Subject));
+
+        var identity = new ClaimsIdentity(claims, Scheme.Name, ClaimTypes.NameIdentifier, ClaimTypes.Role);
+
+        var principal = new ClaimsPrincipal(identity);
+
+        RateLimiting.UAuthRateLimitPolicy.SetValidatedActor(Context, tenant.Value, validated.Subject);
+
+        return AuthenticateResult.Success(new AuthenticationTicket(principal, Scheme.Name));
     }
 }

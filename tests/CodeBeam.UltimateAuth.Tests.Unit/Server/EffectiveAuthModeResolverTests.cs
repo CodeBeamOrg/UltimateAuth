@@ -1,5 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core;
-using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
 
@@ -16,7 +16,8 @@ public class EffectiveAuthModeResolverTests
     [InlineData(UAuthClientProfile.Api, UAuthMode.PureJwt)]
     public void Default_Mode_Is_Derived_From_ClientProfile(UAuthClientProfile profile, UAuthMode expected)
     {
-        var mode = _resolver.Resolve(clientProfile: profile);
+        var context = new AuthModeResolutionContext() { ClientProfile = profile, Tenant = TenantKey.Single };
+        var mode = _resolver.Resolve(context);
         Assert.Equal(expected, mode);
     }
 }

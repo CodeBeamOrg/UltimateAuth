@@ -1,13 +1,14 @@
-﻿using CodeBeam.UltimateAuth.Core;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
-using AwesomeAssertions;
+using Microsoft.Extensions.Options;
+using Moq;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -313,19 +314,15 @@ public class EffectiveServerOptionsProviderTests
     }
 
     [Fact]
-    public void Unsupported_auth_mode_should_throw()
+    public void Invalid_auth_mode_returned_by_resolver_should_throw()
     {
-        var provider = CreateProviderForMode(
-            new UAuthServerOptions(),
-            (UAuthMode)999);
+        var provider = CreateProviderForMode(new UAuthServerOptions(), (UAuthMode)999);
 
-        Action act = () => provider.GetEffective(
-            TenantKey.Single,
-            UAuthClientProfile.Api);
+        Action act = () => provider.GetEffective(TenantKey.Single, UAuthClientProfile.Api);
 
         act.Should()
             .Throw<InvalidOperationException>()
-            .WithMessage("*Unsupported UAuthMode*");
+            .WithMessage("*Invalid authentication mode*");
     }
 
     [Fact]
@@ -355,6 +352,127 @@ public class EffectiveServerOptionsProviderTests
         original.Session.SlidingExpiration.Should().BeTrue();
     }
 
+    [Fact]
+    public void Explicit_mode_should_not_invoke_custom_resolver()
+    {
+        var resolver = new Mock<IEffectiveAuthModeResolver>();
+
+        var options = new UAuthServerOptions
+        {
+            AuthMode = UAuthMode.PureJwt
+        };
+
+        var provider = new EffectiveServerOptionsProvider(
+            Options.Create(options),
+            resolver.Object);
+
+        var effective = provider.GetEffective(
+            TenantKey.Single, UAuthClientProfile.BlazorServer);
+
+        effective.Mode.Should().Be(UAuthMode.PureJwt);
+
+        resolver.Verify(
+            x => x.Resolve(It.IsAny<AuthModeResolutionContext>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void Custom_resolver_should_receive_tenant_and_profile()
+    {
+        var resolver = new Mock<IEffectiveAuthModeResolver>();
+
+        resolver.Setup(x => x.Resolve(
+                It.IsAny<AuthModeResolutionContext>()))
+            .Returns(UAuthMode.Hybrid);
+
+        var provider = new EffectiveServerOptionsProvider(
+            Options.Create(new UAuthServerOptions()),
+            resolver.Object);
+
+        provider.GetEffective(
+            TenantKey.Single, UAuthClientProfile.Api);
+
+        resolver.Verify(x => x.Resolve(
+            It.Is<AuthModeResolutionContext>(c =>
+                c.Tenant == TenantKey.Single &&
+                c.ClientProfile == UAuthClientProfile.Api)),
+            Times.Once);
+    }
+
+    [Fact]
+    public void Custom_resolver_cannot_bypass_allowed_modes()
+    {
+        var resolver = new Mock<IEffectiveAuthModeResolver>();
+
+        resolver.Setup(x => x.Resolve(
+                It.IsAny<AuthModeResolutionContext>()))
+            .Returns(UAuthMode.Hybrid);
+
+        var options = new UAuthServerOptions
+        {
+            AllowedModes = [UAuthMode.PureJwt]
+        };
+
+        var provider = new EffectiveServerOptionsProvider(
+            Options.Create(options),
+            resolver.Object);
+
+        Action act = () => provider.GetEffective(
+            TenantKey.Single, UAuthClientProfile.Api);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*not allowed*");
+    }
+
+    [Fact]
+    public void Explicit_mode_outside_allowed_modes_should_fail_validation()
+    {
+        var options = new UAuthServerOptions
+        {
+            AuthMode = UAuthMode.Hybrid,
+            AllowedModes = [UAuthMode.PureJwt]
+        };
+
+        var result = new UAuthServerOptionsValidator()
+            .Validate(null, options);
+
+        result.Failed.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Conflicting_mode_configuration_should_fail_validation()
+    {
+        var options = new UAuthServerOptions
+        {
+            AuthMode = UAuthMode.PureJwt
+        };
+
+        options.ClientProfileModes[UAuthClientProfile.Api] =
+            UAuthMode.Hybrid;
+
+        var result = new UAuthServerOptionsValidator()
+            .Validate(null, options);
+
+        result.Failed.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Clone_should_not_share_profile_mode_mappings()
+    {
+        var options = new UAuthServerOptions();
+
+        options.ClientProfileModes[UAuthClientProfile.Api] =
+            UAuthMode.PureJwt;
+
+        var clone = options.Clone();
+
+        clone.ClientProfileModes[UAuthClientProfile.Api] =
+            UAuthMode.Hybrid;
+
+        options.ClientProfileModes[UAuthClientProfile.Api]
+            .Should().Be(UAuthMode.PureJwt);
+    }
+
     private static EffectiveServerOptionsProvider CreateProviderForMode(
         UAuthServerOptions options,
         UAuthMode mode)
@@ -373,7 +491,7 @@ public class EffectiveServerOptionsProviderTests
             _mode = mode;
         }
 
-        public UAuthMode Resolve(UAuthClientProfile clientProfile)
+        public UAuthMode Resolve(AuthModeResolutionContext context)
         {
             return _mode;
         }
