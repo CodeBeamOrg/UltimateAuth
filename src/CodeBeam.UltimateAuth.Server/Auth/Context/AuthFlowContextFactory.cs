@@ -67,9 +67,52 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         var returnUrl = await ctx.GetReturnUrlAsync();
         var returnUrlInfo = ReturnUrlParser.Parse(returnUrl);
 
+
         SessionSecurityContext? sessionSecurityContext = null;
-        var isAuthenticated = user?.IsAuthenticated ?? false;
-        var userKey = user?.UserId;
+        bool isAuthenticated;
+        UserKey? userKey;
+
+        if (effectiveMode == UAuthMode.PureJwt)
+        {
+            // The UserMiddleware has already populated this snapshot from the cryptographically authenticated JWT principal.
+            // No session validation is performed for PureJwt.
+            isAuthenticated = user?.IsAuthenticated == true;
+            userKey = isAuthenticated ? user?.UserId : null;
+        }
+        else
+        {
+            isAuthenticated = user?.IsAuthenticated ?? false;
+            userKey = user?.UserId;
+
+            if (effectiveMode is UAuthMode.PureOpaque or UAuthMode.Hybrid)
+            {
+                if (!sessionCtx.IsAnonymous)
+                {
+                    var validation = await _sessionValidator.ValidateSessionAsync(
+                        new SessionValidationContext
+                        {
+                            Tenant = tenant,
+                            SessionId = sessionCtx.SessionId!.Value,
+                            Device = deviceContext,
+                            SessionOptions = options.Session,
+                            Now = _clock.UtcNow
+                        },
+                        ct);
+
+                    sessionSecurityContext = SessionValidationMapper.ToSecurityContext(validation);
+
+                    isAuthenticated = validation.IsValid;
+
+                    if (!isAuthenticated)
+                        userKey = null;
+                }
+                else
+                {
+                    isAuthenticated = false;
+                    userKey = null;
+                }
+            }
+        }
 
         if (effectiveMode is UAuthMode.PureOpaque or UAuthMode.Hybrid && !sessionCtx.IsAnonymous)
         {
@@ -136,6 +179,11 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         if (allowedModes is { Count: > 0 } && !allowedModes.Contains(effectiveMode))
         {
             throw new InvalidOperationException($"Auth mode '{effectiveMode}' is not allowed by server configuration.");
+        }
+
+        if (effectiveMode != existing.EffectiveMode && existing.IsAuthenticated)
+        {
+            throw new InvalidOperationException("An authenticated flow cannot change its authentication mode through a client profile override.");
         }
 
         var primaryTokenKind = _primaryTokenResolver.Resolve(effectiveMode);
