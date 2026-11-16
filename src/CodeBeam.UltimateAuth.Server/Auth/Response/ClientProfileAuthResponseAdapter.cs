@@ -33,15 +33,10 @@ internal sealed class ClientProfileAuthResponseAdapter
     // They will be used for future mode/option based response enforcement.
     private static CredentialResponseOptions AdaptCredential(CredentialResponseOptions original, GrantKind kind, UAuthClientProfile clientProfile)
     {
-        if (clientProfile == UAuthClientProfile.Maui && original.Mode == TokenResponseMode.Cookie)
-        {
-            return ToHeader(original);
-        }
-
-        if (original.TokenFormat == TokenFormat.Jwt && original.Mode == TokenResponseMode.Cookie)
-        {
-            return ToHeader(original);
-        }
+        //if (clientProfile == UAuthClientProfile.Maui && original.Mode == TokenResponseMode.Cookie)
+        //{
+        //    return ToHeader(original);
+        //}
 
         return original;
     }

@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
@@ -35,7 +36,7 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
     {
         var authFlow = _authContext.Current;
 
-        if (authFlow.Session is SessionSecurityContext session)
+        if (authFlow.EffectiveMode != UAuthMode.PureJwt && authFlow.Session is SessionSecurityContext session)
         {
             var request = new LogoutRequest
             {

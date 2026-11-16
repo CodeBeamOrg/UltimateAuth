@@ -60,6 +60,26 @@ internal sealed class ValidateCredentialResolver : IValidateCredentialResolver
     {
         var delivery = response.AccessTokenDelivery;
 
+        if (delivery.Mode == TokenResponseMode.Cookie)
+        {
+            var cookieName = delivery.Cookie?.Name;
+
+            if (string.IsNullOrWhiteSpace(cookieName) ||
+                !context.Request.Cookies.TryGetValue(cookieName, out var raw) ||
+                string.IsNullOrWhiteSpace(raw))
+            {
+                return null;
+            }
+
+            return new ResolvedCredential
+            {
+                Kind = PrimaryTokenKind.AccessToken,
+                Value = raw.Trim(),
+                Tenant = context.GetTenant(),
+                Device = await context.GetDeviceAsync()
+            };
+        }
+
         if (delivery.Mode != TokenResponseMode.Header)
             return null;
 

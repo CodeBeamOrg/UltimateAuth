@@ -1,5 +1,5 @@
-﻿using System.Text;
-using System.Text.Json;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
@@ -12,10 +12,11 @@ using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using CodeBeam.UltimateAuth.Users.Contracts;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Moq;
+using System.Text;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Server;
 
@@ -586,6 +587,73 @@ public sealed class LogoutEndpointHandlerTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task LogoutAsync_PureJwtWithoutSession_SucceedsWithoutRevocation()
+    {
+        var fixture = CreateFixture(CreatePureJwtFlow());
+
+        SetupNoRedirect(fixture);
+
+        var result = await fixture.Sut.LogoutAsync(
+            fixture.HttpContext);
+
+        var ok = result.Should()
+            .BeOfType<Ok<LogoutResponse>>()
+            .Subject;
+
+        ok.Value.Should().NotBeNull();
+        ok.Value!.IsSuccess.Should().BeTrue();
+
+        fixture.FlowService.Verify(
+            x => x.LogoutAsync(
+                It.IsAny<LogoutRequest>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        fixture.Sessions.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task LogoutAsync_PureJwtObservedLogout_ReturnsSuccessWithoutRedirect()
+    {
+        var fixture = CreateFixture(CreatePureJwtFlow());
+
+        fixture.HttpContext.Request.Headers["X-UAuth-Logout-Mode"] = "observe";
+
+        fixture.RedirectResolver
+            .Setup(x => x.ResolveSuccess(
+                fixture.Flow,
+                fixture.HttpContext))
+            .Returns(new RedirectDecision(
+                enabled: true,
+                targetUrl: "/after-logout"));
+
+        var result = await fixture.Sut.LogoutAsync(
+            fixture.HttpContext);
+
+        var response = Assert.IsAssignableFrom<IValueHttpResult>(result);
+
+        Assert.NotNull(response.Value);
+
+        var json = JsonSerializer.Serialize(response.Value);
+
+        using var document = JsonDocument.Parse(json);
+
+        Assert.True(
+            document.RootElement.GetProperty("IsSuccess").GetBoolean());
+
+        Assert.Equal(
+            "/after-logout",
+            document.RootElement.GetProperty("RedirectUrl").GetString());
+
+        fixture.FlowService.Verify(
+            x => x.LogoutAsync(
+                It.IsAny<LogoutRequest>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+
     // =====================================================================
     // Helpers
     // =====================================================================
@@ -703,6 +771,25 @@ public sealed class LogoutEndpointHandlerTests
         context.Request.ContentType = "application/json";
         context.Request.ContentLength = bytes.Length;
         context.Request.Body = new MemoryStream(bytes);
+    }
+
+    private static AuthFlowContext CreatePureJwtFlow()
+    {
+        var source = AuthFlowTestFactory.LoginSuccess();
+
+        return new AuthFlowContext(
+            flowType: source.FlowType,
+            clientProfile: source.ClientProfile,
+            effectiveMode: UAuthMode.PureJwt,
+            device: source.Device,
+            tenantKey: source.Tenant,
+            isAuthenticated: true,
+            userKey: source.UserKey ?? UserKey.New(),
+            session: null,
+            options: source.Options,
+            response: source.Response,
+            primaryTokenKind: source.PrimaryTokenKind,
+            returnUrlInfo: source.ReturnUrlInfo);
     }
 
     private sealed record Fixture(
