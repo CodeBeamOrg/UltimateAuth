@@ -61,7 +61,9 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
     {
         var clientProfile = await _clientProfileReader.ReadAsync(Context);
         var tenant = Context.GetTenant();
-        var mode = _effectiveOptions.GetEffective(tenant, clientProfile).Mode;
+        var effective = _effectiveOptions.GetEffective(tenant, clientProfile);
+
+        var mode = effective.Mode;
 
         var credential = await _transportCredentialResolver.ResolveAsync(Context);
 
@@ -73,7 +75,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
             if (credential.Kind != TransportCredentialKind.AccessToken)
                 return AuthenticateResult.Fail("PureJwt requires an access token.");
 
-            return await AuthenticateJwtAsync(credential.Value, tenant, _effectiveOptions.GetEffective(tenant, clientProfile).Options.Session.DeviceMismatchBehavior);
+            return await AuthenticateJwtAsync(credential.Value, tenant, effective.Options.Session.DeviceMismatchBehavior);
         }
 
         if (credential is null)

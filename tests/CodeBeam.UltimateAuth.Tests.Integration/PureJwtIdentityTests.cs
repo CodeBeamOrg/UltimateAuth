@@ -10,6 +10,7 @@ using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Contracts;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
@@ -335,6 +336,138 @@ public sealed class PureJwtIdentityTests
             response.StatusCode);
     }
 
+    [Fact]
+    public async Task PureJwt_with_AllowAndRebind_device_behavior_is_rejected()
+    {
+        await using var host = await Host.CreateAsync(
+            DeviceMismatchBehavior.AllowAndRebind);
+
+        var token = host.IssueToken(UserKey.New());
+
+        using var response = await host.GetAsync(
+            token,
+            "/test/purejwt/protected");
+
+        Assert.Equal(
+            HttpStatusCode.Unauthorized,
+            response.StatusCode);
+
+        host.SessionValidator.Verify(
+            x => x.ValidateSessionAsync(
+                It.IsAny<SessionValidationContext>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task PureJwt_with_Allow_device_behavior_accepts_different_request_device()
+    {
+        await using var host = await Host.CreateAsync(
+            DeviceMismatchBehavior.Allow);
+
+        var token = host.IssueToken(UserKey.New());
+
+        using var response = await host.GetAsync(
+            token,
+            "/test/purejwt/protected",
+            deviceId: "different-device-0000000123456789");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        host.SessionValidator.Verify(
+            x => x.ValidateSessionAsync(
+                It.IsAny<SessionValidationContext>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        host.RuntimeStateProvider.Verify(
+            x => x.GetAsync(
+                It.IsAny<TenantKey>(),
+                It.IsAny<UserKey>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task PureJwt_role_authorization_requires_admin_role()
+    {
+        await using var host = await Host.CreateAsync();
+
+        var user = UserKey.New();
+
+        var regularToken = host.IssueToken(user);
+
+        using (var forbidden = await host.GetAsync(
+            regularToken, "/test/purejwt/admin"))
+        {
+            Assert.Equal(
+                HttpStatusCode.Forbidden,
+                forbidden.StatusCode);
+        }
+
+        var adminToken = host.IssueToken(
+            user,
+            extraClaims: new Dictionary<string, object>
+            {
+                [ClaimTypes.Role] = "Admin"
+            });
+
+        using (var allowed = await host.GetAsync(
+            adminToken, "/test/purejwt/admin"))
+        {
+            Assert.Equal(
+                HttpStatusCode.OK,
+                allowed.StatusCode);
+        }
+
+        host.RuntimeStateProvider.Verify(
+            x => x.GetAsync(
+                It.IsAny<TenantKey>(),
+                It.IsAny<UserKey>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task PureJwt_claim_policy_requires_matching_permission()
+    {
+        await using var host = await Host.CreateAsync();
+
+        var user = UserKey.New();
+
+        var withoutPermission = host.IssueToken(user);
+
+        using (var forbidden = await host.GetAsync(
+            withoutPermission, "/test/purejwt/permission"))
+        {
+            Assert.Equal(
+                HttpStatusCode.Forbidden,
+                forbidden.StatusCode);
+        }
+
+        var withPermission = host.IssueToken(
+            user,
+            extraClaims: new Dictionary<string, object>
+            {
+                ["permission"] = "reports.read"
+            });
+
+        using (var allowed = await host.GetAsync(
+            withPermission, "/test/purejwt/permission"))
+        {
+            Assert.Equal(
+                HttpStatusCode.OK,
+                allowed.StatusCode);
+        }
+
+        host.RuntimeStateProvider.Verify(
+            x => x.GetAsync(
+                It.IsAny<TenantKey>(),
+                It.IsAny<UserKey>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("not-a-valid-jwt")]
@@ -400,7 +533,7 @@ public sealed class PureJwtIdentityTests
             RuntimeStateProvider = runtimeStateProvider;
         }
 
-        public static async Task<Host> CreateAsync()
+        public static async Task<Host> CreateAsync(DeviceMismatchBehavior deviceMismatchBehavior = DeviceMismatchBehavior.Reject)
         {
             var builder = WebApplication.CreateBuilder(
                 new WebApplicationOptions
@@ -431,6 +564,8 @@ public sealed class PureJwtIdentityTests
                     options.Token.Issuer = Issuer;
                     options.Token.Audience = Audience;
                     options.Token.KeyId = KeyId;
+
+                    options.Session.DeviceMismatchBehavior = deviceMismatchBehavior;
                 })
                 .AddUltimateAuthInMemory();
 
@@ -494,6 +629,22 @@ public sealed class PureJwtIdentityTests
                     }))
                 .RequireAuthorization();
 
+            app.MapGet("/test/purejwt/admin",
+                () => Results.Ok())
+                .RequireAuthorization(
+                    new AuthorizeAttribute
+                    {
+                        Roles = "Admin"
+                    });
+
+            app.MapGet("/test/purejwt/permission",
+                () => Results.Ok())
+                .RequireAuthorization(
+                    new AuthorizationPolicyBuilder()
+                        .RequireAuthenticatedUser()
+                        .RequireClaim("permission", "reports.read")
+                        .Build());
+
             await app.StartAsync();
 
             return new Host(app, key, userStates, sessionValidator, runtimeStateProvider);
@@ -509,13 +660,6 @@ public sealed class PureJwtIdentityTests
         {
             var now = issuedAt ?? DateTimeOffset.UtcNow;
 
-            var claims = new Dictionary<string, object>(extraClaims ?? new Dictionary<string, object>());
-
-            if (includeDeviceId)
-            {
-                claims["device_id"] = TestDeviceId;
-            }
-
             using var scope = _app.Services.CreateScope();
 
             var generator = scope.ServiceProvider
@@ -530,11 +674,14 @@ public sealed class PureJwtIdentityTests
                     Audience = Audience,
                     KeyId = _key.KeyId,
                     IssuedAt = now,
-                    ExpiresAt = expiresAt ??
-                        now.AddMinutes(10),
-                    Claims = claims
+                    ExpiresAt = expiresAt.HasValue ? expiresAt.Value.AddMinutes(10) : now.AddMinutes(10),
+                    DeviceId = includeDeviceId
+                        ? DeviceId.Create(TestDeviceId)
+                        : null,
+                    Claims = extraClaims
                 });
         }
+
 
         public async Task<HttpResponseMessage> GetAsync(string? token = null, string path = "/test/purejwt/identity", string? deviceId = TestDeviceId)
         {
