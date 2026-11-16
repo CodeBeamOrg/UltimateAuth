@@ -30,6 +30,7 @@ public sealed class PureJwtIdentityTests
     private const string Issuer = "ultimateauth-integration";
     private const string Audience = "ultimateauth-integration-api";
     private const string KeyId = "purejwt-integration-key";
+    private const string TestDeviceId = "purejwt-integration-device-0000000123456789";
 
     private sealed record IdentityResponse(
         bool PrincipalAuthenticated,
@@ -76,16 +77,21 @@ public sealed class PureJwtIdentityTests
                 It.IsAny<SessionValidationContext>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
+
+        host.RuntimeStateProvider.Verify(
+            x => x.GetAsync(
+                It.IsAny<TenantKey>(),
+                It.IsAny<UserKey>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
-    public async Task Valid_jwt_for_active_user_can_access_protected_endpoint()
+    public async Task Valid_jwt_can_access_protected_endpoint_without_runtime_user_state()
     {
         await using var host = await Host.CreateAsync();
 
         var user = UserKey.New();
-        host.SetUserState(user);
-
         var token = host.IssueToken(user);
 
         using var response = await host.GetAsync(
@@ -93,6 +99,13 @@ public sealed class PureJwtIdentityTests
             "/test/purejwt/protected");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        host.RuntimeStateProvider.Verify(
+            x => x.GetAsync(
+                It.IsAny<TenantKey>(),
+                It.IsAny<UserKey>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -175,7 +188,7 @@ public sealed class PureJwtIdentityTests
 
 
     [Fact]
-    public async Task Valid_jwt_for_nonexistent_user_is_forbidden()
+    public async Task Valid_jwt_for_nonexistent_user_is_accepted_without_runtime_lookup()
     {
         await using var host = await Host.CreateAsync();
 
@@ -186,15 +199,26 @@ public sealed class PureJwtIdentityTests
             token,
             "/test/purejwt/protected");
 
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        host.RuntimeStateProvider.Verify(
+            x => x.GetAsync(
+                It.IsAny<TenantKey>(),
+                It.IsAny<UserKey>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
-    public async Task Valid_jwt_for_deleted_user_is_forbidden()
+    public async Task Valid_jwt_remains_accepted_after_runtime_user_deletion()
     {
         await using var host = await Host.CreateAsync();
 
         var user = UserKey.New();
+
+        host.SetUserState(user);
+
+        var token = host.IssueToken(user);
 
         host.SetUserState(
             user,
@@ -202,17 +226,22 @@ public sealed class PureJwtIdentityTests
             canAuthenticate: false,
             isDeleted: true);
 
-        var token = host.IssueToken(user);
-
         using var response = await host.GetAsync(
             token,
             "/test/purejwt/protected");
 
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        host.RuntimeStateProvider.Verify(
+            x => x.GetAsync(
+                It.IsAny<TenantKey>(),
+                It.IsAny<UserKey>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
-    public async Task Valid_jwt_reflects_runtime_user_state_changes()
+    public async Task Valid_jwt_is_independent_of_runtime_user_state_changes()
     {
         await using var host = await Host.CreateAsync();
 
@@ -235,9 +264,7 @@ public sealed class PureJwtIdentityTests
         using (var suspended = await host.GetAsync(
             token, "/test/purejwt/protected"))
         {
-            Assert.Equal(
-                HttpStatusCode.Forbidden,
-                suspended.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, suspended.StatusCode);
         }
 
         host.SetUserState(user);
@@ -247,6 +274,65 @@ public sealed class PureJwtIdentityTests
         {
             Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
         }
+
+        host.RuntimeStateProvider.Verify(
+            x => x.GetAsync(
+                It.IsAny<TenantKey>(),
+                It.IsAny<UserKey>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Valid_jwt_without_request_device_id_is_unauthorized()
+    {
+        await using var host = await Host.CreateAsync();
+
+        var token = host.IssueToken(UserKey.New());
+
+        using var response = await host.GetAsync(
+            token,
+            "/test/purejwt/protected",
+            deviceId: null);
+
+        Assert.Equal(
+            HttpStatusCode.Unauthorized,
+            response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Valid_jwt_with_mismatched_device_id_is_unauthorized()
+    {
+        await using var host = await Host.CreateAsync();
+
+        var token = host.IssueToken(UserKey.New());
+
+        using var response = await host.GetAsync(
+            token,
+            "/test/purejwt/protected",
+            deviceId: "different-device-0000000123456789");
+
+        Assert.Equal(
+            HttpStatusCode.Unauthorized,
+            response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Jwt_without_device_id_claim_is_unauthorized()
+    {
+        await using var host = await Host.CreateAsync();
+
+        var token = host.IssueToken(
+            UserKey.New(),
+            includeDeviceId: false);
+
+        using var response = await host.GetAsync(
+            token,
+            "/test/purejwt/protected");
+
+        Assert.Equal(
+            HttpStatusCode.Unauthorized,
+            response.StatusCode);
     }
 
     [Theory]
@@ -297,18 +383,21 @@ public sealed class PureJwtIdentityTests
             => _userStates.Remove(user);
 
         public Mock<ISessionValidator> SessionValidator { get; }
+        public Mock<IUserRuntimeStateProvider> RuntimeStateProvider { get; }
 
         private Host(
             WebApplication app,
             SymmetricSecurityKey key,
             UserStateHolder userStates,
-            Mock<ISessionValidator> sessionValidator)
+            Mock<ISessionValidator> sessionValidator,
+            Mock<IUserRuntimeStateProvider> runtimeStateProvider)
         {
             _app = app;
             _client = app.GetTestClient();
             _key = key;
             _userStates = userStates;
             SessionValidator = sessionValidator;
+            RuntimeStateProvider = runtimeStateProvider;
         }
 
         public static async Task<Host> CreateAsync()
@@ -407,7 +496,7 @@ public sealed class PureJwtIdentityTests
 
             await app.StartAsync();
 
-            return new Host(app, key, userStates, sessionValidator);
+            return new Host(app, key, userStates, sessionValidator, runtimeStateProvider);
         }
 
         public string IssueToken(
@@ -415,9 +504,17 @@ public sealed class PureJwtIdentityTests
             TenantKey? tenant = null,
             DateTimeOffset? issuedAt = null,
             DateTimeOffset? expiresAt = null,
-            IReadOnlyDictionary<string, object>? extraClaims = null)
+            IReadOnlyDictionary<string, object>? extraClaims = null,
+            bool includeDeviceId = true)
         {
             var now = issuedAt ?? DateTimeOffset.UtcNow;
+
+            var claims = new Dictionary<string, object>(extraClaims ?? new Dictionary<string, object>());
+
+            if (includeDeviceId)
+            {
+                claims["device_id"] = TestDeviceId;
+            }
 
             using var scope = _app.Services.CreateScope();
 
@@ -435,18 +532,22 @@ public sealed class PureJwtIdentityTests
                     IssuedAt = now,
                     ExpiresAt = expiresAt ??
                         now.AddMinutes(10),
-                    Claims = extraClaims
+                    Claims = claims
                 });
         }
 
-        public async Task<HttpResponseMessage> GetAsync(string? token = null, string path = "/test/purejwt/identity")
+        public async Task<HttpResponseMessage> GetAsync(string? token = null, string path = "/test/purejwt/identity", string? deviceId = TestDeviceId)
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, path);
 
+            if (deviceId is not null)
+            {
+                request.Headers.Add("X-UDID", deviceId);
+            }
+
             if (token is not null)
             {
-                request.Headers.Authorization =
-                    new AuthenticationHeaderValue("Bearer", token);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
 
             return await _client.SendAsync(request, TestContext.Current.CancellationToken);

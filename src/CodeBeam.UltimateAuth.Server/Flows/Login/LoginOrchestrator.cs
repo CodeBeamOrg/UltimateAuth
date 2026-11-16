@@ -254,7 +254,8 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                 UserKey = userKey.Value,
                 Claims = claims,
                 SessionId = null,
-                ChainId = null
+                ChainId = null,
+                DeviceId = deviceId
             };
 
             var accessToken = await _tokens.IssueAccessTokenAsync(flow, tokenContext, ct);

@@ -104,11 +104,9 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
         }
     }
 
-    private static IDictionary<string, object> BuildClaims(
-        UAuthJwtTokenDescriptor descriptor)
+    private static IDictionary<string, object> BuildClaims(UAuthJwtTokenDescriptor descriptor)
     {
-        var claims = new Dictionary<string, object>(
-            StringComparer.Ordinal);
+        var claims = new Dictionary<string, object>(StringComparer.Ordinal);
 
         if (descriptor.Claims is not null)
         {
@@ -117,7 +115,7 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
                 if (type is
                     "sub" or "tenant" or
                     "iss" or "aud" or
-                    "exp" or "nbf" or "iat")
+                    "exp" or "nbf" or "iat" or "device_id")
                 {
                     continue;
                 }
@@ -128,6 +126,11 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
 
         claims["sub"] = descriptor.Subject;
         claims["tenant"] = descriptor.Tenant.Value;
+
+        if (descriptor.DeviceId is DeviceId deviceId)
+        {
+            claims["device_id"] = deviceId.Value;
+        }
 
         return claims;
     }

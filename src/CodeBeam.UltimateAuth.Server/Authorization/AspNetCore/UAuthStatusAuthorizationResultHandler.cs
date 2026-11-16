@@ -1,15 +1,18 @@
-﻿using System.Security.Claims;
+﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Runtime;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Runtime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Server.Authorization;
 
@@ -42,8 +45,36 @@ internal sealed class UAuthStatusAuthorizationResultHandler : IAuthorizationMidd
         }
 
         var tenant = context.GetTenant();
+
         var runtime = context.RequestServices
             .GetRequiredService<IUAuthRuntimeMarker>();
+
+        // Resource runtime must retain its existing validation contract.
+        // PureJwt stateless authorization applies only to Server runtime.
+        if (runtime is not ResourceRuntimeMarker)
+        {
+            var profileReader = context.RequestServices
+                .GetRequiredService<IClientProfileReader>();
+
+            var optionsProvider = context.RequestServices
+                .GetRequiredService<IEffectiveServerOptionsProvider>();
+
+            var clientProfile = await profileReader.ReadAsync(context);
+
+            var effective = optionsProvider.GetEffective(
+                context, clientProfile);
+
+            if (effective.Mode == UAuthMode.PureJwt)
+            {
+                // Authentication already validated the JWT.
+                // ASP.NET Core authorization has already succeeded.
+                // No runtime user-state lookup is required.
+                await _default.HandleAsync(
+                    next, context, policy, authorizeResult);
+
+                return;
+            }
+        }
 
         bool isActive;
         bool mayUseInactiveException;

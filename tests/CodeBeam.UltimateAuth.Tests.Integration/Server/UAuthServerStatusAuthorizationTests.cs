@@ -1,15 +1,18 @@
 ﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Core.Runtime;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Authorization;
+using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Runtime;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -201,6 +204,29 @@ public sealed class UAuthServerStatusAuthorizationTests
 
         builder.Services.AddSingleton(provider.Object);
         builder.Services.AddSingleton<IUAuthRuntimeMarker, ServerRuntimeMarker>();
+
+        var profileReader = new Mock<IClientProfileReader>();
+
+        profileReader
+            .Setup(x => x.ReadAsync(It.IsAny<HttpContext>()))
+            .ReturnsAsync(UAuthClientProfile.BlazorServer);
+
+        builder.Services.AddSingleton(profileReader.Object);
+
+        var effectiveOptionsProvider =
+            new Mock<IEffectiveServerOptionsProvider>();
+
+        effectiveOptionsProvider
+            .Setup(x => x.GetEffective(
+                It.IsAny<HttpContext>(),
+                It.IsAny<UAuthClientProfile>()))
+            .Returns(new EffectiveUAuthServerOptions
+            {
+                Mode = UAuthMode.PureOpaque,
+                Options = new UAuthServerOptions()
+            });
+
+        builder.Services.AddSingleton(effectiveOptionsProvider.Object);
 
         builder.Services
             .AddAuthentication(UAuthConstants.SchemeDefaults.GlobalScheme)

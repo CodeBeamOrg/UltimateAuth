@@ -16,6 +16,7 @@ public sealed class UAuthJwtTokenDescriptor
     public required DateTimeOffset IssuedAt { get; init; }
     public required DateTimeOffset ExpiresAt { get; init; }
     public TenantKey Tenant { get; init; }
+    public DeviceId? DeviceId { get; init; }
 
     public IReadOnlyDictionary<string, object>? Claims { get; init; }
 

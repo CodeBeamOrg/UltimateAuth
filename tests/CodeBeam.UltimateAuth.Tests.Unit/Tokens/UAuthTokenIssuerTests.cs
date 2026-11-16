@@ -13,26 +13,13 @@ namespace CodeBeam.UltimateAuth.Tests.Unit;
 
 public sealed class UAuthTokenIssuerTests
 {
-    private static readonly DateTimeOffset Now =
-        new(2026, 10, 6, 12, 0, 0, TimeSpan.Zero);
-
-    private static readonly TenantKey Tenant =
-        TenantKey.FromExternal("tenant-a");
-
-    private const string OpaqueToken =
-        "opaque-token-000000000000000000000000001";
-
-    private const string RefreshToken =
-        "refresh-token-00000000000000000000000001";
-
-    private const string RefreshHash =
-        "hashed-refresh-token";
-
-    private const string Jwt =
-        "header.payload.signature";
-
-    private const string JwtId =
-        "jwt-id-000000000000000000000000000001";
+    private static readonly DateTimeOffset Now = new(2026, 10, 6, 12, 0, 0, TimeSpan.Zero);
+    private static readonly TenantKey Tenant = TenantKey.FromExternal("tenant-a");
+    private const string OpaqueToken = "opaque-token-000000000000000000000000001";
+    private const string RefreshToken = "refresh-token-00000000000000000000000001";
+    private const string RefreshHash = "hashed-refresh-token";
+    private const string Jwt = "header.payload.signature";
+    private const string JwtId = "jwt-id-000000000000000000000000000001";
 
     // =====================================================================
     // Access token - PureOpaque
@@ -909,13 +896,9 @@ public sealed class UAuthTokenIssuerTests
     {
         var fixture = CreateFixture();
 
-        var flow = CreateFlow(
-            UAuthMode.PureJwt,
-            addJwtIdClaim: false);
+        var flow = CreateFlow(UAuthMode.PureJwt, addJwtIdClaim: false);
 
-        var context = CreateTokenContext(
-            sessionId: null,
-            claims: ClaimsSnapshot.Empty);
+        var context = CreateTokenContext(sessionId: null, claims: ClaimsSnapshot.Empty);
 
         UAuthJwtTokenDescriptor? captured = null;
 
@@ -930,13 +913,13 @@ public sealed class UAuthTokenIssuerTests
 
         captured.Should().NotBeNull();
 
-        captured!.Claims.Should().HaveCount(2);
+        captured!.Claims.Should().HaveCount(3);
 
-        captured.Claims!["sub"]
-            .Should().Be(context.UserKey.Value);
+        captured.Claims!["sub"].Should().Be(context.UserKey.Value);
 
-        captured.Claims["tenant"]
-            .Should().Be(context.Tenant.Value);
+        captured.Claims["tenant"].Should().Be(context.Tenant.Value);
+
+        captured.Claims["device_id"].Should().Be(context.DeviceId!.Value.Value);
 
         captured.Claims.Should().NotContainKey("sid");
         captured.Claims.Should().NotContainKey("jti");
@@ -988,13 +971,11 @@ public sealed class UAuthTokenIssuerTests
         var fixture = CreateFixture();
         var flow = CreateFlow(UAuthMode.PureJwt);
 
-        var sessionId = CreateSessionId(
-            "trusted-session-000000000000000000000001");
+        var sessionId = CreateSessionId("trusted-session-000000000000000000000001");
 
         var context = CreateTokenContext(
             sessionId: sessionId,
-            claims: ClaimsSnapshot.From(
-                ("sid", "attacker-session")));
+            claims: ClaimsSnapshot.From(("sid", "attacker-session")));
 
         Func<Task> act = async () =>
             await fixture.Sut.IssueAccessTokenAsync(
@@ -1004,8 +985,7 @@ public sealed class UAuthTokenIssuerTests
 
         await act.Should()
             .ThrowAsync<InvalidOperationException>()
-            .WithMessage(
-                "PureJwt access tokens must not be bound to a session or chain.");
+            .WithMessage("*must not be bound to a session or chain.");
 
         fixture.JwtGenerator.Verify(
             x => x.CreateToken(
@@ -1137,6 +1117,27 @@ public sealed class UAuthTokenIssuerTests
         refresh!.ExpiresAt.Should().Be(Now.AddMinutes(30));
     }
 
+    [Fact]
+    public async Task IssueAccessTokenAsync_WhenPureJwtHasNoDeviceId_ShouldReject()
+    {
+        var fixture = CreateFixture();
+        var flow = CreateFlow(UAuthMode.PureJwt);
+
+        var context = CreateTokenContext() with
+        {
+            DeviceId = null
+        };
+
+        Func<Task> act = () => fixture.Sut.IssueAccessTokenAsync(
+            flow,
+            context,
+            ct: TestContext.Current.CancellationToken);
+
+        await act.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage("*requires a device ID*");
+    }
+
     [Theory]
     [InlineData(UAuthMode.Hybrid)]
     [InlineData(UAuthMode.SemiHybrid)]
@@ -1210,7 +1211,11 @@ public sealed class UAuthTokenIssuerTests
         return flow;
     }
 
-    private static TokenIssuanceContext CreateTokenContext(AuthSessionId? sessionId = null, SessionChainId? chainId = null, ClaimsSnapshot? claims = null)
+    private static TokenIssuanceContext CreateTokenContext(
+        AuthSessionId? sessionId = null,
+        SessionChainId? chainId = null,
+        ClaimsSnapshot? claims = null,
+        DeviceId? deviceId = null)
     {
         return new TokenIssuanceContext
         {
@@ -1218,7 +1223,8 @@ public sealed class UAuthTokenIssuerTests
             Tenant = Tenant,
             SessionId = sessionId,
             ChainId = chainId,
-            Claims = claims ?? ClaimsSnapshot.Empty
+            Claims = claims ?? ClaimsSnapshot.Empty,
+            DeviceId = deviceId ?? DeviceId.Create("unit-test-device-0000000000000123456789")
         };
     }
 

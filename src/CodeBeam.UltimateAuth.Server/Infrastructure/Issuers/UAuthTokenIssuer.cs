@@ -44,14 +44,17 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
             UAuthMode.SemiHybrid =>
                 Task.FromResult(IssueJwtAccessToken(context, tokens, expires)),
 
-            UAuthMode.PureJwt when context.SessionId is null && context.ChainId is null =>
+            UAuthMode.PureJwt
+                when context.SessionId is null &&
+                     context.ChainId is null &&
+                     context.DeviceId is not null =>
                 Task.FromResult(IssueJwtAccessToken(context, tokens, expires)),
 
             UAuthMode.PureJwt =>
-                throw new InvalidOperationException("PureJwt access tokens must not be bound to a session or chain."),
+                throw new InvalidOperationException("PureJwt requires a device ID and must not be bound to a session or chain."),
 
-            _ => throw new InvalidOperationException(
-                $"Unsupported auth mode: {flow.EffectiveMode}")
+            _
+                => throw new InvalidOperationException($"Unsupported auth mode: {flow.EffectiveMode}")
         };
     }
 
@@ -126,6 +129,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
                 "sub" or
                 "tenant" or
                 "sid" or
+                "device_id" or
                 "jti" or
                 "iss" or
                 "aud" or
@@ -144,6 +148,15 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
         claims["sub"] = context.UserKey.Value;
         claims["tenant"] = context.Tenant.Value;
 
+        if (context.DeviceId is DeviceId deviceId)
+        {
+            claims["device_id"] = deviceId.Value;
+        }
+        else if (context.SessionId is null)
+        {
+            throw new InvalidOperationException("Session-free JWT issuance requires a device ID.");
+        }
+
         if (context.SessionId is AuthSessionId sessionId)
             claims["sid"] = sessionId.Value;
         else
@@ -160,6 +173,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
             IssuedAt = _clock.UtcNow,
             ExpiresAt = expires,
             Tenant = context.Tenant,
+            DeviceId = context.DeviceId,
             Claims = claims,
             KeyId = tokens.KeyId
         };

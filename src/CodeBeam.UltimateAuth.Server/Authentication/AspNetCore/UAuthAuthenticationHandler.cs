@@ -73,7 +73,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
             if (credential.Kind != TransportCredentialKind.AccessToken)
                 return AuthenticateResult.Fail("PureJwt requires an access token.");
 
-            return await AuthenticateJwtAsync(credential.Value, tenant);
+            return await AuthenticateJwtAsync(credential.Value, tenant, _effectiveOptions.GetEffective(tenant, clientProfile).Options.Session.DeviceMismatchBehavior);
         }
 
         if (credential is null)
@@ -161,7 +161,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         return Task.CompletedTask;
     }
 
-    private async Task<AuthenticateResult> AuthenticateJwtAsync(string token, TenantKey tenant)
+    private async Task<AuthenticateResult> AuthenticateJwtAsync(string token, TenantKey tenant, DeviceMismatchBehavior mismatchBehavior)
     {
         var validated = await _jwtValidator.ValidateAsync(token, tenant, Context.RequestAborted);
 
@@ -172,6 +172,34 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         if (validated.Claims.Any(x => x.Type == "sid"))
         {
             return AuthenticateResult.Fail("Session-bound JWT is not valid in PureJwt mode.");
+        }
+
+        var deviceClaims = validated.Claims
+            .Where(x => x.Type == "device_id")
+            .ToArray();
+
+        if (deviceClaims.Length != 1 || !DeviceId.TryCreate(deviceClaims[0].Value, out var tokenDeviceId))
+        {
+            return AuthenticateResult.Fail("PureJwt requires a valid device binding.");
+        }
+
+        if (mismatchBehavior == DeviceMismatchBehavior.AllowAndRebind)
+        {
+            return AuthenticateResult.Fail("Device rebinding is not supported in PureJwt.");
+        }
+
+        if (mismatchBehavior == DeviceMismatchBehavior.Reject)
+        {
+            var requestDevice = await Context.GetDeviceAsync();
+
+            if (!DeviceId.TryCreate(requestDevice.DeviceId.Value, out var requestDeviceId) || requestDeviceId != tokenDeviceId)
+            {
+                return AuthenticateResult.Fail("JWT device mismatch.");
+            }
+        }
+        else if (mismatchBehavior != DeviceMismatchBehavior.Allow)
+        {
+            return AuthenticateResult.Fail("Unsupported device mismatch behavior.");
         }
 
         var claims = validated.Claims.ToList();

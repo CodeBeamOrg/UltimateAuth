@@ -16,7 +16,8 @@ internal static class JwtPayloadGuard
             "nbf",
             "iat",
             "jti",
-            "sid"
+            "sid",
+            "device_id"
         };
 
     public static bool IsValid(string token)
