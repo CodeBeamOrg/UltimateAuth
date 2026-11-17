@@ -749,14 +749,11 @@ public sealed class UAuthFlowServiceTests
             options: TestServerOptions.Default(),
             response: new EffectiveAuthResponse(
                 sessionIdDelivery:
-                    CredentialResponseOptions.Disabled(
-                        GrantKind.Session),
+                    EffectiveGrantDelivery.Disabled(GrantKind.Session),
                 accessTokenDelivery:
-                    CredentialResponseOptions.Disabled(
-                        GrantKind.AccessToken),
+                    EffectiveGrantDelivery.Disabled(GrantKind.AccessToken),
                 refreshTokenDelivery:
-                    CredentialResponseOptions.Disabled(
-                        GrantKind.RefreshToken),
+                    EffectiveGrantDelivery.Disabled(GrantKind.RefreshToken),
                 redirect:
                     EffectiveRedirectResponse.Disabled),
             primaryTokenKind: PrimaryTokenKind.Session,

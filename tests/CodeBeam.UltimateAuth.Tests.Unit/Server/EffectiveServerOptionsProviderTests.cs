@@ -205,11 +205,8 @@ public class EffectiveServerOptionsProviderTests
         effective.Options.Cookie.Session.Lifetime.IdleBuffer
             .Should().Be(TimeSpan.FromDays(2));
 
-        effective.Options.AuthResponse.RefreshTokenDelivery.Mode
-            .Should().Be(TokenResponseMode.None);
-
-        effective.Options.AuthResponse.RefreshTokenDelivery.TokenFormat
-            .Should().Be(TokenFormat.Opaque);
+        effective.Options.GrantDelivery.RefreshToken.Mode
+            .Should().BeNull();
     }
 
     [Fact]
@@ -263,11 +260,8 @@ public class EffectiveServerOptionsProviderTests
         options.Cookie.RefreshToken.Lifetime.IdleBuffer
             .Should().Be(TimeSpan.FromMinutes(5));
 
-        options.AuthResponse.RefreshTokenDelivery.Mode
-            .Should().Be(TokenResponseMode.Cookie);
-
-        options.AuthResponse.RefreshTokenDelivery.TokenFormat
-            .Should().Be(TokenFormat.Opaque);
+        options.GrantDelivery.RefreshToken.Mode
+            .Should().BeNull();
     }
 
     [Fact]

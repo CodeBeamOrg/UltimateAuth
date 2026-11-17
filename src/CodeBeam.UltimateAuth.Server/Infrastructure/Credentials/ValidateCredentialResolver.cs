@@ -34,7 +34,7 @@ internal sealed class ValidateCredentialResolver : IValidateCredentialResolver
     {
         var delivery = response.SessionIdDelivery;
 
-        if (delivery.Mode != TokenResponseMode.Cookie)
+        if (delivery.Mode != GrantDeliveryMode.Cookie)
             return null;
 
         var cookie = delivery.Cookie;
@@ -60,7 +60,7 @@ internal sealed class ValidateCredentialResolver : IValidateCredentialResolver
     {
         var delivery = response.AccessTokenDelivery;
 
-        if (delivery.Mode == TokenResponseMode.Cookie)
+        if (delivery.Mode == GrantDeliveryMode.Cookie)
         {
             var cookieName = delivery.Cookie?.Name;
 
@@ -80,7 +80,7 @@ internal sealed class ValidateCredentialResolver : IValidateCredentialResolver
             };
         }
 
-        if (delivery.Mode != TokenResponseMode.Header)
+        if (delivery.Mode != GrantDeliveryMode.Header)
             return null;
 
         var headerName = delivery.Name ?? "Authorization";

@@ -60,7 +60,9 @@ public sealed class RefreshTokenResolverTests
         var context = TestHttpContext.Create();
         context.Request.Headers.Cookie = "uar=cookie-token";
 
-        var result = Resolve(context, CookieDelivery("uar"));
+        var result = Resolve(
+            context,
+            CookieDelivery("uar"));
 
         Assert.Equal("cookie-token", result);
     }
@@ -71,7 +73,9 @@ public sealed class RefreshTokenResolverTests
         var context = CreateContext();
         context.Request.Headers.Authorization = "Bearer bearer-token";
 
-        var result = Resolve(context, CredentialResponseOptions.Disabled(GrantKind.RefreshToken));
+        var result = Resolve(
+            context,
+            EffectiveGrantDelivery.Disabled(GrantKind.RefreshToken));
 
         Assert.Null(result);
     }
@@ -79,12 +83,15 @@ public sealed class RefreshTokenResolverTests
     [Theory]
     [InlineData("Bearer bearer-token")]
     [InlineData("bEaReR bearer-token")]
-    public void Resolve_WhenAuthorizationIsNotConfiguredAsRefreshHeader_ReturnsNull(string authorization)
+    public void Resolve_WhenAuthorizationIsNotConfiguredAsRefreshHeader_ReturnsNull(
+        string authorization)
     {
         var context = TestHttpContext.Create();
         context.Request.Headers.Authorization = authorization;
 
-        var result = Resolve(context, HeaderDelivery("uar"));
+        var result = Resolve(
+            context,
+            HeaderDelivery("uar"));
 
         Assert.Null(result);
     }
@@ -92,12 +99,15 @@ public sealed class RefreshTokenResolverTests
     [Theory]
     [InlineData("Bearer bearer-token")]
     [InlineData("bEaReR bearer-token")]
-    public void Resolve_WhenAuthorizationIsConfiguredAsRefreshHeader_ReturnsToken(string authorization)
+    public void Resolve_WhenAuthorizationIsConfiguredAsRefreshHeader_ReturnsToken(
+        string authorization)
     {
         var context = TestHttpContext.Create();
         context.Request.Headers.Authorization = authorization;
 
-        var result = Resolve(context, HeaderDelivery("Authorization"));
+        var result = Resolve(
+            context,
+            HeaderDelivery("Authorization"));
 
         Assert.Equal("bearer-token", result);
     }
@@ -113,7 +123,9 @@ public sealed class RefreshTokenResolverTests
         var context = CreateContext();
         context.Request.Headers["X-Refresh-Token"] = header;
 
-        var result = Resolve(context, HeaderDelivery("X-Refresh-Token"));
+        var result = Resolve(
+            context,
+            HeaderDelivery("X-Refresh-Token"));
 
         Assert.Equal(expected, result);
     }
@@ -123,7 +135,9 @@ public sealed class RefreshTokenResolverTests
     {
         var context = CreateContext();
 
-        var result = Resolve(context, CredentialResponseOptions.Disabled(GrantKind.RefreshToken));
+        var result = Resolve(
+            context,
+            EffectiveGrantDelivery.Disabled(GrantKind.RefreshToken));
 
         Assert.Null(result);
     }
@@ -132,10 +146,13 @@ public sealed class RefreshTokenResolverTests
     public void Resolve_WhenCookieAndBearerExist_PrefersCookie()
     {
         var context = CreateContext();
+
         context.Request.Headers.Cookie = "uar=cookie-token";
         context.Request.Headers.Authorization = "Bearer bearer-token";
 
-        var result = Resolve(context, CookieDelivery("uar"));
+        var result = Resolve(
+            context,
+            CookieDelivery("uar"));
 
         Assert.Equal("cookie-token", result);
     }
@@ -148,7 +165,9 @@ public sealed class RefreshTokenResolverTests
         context.Request.Headers.Cookie = "uar=cookie-token";
         context.Request.Headers["X-Refresh-Token"] = "header-token";
 
-        var result = Resolve(context, CookieDelivery("uar"));
+        var result = Resolve(
+            context,
+            CookieDelivery("uar"));
 
         Assert.Equal("header-token", result);
     }
@@ -167,7 +186,9 @@ public sealed class RefreshTokenResolverTests
         var context = CreateContext();
         context.Request.Headers.Authorization = authorization;
 
-        var result = Resolve(context, CredentialResponseOptions.Disabled(GrantKind.RefreshToken));
+        var result = Resolve(
+            context,
+            EffectiveGrantDelivery.Disabled(GrantKind.RefreshToken));
 
         Assert.Null(result);
     }
@@ -176,10 +197,13 @@ public sealed class RefreshTokenResolverTests
     public void Resolve_WhenBearerTokenIsEmpty_FallsBackToRefreshHeader()
     {
         var context = CreateContext();
+
         context.Request.Headers.Authorization = "Bearer   ";
         context.Request.Headers["X-Refresh-Token"] = "header-token";
 
-        var result = Resolve(context, HeaderDelivery("X-Refresh-Token"));
+        var result = Resolve(
+            context,
+            HeaderDelivery("X-Refresh-Token"));
 
         Assert.Equal("header-token", result);
     }
@@ -192,7 +216,9 @@ public sealed class RefreshTokenResolverTests
         context.Request.Headers.Cookie = "uar=";
         context.Request.Headers.Authorization = "Bearer bearer-token";
 
-        var result = Resolve(context, CookieDelivery("uar"));
+        var result = Resolve(
+            context,
+            CookieDelivery("uar"));
 
         Assert.Null(result);
     }
@@ -204,7 +230,9 @@ public sealed class RefreshTokenResolverTests
 
         context.Request.Headers.Cookie = "uar=wrong-token";
 
-        var result = Resolve(context, CookieDelivery("custom-refresh"));
+        var result = Resolve(
+            context,
+            CookieDelivery("custom-refresh"));
 
         Assert.Null(result);
     }
@@ -217,7 +245,9 @@ public sealed class RefreshTokenResolverTests
         context.Request.Headers.Cookie = "uar=cookie-token";
         context.Request.Headers["X-Refresh-Token"] = "   ";
 
-        var result = Resolve(context, CookieDelivery("uar"));
+        var result = Resolve(
+            context,
+            CookieDelivery("uar"));
 
         Assert.Equal("cookie-token", result);
     }
@@ -230,25 +260,102 @@ public sealed class RefreshTokenResolverTests
         context.Request.Headers.Authorization = "Bearer session-id";
         context.Request.Headers.Cookie = "uar=refresh-token";
 
-        var result = Resolve(context, CookieDelivery("uar"));
+        var result = Resolve(
+            context,
+            CookieDelivery("uar"));
 
         Assert.Equal("refresh-token", result);
     }
 
+    [Fact]
+    public void Resolve_WhenDeliveryIsNone_DoesNotReadRefreshCookie()
+    {
+        var context = TestHttpContext.Create();
+        context.Request.Headers.Cookie = "uar=refresh-token";
+
+        var result = Resolve(
+            context,
+            EffectiveGrantDelivery.Disabled(GrantKind.RefreshToken));
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void Resolve_WhenHeaderDeliveryIsConfigured_DoesNotReadCookie()
+    {
+        var context = TestHttpContext.Create();
+        context.Request.Headers.Cookie = "uar=cookie-token";
+
+        var result = Resolve(
+            context,
+            HeaderDelivery("uar"));
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void Resolve_WhenCookieDeliveryIsConfigured_DoesNotReadUnconfiguredHeader()
+    {
+        var context = TestHttpContext.Create();
+        context.Request.Headers["uar"] = "Bearer header-token";
+
+        var result = Resolve(
+            context,
+            CookieDelivery("uar"));
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void Resolve_WhenCookieOptionsAreMissing_ReturnsNull()
+    {
+        var context = TestHttpContext.Create();
+        context.Request.Headers.Cookie = "uar=refresh-token";
+
+        var delivery = new EffectiveGrantDelivery(
+            kind: GrantKind.RefreshToken,
+            tokenFormat: TokenFormat.Opaque,
+            mode: GrantDeliveryMode.Cookie);
+
+        var result = Resolve(context, delivery);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void Resolve_WhenHeaderNameIsMissing_ReturnsNull()
+    {
+        var context = TestHttpContext.Create();
+        context.Request.Headers["uar"] = "Bearer refresh-token";
+
+        var delivery = new EffectiveGrantDelivery(
+            kind: GrantKind.RefreshToken,
+            tokenFormat: TokenFormat.Opaque,
+            mode: GrantDeliveryMode.Header);
+
+        var result = Resolve(context, delivery);
+
+        Assert.Null(result);
+    }
 
     private static DefaultHttpContext CreateContext()
         => new();
 
-    private static string? Resolve(HttpContext context, CredentialResponseOptions refreshDelivery)
+    private static string? Resolve(
+        HttpContext context,
+        EffectiveGrantDelivery refreshDelivery)
     {
         var response = new EffectiveAuthResponse(
-            sessionIdDelivery: CredentialResponseOptions.Disabled(GrantKind.Session),
-            accessTokenDelivery: CredentialResponseOptions.Disabled(GrantKind.AccessToken),
+            sessionIdDelivery: EffectiveGrantDelivery.Disabled(
+                GrantKind.Session),
+            accessTokenDelivery: EffectiveGrantDelivery.Disabled(
+                GrantKind.AccessToken),
             refreshTokenDelivery: refreshDelivery,
-            redirect: EffectiveRedirectResponse.Disabled
-        );
+            redirect: EffectiveRedirectResponse.Disabled);
 
-        var flow = AuthFlowTestFactory.New(response: response, mode: UAuthMode.Hybrid);
+        var flow = AuthFlowTestFactory.New(
+            response: response,
+            mode: UAuthMode.Hybrid);
 
         var httpAccessor = new HttpContextAccessor
         {
@@ -263,28 +370,27 @@ public sealed class RefreshTokenResolverTests
         return resolver.Resolve(context);
     }
 
-    private static CredentialResponseOptions CookieDelivery(string cookieName = "uar")
+    private static EffectiveGrantDelivery CookieDelivery(
+        string cookieName = "uar")
     {
-        return new CredentialResponseOptions
-        {
-            Kind = GrantKind.RefreshToken,
-            Mode = TokenResponseMode.Cookie,
-            TokenFormat = TokenFormat.Opaque
-        }.WithCookie(new UAuthCookieOptions
-        {
-            Name = cookieName
-        });
+        return new EffectiveGrantDelivery(
+            kind: GrantKind.RefreshToken,
+            tokenFormat: TokenFormat.Opaque,
+            mode: GrantDeliveryMode.Cookie,
+            cookie: new UAuthCookieOptions
+            {
+                Name = cookieName
+            });
     }
 
-    private static CredentialResponseOptions HeaderDelivery(string headerName = "uar")
+    private static EffectiveGrantDelivery HeaderDelivery(
+        string headerName = "uar")
     {
-        return new CredentialResponseOptions
-        {
-            Kind = GrantKind.RefreshToken,
-            Mode = TokenResponseMode.Header,
-            TokenFormat = TokenFormat.Opaque,
-            HeaderFormat = HeaderTokenFormat.Bearer,
-            Name = headerName
-        };
+        return new EffectiveGrantDelivery(
+            kind: GrantKind.RefreshToken,
+            tokenFormat: TokenFormat.Opaque,
+            mode: GrantDeliveryMode.Header,
+            name: headerName,
+            headerFormat: HeaderTokenFormat.Bearer);
     }
 }

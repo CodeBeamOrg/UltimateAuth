@@ -5,5 +5,5 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public interface IUAuthHeaderPolicyBuilder
 {
-    string BuildHeaderValue(string rawValue, CredentialResponseOptions response, AuthFlowContext context);
+    string BuildHeaderValue(string rawValue, EffectiveGrantDelivery delivery, AuthFlowContext context);
 }

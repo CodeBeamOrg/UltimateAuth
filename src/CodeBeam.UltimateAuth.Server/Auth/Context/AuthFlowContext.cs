@@ -30,8 +30,8 @@ public sealed class AuthFlowContext
 
     // Helpers
     public bool AllowsTokenIssuance =>
-        Response.AccessTokenDelivery.Mode != TokenResponseMode.None ||
-        Response.RefreshTokenDelivery.Mode != TokenResponseMode.None;
+        Response.AccessTokenDelivery.Mode != GrantDeliveryMode.None ||
+        Response.RefreshTokenDelivery.Mode != GrantDeliveryMode.None;
 
     public bool IsSingleTenant => Tenant.IsSingle;
     public bool IsMultiTenant => Tenant.IsNormal;

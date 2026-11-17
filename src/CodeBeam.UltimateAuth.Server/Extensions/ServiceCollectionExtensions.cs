@@ -249,7 +249,6 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IValidateCredentialResolver, ValidateCredentialResolver>();
         services.TryAddScoped<ITransportCredentialResolver, TransportCredentialResolver>();
         services.TryAddScoped<IPrimaryCredentialResolver, PrimaryCredentialResolver>();
-        services.TryAddSingleton<AuthResponseOptionsModeTemplateResolver>();
         services.TryAddSingleton<IAuthResponseResolver, AuthResponseResolver>();
         services.TryAddSingleton<IEffectiveAuthModeResolver, EffectiveAuthModeResolver>();
         services.TryAddSingleton<IPrimaryTokenResolver, PrimaryTokenResolver>();
@@ -323,7 +322,6 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IRefreshResponseWriter, RefreshResponseWriter>();
         services.TryAddSingleton<IClientProfileReader, ClientProfileReader>();
         
-        services.TryAddSingleton<ClientProfileAuthResponseAdapter>();
         services.TryAddScoped<IEffectiveServerOptionsProvider, EffectiveServerOptionsProvider>();
 
         services.TryAddSingleton<IUAuthHeaderPolicyBuilder, UAuthHeaderPolicyBuilder>();

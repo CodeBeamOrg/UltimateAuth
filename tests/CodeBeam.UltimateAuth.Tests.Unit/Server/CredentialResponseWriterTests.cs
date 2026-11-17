@@ -1,10 +1,11 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
@@ -33,11 +34,12 @@ public class CredentialResponseWriterTests
     [InlineData(GrantKind.RefreshToken)]
     public void Header_delivery_should_write_correct_grant(GrantKind kind)
     {
-        var delivery = new CredentialResponseOptions
-        {
-            Mode = TokenResponseMode.Header,
-            HeaderFormat = HeaderTokenFormat.Bearer
-        };
+        var delivery = new EffectiveGrantDelivery(
+            kind,
+            TokenFormat.Opaque,
+            GrantDeliveryMode.Header,
+            name: "Authorization",
+            headerFormat: HeaderTokenFormat.Bearer);
 
         var setup = CreateWriter(CreateResponse(kind, delivery));
         var context = TestHttpContext.Create();
@@ -48,16 +50,18 @@ public class CredentialResponseWriterTests
             .Should().Be("Bearer secret-token");
 
         setup.CookieManager.WriteCount.Should().Be(0);
+        setup.CookiePolicy.BuildCount.Should().Be(0);
     }
 
     [Fact]
     public void Raw_header_delivery_should_not_add_bearer_prefix()
     {
-        var delivery = new CredentialResponseOptions
-        {
-            Mode = TokenResponseMode.Header,
-            HeaderFormat = HeaderTokenFormat.Raw
-        };
+        var delivery = new EffectiveGrantDelivery(
+            GrantKind.AccessToken,
+            TokenFormat.Jwt,
+            GrantDeliveryMode.Header,
+            name: "Authorization",
+            headerFormat: HeaderTokenFormat.Raw);
 
         var setup = CreateWriter(
             CreateResponse(GrantKind.AccessToken, delivery));
@@ -76,12 +80,12 @@ public class CredentialResponseWriterTests
     [Fact]
     public void Header_delivery_should_support_custom_header_name()
     {
-        var delivery = new CredentialResponseOptions
-        {
-            Mode = TokenResponseMode.Header,
-            Name = "X-UAuth-Token",
-            HeaderFormat = HeaderTokenFormat.Raw
-        };
+        var delivery = new EffectiveGrantDelivery(
+            GrantKind.AccessToken,
+            TokenFormat.Jwt,
+            GrantDeliveryMode.Header,
+            name: "X-UAuth-Token",
+            headerFormat: HeaderTokenFormat.Raw);
 
         var setup = CreateWriter(
             CreateResponse(GrantKind.AccessToken, delivery));
@@ -103,11 +107,12 @@ public class CredentialResponseWriterTests
     [Fact]
     public void Header_delivery_should_replace_existing_header()
     {
-        var delivery = new CredentialResponseOptions
-        {
-            Mode = TokenResponseMode.Header,
-            HeaderFormat = HeaderTokenFormat.Bearer
-        };
+        var delivery = new EffectiveGrantDelivery(
+            GrantKind.AccessToken,
+            TokenFormat.Jwt,
+            GrantDeliveryMode.Header,
+            name: "Authorization",
+            headerFormat: HeaderTokenFormat.Bearer);
 
         var setup = CreateWriter(
             CreateResponse(GrantKind.AccessToken, delivery));
@@ -131,13 +136,16 @@ public class CredentialResponseWriterTests
     public void Cookie_delivery_should_write_correct_credential(
         GrantKind kind)
     {
-        var delivery = new CredentialResponseOptions
-        {
-            Mode = TokenResponseMode.Cookie
-        }.WithCookie(new UAuthCookieOptions
+        var cookie = new UAuthCookieOptions
         {
             Name = "uauth-credential"
-        });
+        };
+
+        var delivery = new EffectiveGrantDelivery(
+            kind,
+            TokenFormat.Opaque,
+            GrantDeliveryMode.Cookie,
+            cookie: cookie);
 
         var setup = CreateWriter(CreateResponse(kind, delivery));
         var context = TestHttpContext.Create();
@@ -165,10 +173,10 @@ public class CredentialResponseWriterTests
     public void Cookie_delivery_without_options_should_throw(
         GrantKind kind)
     {
-        var delivery = new CredentialResponseOptions
-        {
-            Mode = TokenResponseMode.Cookie
-        };
+        var delivery = new EffectiveGrantDelivery(
+            kind,
+            TokenFormat.Opaque,
+            GrantDeliveryMode.Cookie);
 
         var setup = CreateWriter(CreateResponse(kind, delivery));
         var context = TestHttpContext.Create();
@@ -191,10 +199,10 @@ public class CredentialResponseWriterTests
     public void Body_delivery_should_throw_not_supported(
         GrantKind kind)
     {
-        var delivery = new CredentialResponseOptions
-        {
-            Mode = TokenResponseMode.Body
-        };
+        var delivery = new EffectiveGrantDelivery(
+            kind,
+            TokenFormat.Opaque,
+            GrantDeliveryMode.Body);
 
         var setup = CreateWriter(CreateResponse(kind, delivery));
         var context = TestHttpContext.Create();
@@ -204,7 +212,9 @@ public class CredentialResponseWriterTests
 
         act.Should()
             .Throw<NotSupportedException>()
-            .WithMessage("*Body token delivery is not supported*");
+            .WithMessage("*Body grant delivery is not supported*");
+
+        setup.CookieManager.WriteCount.Should().Be(0);
     }
 
     [Fact]
@@ -227,11 +237,12 @@ public class CredentialResponseWriterTests
     [Fact]
     public void Header_policy_failure_should_propagate()
     {
-        var delivery = new CredentialResponseOptions
-        {
-            Mode = TokenResponseMode.Header,
-            HeaderFormat = (HeaderTokenFormat)999
-        };
+        var delivery = new EffectiveGrantDelivery(
+            GrantKind.AccessToken,
+            TokenFormat.Jwt,
+            GrantDeliveryMode.Header,
+            name: "Authorization",
+            headerFormat: (HeaderTokenFormat)999);
 
         var setup = CreateWriter(
             CreateResponse(GrantKind.AccessToken, delivery));
@@ -250,6 +261,61 @@ public class CredentialResponseWriterTests
 
         context.Response.Headers.ContainsKey("Authorization")
             .Should().BeFalse();
+    }
+
+    [Fact]
+    public void Mismatched_grant_kind_should_throw()
+    {
+        var delivery = new EffectiveGrantDelivery(
+            GrantKind.RefreshToken,
+            TokenFormat.Opaque,
+            GrantDeliveryMode.Header,
+            name: "Authorization");
+
+        var setup = CreateWriter(
+            CreateResponse(GrantKind.AccessToken, delivery));
+
+        var context = TestHttpContext.Create();
+
+        Action act = () =>
+            setup.Writer.WriteInternal(
+                context,
+                GrantKind.AccessToken,
+                "token");
+
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("*does not match*");
+
+        context.Response.Headers.Should().BeEmpty();
+        setup.CookieManager.WriteCount.Should().Be(0);
+    }
+
+    [Fact]
+    public void Unsupported_delivery_mode_should_throw()
+    {
+        var delivery = new EffectiveGrantDelivery(
+            GrantKind.AccessToken,
+            TokenFormat.Jwt,
+            (GrantDeliveryMode)999);
+
+        var setup = CreateWriter(
+            CreateResponse(GrantKind.AccessToken, delivery));
+
+        var context = TestHttpContext.Create();
+
+        Action act = () =>
+            setup.Writer.WriteInternal(
+                context,
+                GrantKind.AccessToken,
+                "token");
+
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("*Unsupported grant delivery mode*");
+
+        context.Response.Headers.Should().BeEmpty();
+        setup.CookieManager.WriteCount.Should().Be(0);
     }
 
     private static WriterSetup CreateWriter(EffectiveAuthResponse response)
@@ -274,11 +340,11 @@ public class CredentialResponseWriterTests
 
     private static EffectiveAuthResponse CreateResponse(
         GrantKind? kind = null,
-        CredentialResponseOptions? delivery = null)
+        EffectiveGrantDelivery? delivery = null)
     {
-        var session = CredentialResponseOptions.Disabled(GrantKind.Session);
-        var access = CredentialResponseOptions.Disabled(GrantKind.AccessToken);
-        var refresh = CredentialResponseOptions.Disabled(GrantKind.RefreshToken);
+        var session = EffectiveGrantDelivery.Disabled(GrantKind.Session);
+        var access = EffectiveGrantDelivery.Disabled(GrantKind.AccessToken);
+        var refresh = EffectiveGrantDelivery.Disabled(GrantKind.RefreshToken);
 
         switch (kind)
         {
@@ -359,7 +425,7 @@ public class CredentialResponseWriterTests
     {
         public int BuildCount { get; private set; }
         public GrantKind? LastKind { get; private set; }
-        public CredentialResponseOptions? LastDelivery { get; private set; }
+        public EffectiveGrantDelivery? LastDelivery { get; private set; }
         public AuthFlowContext? LastAuth { get; private set; }
 
         public CookieOptions CookieOptions { get; } = new()
@@ -370,12 +436,12 @@ public class CredentialResponseWriterTests
         };
 
         public CookieOptions Build(
-            CredentialResponseOptions response,
+            EffectiveGrantDelivery delivery,
             AuthFlowContext context,
             GrantKind kind)
         {
             BuildCount++;
-            LastDelivery = response;
+            LastDelivery = delivery;
             LastAuth = context;
             LastKind = kind;
 

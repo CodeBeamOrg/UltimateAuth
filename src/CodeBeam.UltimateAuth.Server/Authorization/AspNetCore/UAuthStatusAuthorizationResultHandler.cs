@@ -53,24 +53,20 @@ internal sealed class UAuthStatusAuthorizationResultHandler : IAuthorizationMidd
         // PureJwt stateless authorization applies only to Server runtime.
         if (runtime is not ResourceRuntimeMarker)
         {
-            var profileReader = context.RequestServices
-                .GetRequiredService<IClientProfileReader>();
+            var profileReader = context.RequestServices.GetRequiredService<IClientProfileReader>();
 
-            var optionsProvider = context.RequestServices
-                .GetRequiredService<IEffectiveServerOptionsProvider>();
+            var optionsProvider = context.RequestServices.GetRequiredService<IEffectiveServerOptionsProvider>();
 
             var clientProfile = await profileReader.ReadAsync(context);
 
-            var effective = optionsProvider.GetEffective(
-                context, clientProfile);
+            var effective = optionsProvider.GetEffective(context, clientProfile);
 
             if (effective.Mode == UAuthMode.PureJwt)
             {
                 // Authentication already validated the JWT.
                 // ASP.NET Core authorization has already succeeded.
                 // No runtime user-state lookup is required.
-                await _default.HandleAsync(
-                    next, context, policy, authorizeResult);
+                await _default.HandleAsync(next, context, policy, authorizeResult);
 
                 return;
             }

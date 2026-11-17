@@ -118,7 +118,16 @@ public sealed class UAuthServerOptions
 
     public UAuthPrimaryCredentialPolicy PrimaryCredential { get; init; } = new();
 
-    public UAuthResponseOptions AuthResponse { get; init; } = new();
+    /// <summary>
+    /// Configures how authentication grants are delivered
+    /// to clients.
+    /// </summary>
+    public UAuthGrantDeliveryOptions GrantDelivery { get; set; } = new();
+
+    /// <summary>
+    /// Configures authentication flow redirects.
+    /// </summary>
+    public UAuthRedirectOptions Redirect { get; set; } = new();
 
     public UAuthResetOptions ResetCredential { get; init; } = new();
 
@@ -163,6 +172,18 @@ public sealed class UAuthServerOptions
     /// </summary>
     public UAuthArtifactStoreOptions AuthArtifacts { get; set; } = new();
 
+    [Obsolete("AuthResponse is no longer supported. Use GrantDelivery and Redirect instead.")]
+    public UAuthResponseOptions AuthResponse
+    {
+        get => throw new NotSupportedException(
+            "AuthResponse is no longer supported. " +
+            "Use GrantDelivery and Redirect instead.");
+
+        set => throw new NotSupportedException(
+            "AuthResponse is no longer supported. " +
+            "Use GrantDelivery and Redirect instead.");
+    }
+
 
     // -------------------------------------------------------
     // CUSTOMIZATION HOOKS
@@ -202,7 +223,8 @@ public sealed class UAuthServerOptions
             Cookie = Cookie.Clone(),
             Diagnostics = Diagnostics.Clone(),
             PrimaryCredential = PrimaryCredential.Clone(),
-            AuthResponse = AuthResponse.Clone(),
+            GrantDelivery = GrantDelivery.Clone(),
+            Redirect = Redirect.Clone(),
             ResetCredential = ResetCredential.Clone(),
             CredentialSessionPolicy = CredentialSessionPolicy.Clone(),
             Password = Password.Clone(),

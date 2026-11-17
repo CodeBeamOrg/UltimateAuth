@@ -182,14 +182,14 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
         return Results.Ok();
     }
 
-    private void DeleteIfCookie(HttpContext ctx, CredentialResponseOptions delivery)
+    private void DeleteIfCookie(HttpContext ctx, EffectiveGrantDelivery delivery)
     {
-        if (delivery.Mode != TokenResponseMode.Cookie)
+        if (delivery.Mode != GrantDeliveryMode.Cookie)
             return;
 
-        if (delivery.Cookie == null)
-            return;
+        var cookie = delivery.Cookie
+            ?? throw new InvalidOperationException($"Cookie options are missing for grant '{delivery.Kind}'.");
 
-        _cookieManager.Delete(ctx, delivery.Cookie.Name);
+        _cookieManager.Delete(ctx, cookie.Name);
     }
 }

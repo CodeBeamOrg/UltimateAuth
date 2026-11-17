@@ -26,14 +26,12 @@ public class RedirectTests
         services.AddOptions();
         services.Configure<UAuthServerOptions>(o =>
         {
-            o.AuthResponse.Login.AllowReturnUrlOverride = false;
-            o.AuthResponse.Login.SuccessRedirect = "/welcome";
+            o.Redirect.Login.AllowReturnUrlOverride = false;
+            o.Redirect.Login.SuccessRedirect = "/welcome";
         });
 
         services.AddSingleton<IEffectiveAuthModeResolver, TestAuthModeResolver>();
         services.AddSingleton<IEffectiveServerOptionsProvider, EffectiveServerOptionsProvider>();
-        services.AddSingleton<AuthResponseOptionsModeTemplateResolver>();
-        services.AddSingleton<ClientProfileAuthResponseAdapter>();
         services.AddSingleton<IAuthResponseResolver, AuthResponseResolver>();
 
         var provider = services.BuildServiceProvider();

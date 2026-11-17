@@ -527,9 +527,9 @@ public sealed class RefreshFlowServiceTests
             session: null,
             options: effective.Options,
             response: new EffectiveAuthResponse(
-                sessionIdDelivery: CredentialResponseOptions.Disabled(GrantKind.Session),
-                accessTokenDelivery: CredentialResponseOptions.Disabled(GrantKind.AccessToken),
-                refreshTokenDelivery: CredentialResponseOptions.Disabled(GrantKind.RefreshToken),
+                sessionIdDelivery: EffectiveGrantDelivery.Disabled(GrantKind.Session),
+                accessTokenDelivery: EffectiveGrantDelivery.Disabled(GrantKind.AccessToken),
+                refreshTokenDelivery: EffectiveGrantDelivery.Disabled(GrantKind.RefreshToken),
                 redirect: EffectiveRedirectResponse.Disabled),
             primaryTokenKind: PrimaryTokenKind.AccessToken,
             returnUrlInfo: ReturnUrlInfo.None());

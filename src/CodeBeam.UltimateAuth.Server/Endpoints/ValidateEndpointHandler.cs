@@ -120,8 +120,7 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
                         RootId = result.RootId,
                         BoundDeviceId = result.BoundDeviceId
                     },
-                    statusCode:
-                        StatusCodes.Status401Unauthorized);
+                    statusCode: StatusCodes.Status401Unauthorized);
             }
 
             return Results.Ok(new AuthValidationResult
@@ -148,8 +147,7 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
     {
         var result = await context.AuthenticateAsync(UAuthConstants.SchemeDefaults.GlobalScheme);
 
-        if (!result.Succeeded ||
-            result.Principal?.Identity?.IsAuthenticated != true)
+        if (!result.Succeeded || result.Principal?.Identity?.IsAuthenticated != true)
         {
             return Results.Json(
                 new AuthValidationResult
@@ -161,8 +159,7 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
 
         var principal = result.Principal;
 
-        var subject = principal.FindFirst(
-            ClaimTypes.NameIdentifier)?.Value;
+        var subject = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (!UserKey.TryParse(subject, null, out var userKey))
         {
@@ -180,8 +177,7 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
             {
                 UserKey = userKey,
                 Tenant = context.GetTenant(),
-                PrimaryUserName = principal.FindFirst(
-                    ClaimTypes.Name)?.Value,
+                PrimaryUserName = principal.FindFirst(ClaimTypes.Name)?.Value,
                 AuthenticatedAt = null,
                 SessionState = null,
                 UserStatus = UserStatus.Unknown
