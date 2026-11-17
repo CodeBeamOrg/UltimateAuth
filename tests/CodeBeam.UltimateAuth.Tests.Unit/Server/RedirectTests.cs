@@ -75,10 +75,7 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureCodes: null,
-                allowReturnUrlOverride: true,
-                includeLockoutTiming: true,
-                includeRemainingAttempts: false
+                allowReturnUrlOverride: true
             )
         );
 
@@ -99,10 +96,7 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureCodes: null,
-                allowReturnUrlOverride: false,
-                includeLockoutTiming: true,
-                includeRemainingAttempts: false
+                allowReturnUrlOverride: false
             )
         );
 
@@ -121,10 +115,7 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureCodes: null,
-                allowReturnUrlOverride: true,
-                includeLockoutTiming: true,
-                includeRemainingAttempts: false
+                allowReturnUrlOverride: true
             )
         );
 
@@ -144,10 +135,7 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureCodes: null,
-                allowReturnUrlOverride: true,
-                includeLockoutTiming: true,
-                includeRemainingAttempts: false
+                allowReturnUrlOverride: true
             )
         );
 
@@ -166,10 +154,7 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureCodes: null,
-                allowReturnUrlOverride: true,
-                includeLockoutTiming: true,
-                includeRemainingAttempts: false
+                allowReturnUrlOverride: true
             )
         );
 
@@ -187,13 +172,7 @@ public class RedirectTests
             enabled: true,
             successPath: "/welcome",
             failurePath: "/login",
-            failureCodes: new Dictionary<AuthFailureReason, string>
-            {
-                [AuthFailureReason.InvalidCredentials] = "bad_credentials"
-            },
-            allowReturnUrlOverride: false,
-            includeLockoutTiming: true,
-            includeRemainingAttempts: true
+            allowReturnUrlOverride: false
         );
 
         var flow = AuthFlowTestFactory.LoginSuccess(
@@ -236,10 +215,7 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureCodes: null,
-                allowReturnUrlOverride: true,
-                includeLockoutTiming: true,
-                includeRemainingAttempts: false));
+                allowReturnUrlOverride: true));
 
         flow.Options.Hub.AllowedClientOrigins.Clear();
 
@@ -262,10 +238,7 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureCodes: null,
-                allowReturnUrlOverride: true,
-                includeLockoutTiming: true,
-                includeRemainingAttempts: false));
+                allowReturnUrlOverride: true));
 
         flow.Options.Hub.AllowedClientOrigins.Clear();
 

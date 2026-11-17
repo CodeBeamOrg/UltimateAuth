@@ -3,17 +3,37 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Options;
+using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 
 namespace CodeBeam.UltimateAuth.Server.Auth;
 
 internal sealed class AuthResponseResolver : IAuthResponseResolver
 {
-    public EffectiveAuthResponse Resolve(
-        UAuthMode effectiveMode,
-        AuthFlowType flowType,
-        UAuthClientProfile clientProfile,
-        EffectiveUAuthServerOptions effectiveOptions)
+    public EffectiveAuthResponse Resolve(UAuthMode effectiveMode, AuthFlowType flowType, UAuthClientProfile clientProfile, EffectiveUAuthServerOptions effectiveOptions)
+    {
+        var options = effectiveOptions.Options;
+
+        var redirect = flowType switch
+        {
+            AuthFlowType.Login or AuthFlowType.Reauthentication =>
+                EffectiveRedirectResponse.FromLogin(options.Redirect.Login),
+
+            AuthFlowType.Logout =>
+                EffectiveRedirectResponse.FromLogout(options.Redirect.Logout),
+
+            _ => EffectiveRedirectResponse.Disabled
+        };
+
+        return ResolveCore(effectiveMode, clientProfile, effectiveOptions, redirect);
+    }
+
+    public EffectiveAuthResponse ResolveForAuthentication(UAuthMode effectiveMode, UAuthClientProfile clientProfile, EffectiveUAuthServerOptions effectiveOptions)
+    {
+        return ResolveCore(effectiveMode, clientProfile, effectiveOptions, EffectiveRedirectResponse.Disabled);
+    }
+
+    private EffectiveAuthResponse ResolveCore(UAuthMode effectiveMode, UAuthClientProfile clientProfile, EffectiveUAuthServerOptions effectiveOptions, EffectiveRedirectResponse redirect)
     {
         var options = effectiveOptions.Options;
         var delivery = options.GrantDelivery;
@@ -61,17 +81,6 @@ internal sealed class AuthResponseResolver : IAuthResponseResolver
             delivery.Default,
             clientProfile,
             options);
-
-        var redirect = flowType switch
-        {
-            AuthFlowType.Login or AuthFlowType.Reauthentication
-                => EffectiveRedirectResponse.FromLogin(options.Redirect.Login),
-
-            AuthFlowType.Logout
-                => EffectiveRedirectResponse.FromLogout(options.Redirect.Logout),
-
-            _ => EffectiveRedirectResponse.Disabled
-        };
 
         return new EffectiveAuthResponse(
             session,

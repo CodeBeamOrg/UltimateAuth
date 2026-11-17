@@ -68,6 +68,7 @@ builder.Services.AddUltimateAuthServer(o =>
     //o.Session.TouchInterval = TimeSpan.FromSeconds(9);
     //o.Session.IdleTimeout = TimeSpan.FromSeconds(10);
 
+    o.GrantDelivery.Default = GrantDeliveryMode.Cookie;
     // PureJwt access token cookie
     o.Cookie.AccessToken.Name = "uat";
     o.Cookie.AccessToken.HttpOnly = true;

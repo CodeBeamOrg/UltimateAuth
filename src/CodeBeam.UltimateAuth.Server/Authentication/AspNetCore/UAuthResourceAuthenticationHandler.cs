@@ -19,12 +19,18 @@ internal sealed class UAuthResourceAuthenticationHandler : AuthenticationHandler
     private readonly ITransportCredentialResolver _credentialResolver;
     private readonly ISessionValidator _sessionValidator;
     private readonly IDeviceContextFactory _deviceFactory;
+    private readonly IEffectiveServerOptionsProvider _effectiveOptions;
+    private readonly IClientProfileReader _clientProfileReader;
+    private readonly IAuthResponseResolver _authResponseResolver;
     private readonly IClock _clock;
 
     public UAuthResourceAuthenticationHandler(
         ITransportCredentialResolver credentialResolver,
         ISessionValidator sessionValidator,
         IDeviceContextFactory deviceFactory,
+        IEffectiveServerOptionsProvider effectiveOptions,
+        IClientProfileReader clientProfileReader,
+        IAuthResponseResolver authResponseResolver,
         IClock clock,
         IOptionsMonitor<UAuthAuthenticationSchemeOptions> options,
         ILoggerFactory logger,
@@ -34,20 +40,37 @@ internal sealed class UAuthResourceAuthenticationHandler : AuthenticationHandler
         _credentialResolver = credentialResolver;
         _sessionValidator = sessionValidator;
         _deviceFactory = deviceFactory;
+        _effectiveOptions = effectiveOptions;
+        _clientProfileReader = clientProfileReader;
+        _authResponseResolver = authResponseResolver;
         _clock = clock;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var credential = await _credentialResolver.ResolveAsync(Context);
+        var clientProfile = await _clientProfileReader.ReadAsync(Context);
+        var tenant = Context.GetTenant();
+
+        var effective = _effectiveOptions.GetEffective(tenant, clientProfile);
+
+        var response = _authResponseResolver.ResolveForAuthentication(
+            effective.Mode,
+            clientProfile,
+            effective);
+
+        var credential = await _credentialResolver.ResolveAsync(
+            Context,
+            effective.Mode,
+            response);
 
         if (credential is null)
             return AuthenticateResult.NoResult();
 
+        if (credential.Kind != TransportCredentialKind.Session)
+            return AuthenticateResult.Fail("Resource authentication requires a session credential.");
+
         if (!AuthSessionId.TryCreate(credential.Value, out var sessionId))
             return AuthenticateResult.Fail("Invalid session");
-
-        var tenant = Context.GetTenant();
 
         var result = await _sessionValidator.ValidateSessionAsync(new SessionValidationContext
         {

@@ -1,15 +1,17 @@
-﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Authorization.Contracts;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Authentication;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,7 +34,9 @@ public sealed class UAuthResourceAuthenticationHandlerTests
 
         setup.CredentialResolver
             .Setup(x => x.ResolveAsync(
-                It.IsAny<HttpContext>()))
+                It.IsAny<HttpContext>(),
+                It.IsAny<UAuthMode>(),
+                It.IsAny<EffectiveAuthResponse>()))
             .ReturnsAsync((TransportCredential?)null);
 
         var result = await setup.HttpContext.AuthenticateAsync(
@@ -53,7 +57,10 @@ public sealed class UAuthResourceAuthenticationHandlerTests
         var setup = CreateTestContext();
 
         setup.CredentialResolver
-            .Setup(x => x.ResolveAsync(It.IsAny<HttpContext>()))
+            .Setup(x => x.ResolveAsync(
+                It.IsAny<HttpContext>(),
+                It.IsAny<UAuthMode>(),
+                It.IsAny<EffectiveAuthResponse>()))
             .ReturnsAsync(new TransportCredential
             {
                 Kind = TransportCredentialKind.Session,
@@ -277,7 +284,10 @@ public sealed class UAuthResourceAuthenticationHandlerTests
             ipAddress: "127.0.0.1");
 
         setup.CredentialResolver
-            .Setup(x => x.ResolveAsync(It.IsAny<HttpContext>()))
+            .Setup(x => x.ResolveAsync(
+                It.IsAny<HttpContext>(),
+                It.IsAny<UAuthMode>(),
+                It.IsAny<EffectiveAuthResponse>()))
             .ReturnsAsync(transportCredential);
 
         setup.DeviceFactory
@@ -350,11 +360,6 @@ public sealed class UAuthResourceAuthenticationHandlerTests
             .SetupGet(x => x.UtcNow)
             .Returns(Now);
 
-        credentialResolver
-            .Setup(x => x.ResolveAsync(
-                It.IsAny<HttpContext>()))
-            .ReturnsAsync(CreateCredential(TestSessionId));
-
         deviceFactory
             .Setup(x => x.Create(
                 It.IsAny<DeviceInfo>()))
@@ -362,9 +367,60 @@ public sealed class UAuthResourceAuthenticationHandlerTests
 
         var services = new ServiceCollection();
 
-        var effectiveOptionsProvider = new Mock<IEffectiveServerOptionsProvider>();
+        var effectiveOptionsProvider =
+            new Mock<IEffectiveServerOptionsProvider>();
 
-        var clientProfileReader = new Mock<IClientProfileReader>();
+        var clientProfileReader =
+            new Mock<IClientProfileReader>();
+
+        var authResponseResolver =
+            new Mock<IAuthResponseResolver>();
+
+        var clientProfile = UAuthClientProfile.BlazorServer;
+
+        var effective = new EffectiveUAuthServerOptions
+        {
+            Mode = UAuthMode.PureOpaque,
+            Options = new UAuthServerOptions()
+        };
+
+        clientProfileReader
+            .Setup(x => x.ReadAsync(It.IsAny<HttpContext>()))
+            .ReturnsAsync(clientProfile);
+
+        effectiveOptionsProvider
+            .Setup(x => x.GetEffective(
+                It.IsAny<TenantKey>(),
+                clientProfile))
+            .Returns(effective);
+
+        var response = new EffectiveAuthResponse(
+            new EffectiveGrantDelivery(
+                GrantKind.Session,
+                TokenFormat.Opaque,
+                GrantDeliveryMode.Cookie,
+                cookie: new UAuthCookieOptions { Name = "uas" }),
+            EffectiveGrantDelivery.Disabled(GrantKind.AccessToken),
+            EffectiveGrantDelivery.Disabled(GrantKind.RefreshToken),
+            EffectiveRedirectResponse.Disabled);
+
+        authResponseResolver
+            .Setup(x => x.ResolveForAuthentication(
+                UAuthMode.PureOpaque,
+                clientProfile,
+                effective))
+            .Returns(response);
+
+        credentialResolver
+            .Setup(x => x.ResolveAsync(
+                It.IsAny<HttpContext>(),
+                UAuthMode.PureOpaque,
+                response))
+            .ReturnsAsync(CreateCredential(TestSessionId));
+
+        services.AddSingleton(effectiveOptionsProvider.Object);
+        services.AddSingleton(clientProfileReader.Object);
+        services.AddSingleton(authResponseResolver.Object);
 
         services.AddSingleton(effectiveOptionsProvider.Object);
         services.AddSingleton(clientProfileReader.Object);

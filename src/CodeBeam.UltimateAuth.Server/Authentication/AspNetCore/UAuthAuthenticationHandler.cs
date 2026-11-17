@@ -28,6 +28,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
     private readonly IUAuthJwtValidator _jwtValidator;
     private readonly IEffectiveServerOptionsProvider _effectiveOptions;
     private readonly IClientProfileReader _clientProfileReader;
+    private readonly IAuthResponseResolver _authResponseResolver;
     private readonly UAuthServerOptions _serverOptions;
     private readonly IClock _clock;
 
@@ -42,6 +43,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         IUAuthJwtValidator jwtValidator,
         IEffectiveServerOptionsProvider effectiveOptions,
         IClientProfileReader clientProfileReader,
+        IAuthResponseResolver authResponseResolver,
         IOptions<UAuthServerOptions> serverOptions,
         IClock uauthClock)
         : base(options, logger, encoder)
@@ -53,6 +55,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         _jwtValidator = jwtValidator;
         _effectiveOptions = effectiveOptions;
         _clientProfileReader = clientProfileReader;
+        _authResponseResolver = authResponseResolver;
         _serverOptions = serverOptions.Value;
         _clock = uauthClock;
     }
@@ -65,7 +68,9 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
 
         var mode = effective.Mode;
 
-        var credential = await _transportCredentialResolver.ResolveAsync(Context);
+        var response = _authResponseResolver.ResolveForAuthentication(mode, clientProfile, effective);
+
+        var credential = await _transportCredentialResolver.ResolveAsync(Context, mode, response);
 
         if (mode == UAuthMode.PureJwt)
         {
