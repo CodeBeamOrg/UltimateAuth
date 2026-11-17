@@ -15,6 +15,7 @@ using CodeBeam.UltimateAuth.Users;
 using MudBlazor.Services;
 using MudExtensions.Services;
 using Scalar.AspNetCore;
+using System.Security.Cryptography;
 
 var builder = WebApplication.CreateBuilder(args);
 

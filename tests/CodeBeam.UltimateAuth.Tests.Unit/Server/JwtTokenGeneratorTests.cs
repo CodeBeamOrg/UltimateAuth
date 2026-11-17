@@ -1,7 +1,9 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Server.Options;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using System.Text.Json;
@@ -18,23 +20,36 @@ public sealed class JwtTokenGeneratorTests
 
     private static readonly TenantKey Tenant = TenantKey.FromExternal("tenant-a");
 
-    private static JwtTokenGenerator CreateSut()
+    private static ConfiguredJwtSigningKeyProvider CreateKeyProvider()
     {
-        return new JwtTokenGenerator(new DevelopmentJwtSigningKeyProvider());
+        var options = new UAuthServerOptions();
+
+        return new ConfiguredJwtSigningKeyProvider(Options.Create(options));
     }
 
-    private static UAuthJwtTokenDescriptor CreateDescriptor(IReadOnlyDictionary<string, object>? claims = null)
+    private static JwtTokenGenerator CreateSut()
+    {
+        return new JwtTokenGenerator(CreateKeyProvider());
+    }
+
+    private static UAuthJwtTokenDescriptor CreateDescriptor(
+        IReadOnlyDictionary<string, object>? claims = null,
+        string? keyId = null,
+        string subject = Subject,
+        string issuer = Issuer,
+        string audience = Audience,
+        DateTimeOffset? expiresAt = null)
     {
         return new UAuthJwtTokenDescriptor
         {
-            Subject = Subject,
-            Issuer = Issuer,
-            Audience = Audience,
+            Subject = subject,
+            Issuer = issuer,
+            Audience = audience,
             IssuedAt = Now,
-            ExpiresAt = Now.AddMinutes(15),
+            ExpiresAt = expiresAt ?? Now.AddMinutes(15),
             Tenant = Tenant,
             Claims = claims,
-            KeyId = "dev-uauth"
+            KeyId = keyId
         };
     }
 
@@ -43,11 +58,12 @@ public sealed class JwtTokenGeneratorTests
     {
         var raw = CreateSut().CreateToken(descriptor);
 
-        return new JsonWebTokenHandler().ReadJsonWebToken(raw);
+        return new JsonWebTokenHandler()
+            .ReadJsonWebToken(raw);
     }
 
     [Fact]
-    public void CreateToken_ShouldPreserveMultipleClaimValues()
+    public void CreateToken_PreservesMultipleClaimValues()
     {
         var descriptor = CreateDescriptor(
             new Dictionary<string, object>
@@ -63,8 +79,7 @@ public sealed class JwtTokenGeneratorTests
         var token = CreateToken(descriptor);
 
         using var payload = JsonDocument.Parse(
-            Base64UrlEncoder.Decode(
-                token.EncodedPayload));
+            Base64UrlEncoder.Decode(token.EncodedPayload));
 
         var root = payload.RootElement;
 
@@ -82,7 +97,7 @@ public sealed class JwtTokenGeneratorTests
     }
 
     [Fact]
-    public void CreateToken_ShouldUseTrustedSubjectAndTenant()
+    public void CreateToken_UsesTrustedSubjectAndTenant()
     {
         var descriptor = CreateDescriptor(
             new Dictionary<string, object>
@@ -104,7 +119,7 @@ public sealed class JwtTokenGeneratorTests
     }
 
     [Fact]
-    public void CreateToken_ShouldPreserveSessionIdAndJwtId()
+    public void CreateToken_PreservesSessionIdAndJwtId()
     {
         var descriptor = CreateDescriptor(
             new Dictionary<string, object>
@@ -123,7 +138,7 @@ public sealed class JwtTokenGeneratorTests
     }
 
     [Fact]
-    public void CreateToken_ShouldUseConfiguredIssuerAndAudience()
+    public void CreateToken_UsesConfiguredIssuerAndAudience()
     {
         var token = CreateToken(CreateDescriptor());
 
@@ -135,7 +150,7 @@ public sealed class JwtTokenGeneratorTests
     }
 
     [Fact]
-    public void CreateToken_ShouldUseConfiguredLifetime()
+    public void CreateToken_UsesConfiguredLifetime()
     {
         var token = CreateToken(CreateDescriptor());
 
@@ -147,18 +162,15 @@ public sealed class JwtTokenGeneratorTests
     }
 
     [Fact]
-    public async Task CreateToken_ShouldProduceValidSignature()
+    public async Task CreateToken_ProducesValidSignature()
     {
-        var keyProvider =
-            new DevelopmentJwtSigningKeyProvider();
+        var provider = CreateKeyProvider();
+        var generator = new JwtTokenGenerator(provider);
 
-        var generator = new JwtTokenGenerator(keyProvider);
+        var raw = generator.CreateToken(
+            CreateDescriptor());
 
-        var descriptor = CreateDescriptor();
-
-        var raw = generator.CreateToken(descriptor);
-
-        var signingKey = keyProvider.Resolve("dev-uauth");
+        var signingKey = provider.Resolve(null);
 
         var handler = new JsonWebTokenHandler();
 
@@ -189,7 +201,47 @@ public sealed class JwtTokenGeneratorTests
     }
 
     [Fact]
-    public void CreateToken_ShouldIgnoreReservedJwtMetadataClaims()
+    public async Task CreateToken_RejectsValidationWithDifferentKey()
+    {
+        var generator = CreateSut();
+
+        var raw = generator.CreateToken(
+            CreateDescriptor());
+
+        var differentKey = new SymmetricSecurityKey(
+            Enumerable.Repeat((byte)0x7A, 32).ToArray())
+        {
+            KeyId = UAuthCryptographyConstants.DefaultJwtKeyId
+        };
+
+        var validation = await new JsonWebTokenHandler()
+            .ValidateTokenAsync(
+                raw,
+                new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = Issuer,
+
+                    ValidateAudience = true,
+                    ValidAudience = Audience,
+
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = differentKey,
+
+                    RequireSignedTokens = true,
+                    ValidateLifetime = false,
+
+                    ValidAlgorithms = new[]
+                    {
+                        SecurityAlgorithms.HmacSha256
+                    }
+                });
+
+        validation.IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CreateToken_IgnoresReservedJwtMetadataClaims()
     {
         var descriptor = CreateDescriptor(
             new Dictionary<string, object>
@@ -207,25 +259,41 @@ public sealed class JwtTokenGeneratorTests
 
         token.Audiences.Should().Contain(Audience);
 
-        token.ValidFrom.Should().Be(Now.UtcDateTime);
+        token.ValidFrom.Should()
+            .Be(Now.UtcDateTime);
 
         token.ValidTo.Should()
             .Be(Now.AddMinutes(15).UtcDateTime);
     }
 
     [Fact]
-    public void CreateToken_ShouldIncludeSigningKeyIdInHeader()
+    public void CreateToken_IncludesSigningKeyIdInHeader()
     {
         var token = CreateToken(CreateDescriptor());
 
-        token.Kid.Should().Be("dev-uauth");
-        token.Alg.Should().Be(SecurityAlgorithms.HmacSha256);
+        token.Kid.Should().Be(
+            UAuthCryptographyConstants.DefaultJwtKeyId);
+
+        token.Alg.Should().Be(
+            SecurityAlgorithms.HmacSha256);
     }
 
     [Fact]
-    public void CreateToken_ShouldRejectUnknownSigningKeyId()
+    public void CreateToken_AcceptsConfiguredSigningKeyId()
     {
-        var provider = new DevelopmentJwtSigningKeyProvider();
+        var descriptor = CreateDescriptor(
+            keyId: UAuthCryptographyConstants.DefaultJwtKeyId);
+
+        var token = CreateToken(descriptor);
+
+        token.Kid.Should().Be(
+            UAuthCryptographyConstants.DefaultJwtKeyId);
+    }
+
+    [Fact]
+    public void CreateToken_RejectsUnknownSigningKeyId()
+    {
+        var provider = CreateKeyProvider();
 
         var act = () => provider.Resolve("unknown-key");
 
@@ -233,28 +301,51 @@ public sealed class JwtTokenGeneratorTests
     }
 
     [Fact]
-    public void CreateToken_ShouldAllowDefaultSigningKey()
+    public void CreateToken_AllowsDefaultSigningKey()
     {
-        var provider = new DevelopmentJwtSigningKeyProvider();
+        var provider = CreateKeyProvider();
 
         var key = provider.Resolve(null);
 
-        key.KeyId.Should().Be("dev-uauth");
+        key.KeyId.Should().Be(
+            UAuthCryptographyConstants.DefaultJwtKeyId);
+
+        key.Algorithm.Should().Be(
+            SecurityAlgorithms.HmacSha256);
+
+        key.Key.Should().BeOfType<SymmetricSecurityKey>();
     }
 
-    [Fact]
-    public void CreateToken_ShouldRejectEmptySubject()
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void CreateToken_RejectsEmptySubject(string subject)
     {
-        var descriptor = new UAuthJwtTokenDescriptor
-        {
-            Subject = "",
-            Issuer = Issuer,
-            Audience = Audience,
-            Tenant = Tenant,
-            IssuedAt = Now,
-            ExpiresAt = Now.AddMinutes(15),
-            KeyId = "dev-uauth"
-        };
+        var descriptor = CreateDescriptor(subject: subject);
+
+        var act = () => CreateSut().CreateToken(descriptor);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void CreateToken_RejectsEmptyIssuer(string issuer)
+    {
+        var descriptor = CreateDescriptor(issuer: issuer);
+
+        var act = () => CreateSut().CreateToken(descriptor);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void CreateToken_RejectsEmptyAudience(string audience)
+    {
+        var descriptor = CreateDescriptor(audience: audience);
 
         var act = () => CreateSut().CreateToken(descriptor);
 
@@ -262,18 +353,9 @@ public sealed class JwtTokenGeneratorTests
     }
 
     [Fact]
-    public void CreateToken_ShouldRejectEmptyIssuer()
+    public void CreateToken_RejectsInvalidLifetime()
     {
-        var descriptor = new UAuthJwtTokenDescriptor
-        {
-            Subject = Subject,
-            Issuer = "",
-            Audience = Audience,
-            Tenant = Tenant,
-            IssuedAt = Now,
-            ExpiresAt = Now.AddMinutes(15),
-            KeyId = "dev-uauth"
-        };
+        var descriptor = CreateDescriptor(expiresAt: Now);
 
         var act = () => CreateSut().CreateToken(descriptor);
 
@@ -281,56 +363,10 @@ public sealed class JwtTokenGeneratorTests
     }
 
     [Fact]
-    public void CreateToken_ShouldRejectEmptyAudience()
+    public void CreateToken_RejectsUnknownDescriptorKeyId()
     {
-        var descriptor = new UAuthJwtTokenDescriptor
-        {
-            Subject = Subject,
-            Issuer = Issuer,
-            Audience = "",
-            Tenant = Tenant,
-            IssuedAt = Now,
-            ExpiresAt = Now.AddMinutes(15),
-            KeyId = "dev-uauth"
-        };
-
-        var act = () => CreateSut().CreateToken(descriptor);
-
-        act.Should().Throw<ArgumentException>();
-    }
-
-    [Fact]
-    public void CreateToken_ShouldRejectInvalidLifetime()
-    {
-        var descriptor = new UAuthJwtTokenDescriptor
-        {
-            Subject = Subject,
-            Issuer = Issuer,
-            Audience = Audience,
-            Tenant = Tenant,
-            IssuedAt = Now,
-            ExpiresAt = Now,
-            KeyId = "dev-uauth"
-        };
-
-        var act = () => CreateSut().CreateToken(descriptor);
-
-        act.Should().Throw<ArgumentException>();
-    }
-
-    [Fact]
-    public void CreateToken_ShouldRejectUnknownDescriptorKeyId()
-    {
-        var descriptor = new UAuthJwtTokenDescriptor
-        {
-            Subject = Subject,
-            Issuer = Issuer,
-            Audience = Audience,
-            Tenant = Tenant,
-            IssuedAt = Now,
-            ExpiresAt = Now.AddMinutes(15),
-            KeyId = "unknown-key"
-        };
+        var descriptor = CreateDescriptor(
+            keyId: "unknown-key");
 
         var act = () => CreateSut().CreateToken(descriptor);
 

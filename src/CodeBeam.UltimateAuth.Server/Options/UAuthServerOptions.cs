@@ -81,6 +81,11 @@ public sealed class UAuthServerOptions
     public Dictionary<UAuthClientProfile, UAuthMode> ClientProfileModes { get; set; } = new();
 
     /// <summary>
+    /// Cryptographic keys used by the built-in implementations.
+    /// </summary>
+    public UAuthCryptographyOptions Cryptography { get; set; } = new();
+
+    /// <summary>
     /// Startup-only native endpoint throttling; application policies take precedence.
     /// </summary>
     public UAuthRateLimitingOptions RateLimiting { get; set; } = new();
@@ -206,6 +211,7 @@ public sealed class UAuthServerOptions
         {
             AuthMode = AuthMode,
             ClientProfileModes = new(ClientProfileModes),
+            Cryptography = Cryptography.Clone(),
             AllowedModes = AllowedModes?.ToArray(),
             HubDeploymentMode = HubDeploymentMode,
 

@@ -20,6 +20,7 @@ using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 
@@ -32,6 +33,12 @@ internal sealed class TestAuthRuntime<TUserId> where TUserId : notnull
     {
         Clock = new TestClock();
         var services = new ServiceCollection();
+
+        services.AddSingleton<IHostEnvironment>(
+            new TestHostEnvironment
+            {
+                EnvironmentName = Environments.Development
+            });
 
         services.AddLogging();
 

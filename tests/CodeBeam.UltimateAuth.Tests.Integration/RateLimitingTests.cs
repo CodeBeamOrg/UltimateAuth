@@ -357,20 +357,39 @@ public class RateLimitingTests
             bool aspNet = true, bool? enabled = null, bool repeat = false,
             Action<RateLimiterOptions>? native = null, bool applicationPolicy = false, bool trustedProxy = false, bool disableNative = false, RateLimiterOptions? middlewareOptions = null)
         {
-            var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Production" });
-            builder.WebHost.UseTestServer();
-            builder.Services.AddUltimateAuthServer(configure).AddUltimateAuthInMemory();
+            var builder = WebApplication.CreateBuilder(
+            new WebApplicationOptions
+            {
+                EnvironmentName = "Production"
+            });
 
-            var key = new SymmetricSecurityKey(RandomNumberGenerator.GetBytes(32))
+            builder.WebHost.UseTestServer();
+
+            var key = new SymmetricSecurityKey(
+                RandomNumberGenerator.GetBytes(32))
             {
                 KeyId = "integration-test-key"
             };
 
+            var hashingKey = Convert.ToBase64String(
+                RandomNumberGenerator.GetBytes(32));
+
+            // Custom providers must be registered before UltimateAuth.
             builder.Services.AddSingleton<IJwtSigningKeyProvider>(
                 new TestJwtSigningKeyProvider(key));
 
             builder.Services.AddSingleton<IJwtVerificationKeyProvider>(
                 new StaticJwtVerificationKeyProvider([key]));
+
+            builder.Services.AddUltimateAuthServer(options =>
+            {
+                // Preserve the caller's configuration.
+                configure?.Invoke(options);
+
+                // Production-safe test hashing key.
+                options.Cryptography.TokenHashingKey = hashingKey;
+            })
+            .AddUltimateAuthInMemory();
 
             if (native is not null)
                 builder.Services.AddRateLimiter(native);

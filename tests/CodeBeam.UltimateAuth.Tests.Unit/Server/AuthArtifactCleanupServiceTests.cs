@@ -6,6 +6,7 @@ using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
+using System.Security.Cryptography;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Server;
 
@@ -14,8 +15,7 @@ public sealed class AuthArtifactCleanupServiceTests
     [Fact]
     public async Task HostedService_RemovesExpiredArtifactsWithoutAccess()
     {
-        var now = new DateTimeOffset(
-            2026, 11, 13, 12, 0, 0, TimeSpan.Zero);
+        var now = new DateTimeOffset(2026, 11, 13, 12, 0, 0, TimeSpan.Zero);
 
         var clock = new TestClock(now);
 
@@ -28,6 +28,8 @@ public sealed class AuthArtifactCleanupServiceTests
         {
             options.AuthArtifacts.MaxEntries = 100;
             options.AuthArtifacts.CleanupInterval = TimeSpan.FromSeconds(1);
+            options.Cryptography.JwtSigningKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+            options.Cryptography.TokenHashingKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         });
 
         using var host = builder.Build();

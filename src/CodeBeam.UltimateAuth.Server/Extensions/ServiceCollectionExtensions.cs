@@ -40,6 +40,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting.Internal;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -115,6 +116,9 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    // =========================
+    // ADD SERVER INTERNAL
+    // =========================
     private static IServiceCollection AddUltimateAuthServerInternal(this IServiceCollection services)
     {
         services.AddSingleton<IUAuthRuntimeMarker, ServerRuntimeMarker>();
@@ -122,13 +126,40 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IOpaqueTokenGenerator, OpaqueTokenGenerator>();
         services.TryAddSingleton<IJwtTokenGenerator,JwtTokenGenerator>();
         services.TryAddSingleton<INumericCodeGenerator, NumericCodeGenerator>();
-        services.TryAddSingleton<IJwtSigningKeyProvider, DevelopmentJwtSigningKeyProvider>();
+
+        var usesBuiltInSigning = !services.Any(x => x.ServiceType == typeof(IJwtSigningKeyProvider));
+        var usesBuiltInHashing = !services.Any(x => x.ServiceType == typeof(ITokenHasher));
+
+        services.TryAddSingleton<IJwtSigningKeyProvider, ConfiguredJwtSigningKeyProvider>();
 
         services.TryAddScoped<ITokenHasher>(sp =>
         {
-            var keyProvider = sp.GetRequiredService<IJwtSigningKeyProvider>();
-            var key = keyProvider.Resolve(null);
-            return new HmacSha256TokenHasher(((SymmetricSecurityKey)key.Key).Key);
+            var options = sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+
+            var key = UAuthKeyMaterial.Decode(options.Cryptography.TokenHashingKey, "Cryptography.TokenHashingKey");
+
+            return new HmacSha256TokenHasher(key);
+        });
+
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>>(sp =>
+        {
+            var environmentName = sp.GetService<IHostEnvironment>()?.EnvironmentName ?? Environments.Production;
+            return new UAuthCryptographyOptionsValidator(environmentName, usesBuiltInSigning, usesBuiltInHashing);
+        });
+
+        services.TryAddSingleton<IJwtVerificationKeyProvider>(sp =>
+        {
+            var signingProvider = sp.GetRequiredService<IJwtSigningKeyProvider>();
+
+            if (signingProvider is not ConfiguredJwtSigningKeyProvider)
+            {
+                throw new InvalidOperationException(
+                    "A custom JWT signing provider requires an explicit IJwtVerificationKeyProvider registration.");
+            }
+
+            var signingKey = signingProvider.Resolve(null);
+
+            return new StaticJwtVerificationKeyProvider(new[] { signingKey.Key });
         });
 
         // -----------------------------
@@ -265,36 +296,6 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IUserIdentifierValidator, UserIdentifierValidator>();
         services.TryAddScoped<IUserProfileValidator, UserProfileValidator>();
         services.TryAddScoped<IUAuthJwtValidator, UAuthJwtValidator>();
-
-
-        services.TryAddSingleton<IJwtVerificationKeyProvider>(sp =>
-        {
-            var signingProvider =
-                sp.GetRequiredService<IJwtSigningKeyProvider>();
-
-            // This fallback is intentionally development-only.
-            if (signingProvider is not DevelopmentJwtSigningKeyProvider)
-            {
-                throw new InvalidOperationException(
-                    "Configure IJwtVerificationKeyProvider explicitly " +
-                    "when using a custom JWT signing key provider.");
-            }
-
-            var environment =
-                sp.GetRequiredService<IHostEnvironment>();
-
-            if (!environment.IsDevelopment())
-            {
-                throw new InvalidOperationException(
-                    "The development JWT verification key cannot be " +
-                    "used outside the Development environment.");
-            }
-
-            var signingKey = signingProvider.Resolve(null);
-
-            return new StaticJwtVerificationKeyProvider(
-                new[] { signingKey.Key });
-        });
 
         services.TryAddSingleton<IOptions<UAuthJwtValidationOptions>>(sp =>
         {

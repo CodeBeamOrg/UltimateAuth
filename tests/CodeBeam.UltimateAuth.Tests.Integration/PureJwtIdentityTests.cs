@@ -556,6 +556,16 @@ public sealed class PureJwtIdentityTests
                 .Returns((TenantKey tenant, UserKey user, CancellationToken ct) =>
                     Task.FromResult(userStates.Get(user)));
 
+            var key = new SymmetricSecurityKey(RandomNumberGenerator.GetBytes(32))
+            {
+                KeyId = KeyId
+            };
+
+            var hashingKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+
+            builder.Services.AddSingleton<IJwtSigningKeyProvider>(new TestSigningKeyProvider(key));
+            builder.Services.AddSingleton<IJwtVerificationKeyProvider>(new StaticJwtVerificationKeyProvider([key]));
+
             builder.Services
                 .AddUltimateAuthServer(options =>
                 {
@@ -565,6 +575,7 @@ public sealed class PureJwtIdentityTests
                     options.Token.Issuer = Issuer;
                     options.Token.Audience = Audience;
                     options.Token.KeyId = KeyId;
+                    options.Cryptography.TokenHashingKey = hashingKey;
 
                     options.Session.DeviceMismatchBehavior = deviceMismatchBehavior;
 
@@ -575,17 +586,6 @@ public sealed class PureJwtIdentityTests
                 .AddUltimateAuthInMemory();
 
             builder.Services.Replace(ServiceDescriptor.Scoped<IUserRuntimeStateProvider>(_ => runtimeStateProvider.Object));
-
-            var key = new SymmetricSecurityKey(RandomNumberGenerator.GetBytes(32))
-            {
-                KeyId = KeyId
-            };
-
-            builder.Services.AddSingleton<IJwtSigningKeyProvider>(
-                new TestSigningKeyProvider(key));
-
-            builder.Services.AddSingleton<IJwtVerificationKeyProvider>(
-                new StaticJwtVerificationKeyProvider([key]));
 
             var sessionValidator =
                 new Mock<ISessionValidator>(MockBehavior.Strict);
