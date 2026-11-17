@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
@@ -126,6 +127,10 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
 
             // Framework - owned claims cannot be supplied by applications.
             if (type is
+                UAuthJwtProfileClaims.PrimaryUserName or
+                UAuthJwtProfileClaims.DisplayName or
+                UAuthJwtProfileClaims.TimeZone or
+                UAuthJwtProfileClaims.AuthenticatedAt or
                 "sub" or
                 "tenant" or
                 "sid" or
@@ -147,6 +152,26 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
         // by caller-provided claims.
         claims["sub"] = context.UserKey.Value;
         claims["tenant"] = context.Tenant.Value;
+
+        if (!string.IsNullOrWhiteSpace(context.PrimaryUserName))
+        {
+            claims[UAuthJwtProfileClaims.PrimaryUserName] = context.PrimaryUserName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(context.DisplayName))
+        {
+            claims[UAuthJwtProfileClaims.DisplayName] = context.DisplayName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(context.TimeZone))
+        {
+            claims[UAuthJwtProfileClaims.TimeZone] = context.TimeZone;
+        }
+
+        if (context.AuthenticatedAt is DateTimeOffset authenticatedAt)
+        {
+            claims[UAuthJwtProfileClaims.AuthenticatedAt] = authenticatedAt.ToUniversalTime().ToString("O");
+        }
 
         if (context.DeviceId is DeviceId deviceId)
         {

@@ -11,6 +11,7 @@ using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Users;
+using CodeBeam.UltimateAuth.Users.Contracts;
 
 // TODO: Identifier-based throttling, Exponential lockout
 
@@ -29,6 +30,8 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
     private readonly IAuthenticationSecurityManager _authenticationSecurityManager; // runtime risk
     private readonly UAuthEventDispatcher _events;
     private readonly LoginPasswordVerification _passwordVerification;
+    private readonly IPrimaryUserIdentifierProvider _primaryIdentifiers;
+    private readonly IUserProfileSnapshotProvider _userProfiles;
     private readonly IClock _clock;
 
     public LoginOrchestrator(
@@ -43,6 +46,8 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         IAuthenticationSecurityManager authenticationSecurityManager,
         UAuthEventDispatcher events,
         LoginPasswordVerification passwordVerification,
+        IPrimaryUserIdentifierProvider primaryIdentifiers,
+        IUserProfileSnapshotProvider userProfiles,
         IClock clock)
     {
         _identifierResolver = identifierResolver;
@@ -56,6 +61,8 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         _authenticationSecurityManager = authenticationSecurityManager;
         _events = events;
         _passwordVerification = passwordVerification;
+        _primaryIdentifiers = primaryIdentifiers;
+        _userProfiles = userProfiles;
         _clock = clock;
     }
 
@@ -248,6 +255,10 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
 
         if (flow.EffectiveMode == UAuthMode.PureJwt)
         {
+            var identifiers = await _primaryIdentifiers.GetAsync(flow.Tenant, userKey.Value, ct);
+
+            var profile = await _userProfiles.GetAsync(flow.Tenant, userKey.Value, ProfileKey.Default, ct);
+
             var tokenContext = new TokenIssuanceContext
             {
                 Tenant = flow.Tenant,
@@ -255,7 +266,12 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                 Claims = claims,
                 SessionId = null,
                 ChainId = null,
-                DeviceId = deviceId
+                DeviceId = deviceId,
+
+                PrimaryUserName = identifiers?.UserName,
+                DisplayName = profile?.DisplayName,
+                TimeZone = profile?.TimeZone,
+                AuthenticatedAt = now
             };
 
             var accessToken = await _tokens.IssueAccessTokenAsync(flow, tokenContext, ct);

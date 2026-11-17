@@ -171,19 +171,7 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
                 statusCode: StatusCodes.Status401Unauthorized);
         }
 
-        var snapshot = new AuthStateSnapshot
-        {
-            Identity = new AuthIdentitySnapshot
-            {
-                UserKey = userKey,
-                Tenant = context.GetTenant(),
-                PrimaryUserName = principal.FindFirst(ClaimTypes.Name)?.Value,
-                AuthenticatedAt = null,
-                SessionState = null,
-                UserStatus = UserStatus.Unknown
-            },
-            Claims = principal.ToClaimsSnapshot()
-        };
+        var snapshot = PureJwtSnapshotFactory.Create(principal, userKey, context.GetTenant());
 
         return Results.Ok(new AuthValidationResult
         {

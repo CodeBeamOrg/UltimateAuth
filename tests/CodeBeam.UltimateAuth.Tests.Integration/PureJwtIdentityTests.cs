@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Server;
 using CodeBeam.UltimateAuth.Server.Abstractions;
@@ -566,6 +567,10 @@ public sealed class PureJwtIdentityTests
                     options.Token.KeyId = KeyId;
 
                     options.Session.DeviceMismatchBehavior = deviceMismatchBehavior;
+
+                    options.GrantDelivery.AccessToken.Mode = GrantDeliveryMode.Header;
+                    options.GrantDelivery.AccessToken.HeaderName = "Authorization";
+                    options.GrantDelivery.AccessToken.HeaderFormat = HeaderTokenFormat.Bearer;
                 })
                 .AddUltimateAuthInMemory();
 
@@ -674,7 +679,7 @@ public sealed class PureJwtIdentityTests
                     Audience = Audience,
                     KeyId = _key.KeyId,
                     IssuedAt = now,
-                    ExpiresAt = expiresAt.HasValue ? expiresAt.Value.AddMinutes(10) : now.AddMinutes(10),
+                    ExpiresAt = expiresAt.HasValue ? expiresAt.Value : now.AddMinutes(10),
                     DeviceId = includeDeviceId
                         ? DeviceId.Create(TestDeviceId)
                         : null,
