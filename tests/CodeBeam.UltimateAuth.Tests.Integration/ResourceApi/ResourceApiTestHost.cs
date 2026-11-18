@@ -44,6 +44,9 @@ internal sealed class ResourceApiTestHost : IAsyncDisposable
         builder.Services.AddUltimateAuthResourceApi(options =>
         {
             options.UAuthHubBaseUrl = "https://uauth.test";
+            options.AuthMode = UAuthMode.PureOpaque;
+            options.SessionDeliveryMode = GrantDeliveryMode.Header;
+
             configureResourceApi?.Invoke(options);
         });
 

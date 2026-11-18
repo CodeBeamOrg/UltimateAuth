@@ -1,8 +1,8 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server;
-using AwesomeAssertions;
 using Moq;
 using System.Net;
 using System.Net.Http.Headers;
@@ -14,16 +14,18 @@ namespace CodeBeam.UltimateAuth.Tests.Integration.ResourceApi;
 public sealed class ResourceApiAuthenticationTests
 {
     private const string SessionValue = "test-resource-session-000000000000000000000001";
-    private static readonly TenantKey Tenant = TenantKeys.Single;
-    private static readonly UserKey User = UserKey.FromString("user-1");
-    private static readonly DateTimeOffset Now = new(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
-    private static AuthSessionId SessionId => AuthSessionId.Parse(SessionValue, null);
-    private static SessionChainId ChainId => SessionChainId.From(Guid.Parse("11111111-1111-1111-1111-111111111111"));
-    private static SessionRootId RootId => SessionRootId.From(Guid.Parse("22222222-2222-2222-2222-222222222222"));
 
-    // --------------------------------------------------
-    // Anonymous
-    // --------------------------------------------------
+    private static readonly TenantKey Tenant = TenantKeys.Single;
+
+    private static readonly UserKey User = UserKey.FromString("user-1");
+
+    private static readonly DateTimeOffset Now = new(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+
+    private static AuthSessionId SessionId => AuthSessionId.Parse(SessionValue, null);
+
+    private static SessionChainId ChainId => SessionChainId.From(Guid.Parse("11111111-1111-1111-1111-111111111111"));
+
+    private static SessionRootId RootId => SessionRootId.From(Guid.Parse("22222222-2222-2222-2222-222222222222"));
 
     [Fact]
     public async Task AnonymousEndpoint_WithoutCredential_ShouldReturnOk()
@@ -31,24 +33,16 @@ public sealed class ResourceApiAuthenticationTests
         var validator = new Mock<ISessionValidator>();
 
         await using var host =
-            await ResourceApiTestHost.CreateAsync(
-                validator.Object);
+            await ResourceApiTestHost.CreateAsync(validator.Object);
 
-        var response = await host.Client.GetAsync(
-            "/__tests/resource/anonymous", TestContext.Current.CancellationToken);
+        using var response = await host.Client.GetAsync(
+            "/__tests/resource/anonymous",
+            TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        validator.Verify(
-            x => x.ValidateSessionAsync(
-                It.IsAny<SessionValidationContext>(),
-                It.IsAny<CancellationToken>()),
-            Times.Never);
+        VerifyNeverValidated(validator);
     }
-
-    // --------------------------------------------------
-    // 401
-    // --------------------------------------------------
 
     [Fact]
     public async Task ProtectedEndpoint_WithoutCredential_ShouldReturnUnauthorized()
@@ -56,25 +50,17 @@ public sealed class ResourceApiAuthenticationTests
         var validator = new Mock<ISessionValidator>();
 
         await using var host =
-            await ResourceApiTestHost.CreateAsync(
-                validator.Object);
+            await ResourceApiTestHost.CreateAsync(validator.Object);
 
-        var response = await host.Client.GetAsync(
-            "/__tests/resource/authenticated", TestContext.Current.CancellationToken);
+        using var response = await host.Client.GetAsync(
+            "/__tests/resource/authenticated",
+            TestContext.Current.CancellationToken);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
 
-        validator.Verify(
-            x => x.ValidateSessionAsync(
-                It.IsAny<SessionValidationContext>(),
-                It.IsAny<CancellationToken>()),
-            Times.Never);
+        VerifyNeverValidated(validator);
     }
-
-    // --------------------------------------------------
-    // Invalid session -> 401
-    // --------------------------------------------------
 
     [Fact]
     public async Task ProtectedEndpoint_WithInvalidSession_ShouldReturnUnauthorized()
@@ -90,50 +76,87 @@ public sealed class ResourceApiAuthenticationTests
                     SessionState.Revoked));
 
         await using var host =
-            await ResourceApiTestHost.CreateAsync(
-                validator.Object);
+            await ResourceApiTestHost.CreateAsync(validator.Object);
 
         AddSession(host.Client);
 
-        var response = await host.Client.GetAsync(
-            "/__tests/resource/authenticated", TestContext.Current.CancellationToken);
+        using var response = await host.Client.GetAsync(
+            "/__tests/resource/authenticated",
+            TestContext.Current.CancellationToken);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.Unauthorized);
 
-        validator.Verify(
-            x => x.ValidateSessionAsync(
-                It.IsAny<SessionValidationContext>(),
-                It.IsAny<CancellationToken>()),
-            Times.AtLeastOnce);
+        VerifyValidatedAtLeastOnce(validator);
     }
-
-    // --------------------------------------------------
-    // Valid session -> 200
-    // --------------------------------------------------
 
     [Fact]
     public async Task ProtectedEndpoint_WithValidSession_ShouldReturnOk()
     {
-        var validator = CreateValidator(
-            ClaimsSnapshot.Empty);
+        var validator = CreateValidator(ClaimsSnapshot.Empty);
 
         await using var host =
-            await ResourceApiTestHost.CreateAsync(
-                validator.Object);
+            await ResourceApiTestHost.CreateAsync(validator.Object);
 
         AddSession(host.Client);
 
-        var response = await host.Client.GetAsync(
-            "/__tests/resource/authenticated", TestContext.Current.CancellationToken);
+        using var response = await host.Client.GetAsync(
+            "/__tests/resource/authenticated",
+            TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should()
-            .Be(HttpStatusCode.OK);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        VerifyValidatedAtLeastOnce(validator);
     }
 
-    // --------------------------------------------------
-    // Valid session but missing role -> 403
-    // --------------------------------------------------
+    [Fact]
+    public async Task ProtectedEndpoint_WithValidSession_ShouldPassSessionIdToValidator()
+    {
+        SessionValidationContext? captured = null;
+
+        var validator = CreateValidator(ClaimsSnapshot.Empty);
+
+        validator
+            .Setup(x => x.ValidateSessionAsync(
+                It.IsAny<SessionValidationContext>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<SessionValidationContext, CancellationToken>(
+                (context, _) => captured = context)
+            .ReturnsAsync(CreateValidationResult(ClaimsSnapshot.Empty));
+
+        await using var host =
+            await ResourceApiTestHost.CreateAsync(validator.Object);
+
+        AddSession(host.Client);
+
+        using var response = await host.Client.GetAsync(
+            "/__tests/resource/authenticated",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        captured.Should().NotBeNull();
+        captured!.SessionId.Should().Be(SessionId);
+        captured.Tenant.Should().Be(Tenant);
+    }
+
+    [Fact]
+    public async Task AdminEndpoint_WithoutCredential_ShouldReturnUnauthorized()
+    {
+        var validator = new Mock<ISessionValidator>();
+
+        await using var host =
+            await ResourceApiTestHost.CreateAsync(validator.Object);
+
+        using var response = await host.Client.GetAsync(
+            "/__tests/resource/admin",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should()
+            .Be(HttpStatusCode.Unauthorized);
+
+        VerifyNeverValidated(validator);
+    }
 
     [Fact]
     public async Task AdminEndpoint_WithAuthenticatedNonAdminUser_ShouldReturnForbidden()
@@ -143,21 +166,37 @@ public sealed class ResourceApiAuthenticationTests
                 (ClaimTypes.Role, "User")));
 
         await using var host =
-            await ResourceApiTestHost.CreateAsync(
-                validator.Object);
+            await ResourceApiTestHost.CreateAsync(validator.Object);
 
         AddSession(host.Client);
 
-        var response = await host.Client.GetAsync(
-            "/__tests/resource/admin", TestContext.Current.CancellationToken);
+        using var response = await host.Client.GetAsync(
+            "/__tests/resource/admin",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should()
+            .Be(HttpStatusCode.Forbidden);
+
+        VerifyValidatedAtLeastOnce(validator);
+    }
+
+    [Fact]
+    public async Task AdminEndpoint_WithNoRoles_ShouldReturnForbidden()
+    {
+        var validator = CreateValidator(ClaimsSnapshot.Empty);
+
+        await using var host =
+            await ResourceApiTestHost.CreateAsync(validator.Object);
+
+        AddSession(host.Client);
+
+        using var response = await host.Client.GetAsync(
+            "/__tests/resource/admin",
+            TestContext.Current.CancellationToken);
 
         response.StatusCode.Should()
             .Be(HttpStatusCode.Forbidden);
     }
-
-    // --------------------------------------------------
-    // Valid Admin -> 200
-    // --------------------------------------------------
 
     [Fact]
     public async Task AdminEndpoint_WithAdminRole_ShouldReturnOk()
@@ -167,21 +206,18 @@ public sealed class ResourceApiAuthenticationTests
                 (ClaimTypes.Role, "Admin")));
 
         await using var host =
-            await ResourceApiTestHost.CreateAsync(
-                validator.Object);
+            await ResourceApiTestHost.CreateAsync(validator.Object);
 
         AddSession(host.Client);
 
-        var response = await host.Client.GetAsync(
-            "/__tests/resource/admin", TestContext.Current.CancellationToken);
+        using var response = await host.Client.GetAsync(
+            "/__tests/resource/admin",
+            TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should()
-            .Be(HttpStatusCode.OK);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        VerifyValidatedAtLeastOnce(validator);
     }
-
-    // --------------------------------------------------
-    // Claims really reach developer's controller
-    // --------------------------------------------------
 
     [Fact]
     public async Task AuthenticatedEndpoint_ShouldExposeUltimateAuthIdentityToController()
@@ -193,20 +229,19 @@ public sealed class ResourceApiAuthenticationTests
                 ("uauth:permission", "products.update.admin")));
 
         await using var host =
-            await ResourceApiTestHost.CreateAsync(
-                validator.Object);
+            await ResourceApiTestHost.CreateAsync(validator.Object);
 
         AddSession(host.Client);
 
-        var response = await host.Client.GetAsync(
-            "/__tests/resource/identity", TestContext.Current.CancellationToken);
+        using var response = await host.Client.GetAsync(
+            "/__tests/resource/identity",
+            TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should()
-            .Be(HttpStatusCode.OK);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var body =
-            await response.Content
-                .ReadFromJsonAsync<IdentityResponse>(cancellationToken: TestContext.Current.CancellationToken);
+        var body = await response.Content
+            .ReadFromJsonAsync<IdentityResponse>(
+                cancellationToken: TestContext.Current.CancellationToken);
 
         body.Should().NotBeNull();
 
@@ -214,13 +249,38 @@ public sealed class ResourceApiAuthenticationTests
 
         body.Roles.Should()
             .ContainSingle()
-            .Which.Should()
-            .Be("Admin");
+            .Which.Should().Be("Admin");
 
         body.Permissions.Should()
             .BeEquivalentTo(
                 "products.read.self",
                 "products.update.admin");
+    }
+
+    [Fact]
+    public async Task AuthenticatedEndpoint_WithInvalidSession_ShouldNotExposeIdentity()
+    {
+        var validator = new Mock<ISessionValidator>();
+
+        validator
+            .Setup(x => x.ValidateSessionAsync(
+                It.IsAny<SessionValidationContext>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                SessionValidationResult.Invalid(
+                    SessionState.Revoked));
+
+        await using var host =
+            await ResourceApiTestHost.CreateAsync(validator.Object);
+
+        AddSession(host.Client);
+
+        using var response = await host.Client.GetAsync(
+            "/__tests/resource/identity",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should()
+            .Be(HttpStatusCode.Unauthorized);
     }
 
     [Theory]
@@ -229,11 +289,16 @@ public sealed class ResourceApiAuthenticationTests
     [InlineData(UserStatus.SelfSuspended, HttpStatusCode.Forbidden)]
     [InlineData(UserStatus.Disabled, HttpStatusCode.Forbidden)]
     [InlineData(UserStatus.Unknown, HttpStatusCode.Forbidden)]
-    public async Task ProtectedEndpoint_ShouldEnforceUserStatus(UserStatus status, HttpStatusCode expected)
+    public async Task ProtectedEndpoint_ShouldEnforceUserStatus(
+        UserStatus status,
+        HttpStatusCode expected)
     {
-        var validator = CreateValidator(ClaimsSnapshot.Empty, status);
+        var validator = CreateValidator(
+            ClaimsSnapshot.Empty,
+            status);
 
-        await using var host = await ResourceApiTestHost.CreateAsync(validator.Object);
+        await using var host =
+            await ResourceApiTestHost.CreateAsync(validator.Object);
 
         AddSession(host.Client);
 
@@ -242,6 +307,8 @@ public sealed class ResourceApiAuthenticationTests
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(expected);
+
+        VerifyValidatedAtLeastOnce(validator);
     }
 
     [Theory]
@@ -250,11 +317,16 @@ public sealed class ResourceApiAuthenticationTests
     [InlineData(UserStatus.SelfSuspended, HttpStatusCode.OK)]
     [InlineData(UserStatus.Disabled, HttpStatusCode.Forbidden)]
     [InlineData(UserStatus.Unknown, HttpStatusCode.Forbidden)]
-    public async Task SupportTicket_ShouldAllowOnlyEligibleUsers(UserStatus status, HttpStatusCode expected)
+    public async Task SupportTicket_ShouldAllowOnlyEligibleUsers(
+        UserStatus status,
+        HttpStatusCode expected)
     {
-        var validator = CreateValidator(ClaimsSnapshot.Empty, status);
+        var validator = CreateValidator(
+            ClaimsSnapshot.Empty,
+            status);
 
-        await using var host = await ResourceApiTestHost.CreateAsync(validator.Object);
+        await using var host =
+            await ResourceApiTestHost.CreateAsync(validator.Object);
 
         AddSession(host.Client);
 
@@ -264,10 +336,13 @@ public sealed class ResourceApiAuthenticationTests
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(expected);
+
+        VerifyValidatedAtLeastOnce(validator);
     }
 
-
-    private static Mock<ISessionValidator> CreateValidator(ClaimsSnapshot claims, UserStatus status = UserStatus.Active)
+    private static Mock<ISessionValidator> CreateValidator(
+        ClaimsSnapshot claims,
+        UserStatus status = UserStatus.Active)
     {
         var validator = new Mock<ISessionValidator>();
 
@@ -275,18 +350,24 @@ public sealed class ResourceApiAuthenticationTests
             .Setup(x => x.ValidateSessionAsync(
                 It.IsAny<SessionValidationContext>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-                SessionValidationResult.Active(
-                    tenant: Tenant,
-                    userKey: User,
-                    sessionId: SessionId,
-                    chainId: ChainId,
-                    rootId: RootId,
-                    claims: claims,
-                    authenticatedAt: Now,
-                    userStatus: status));
+            .ReturnsAsync(CreateValidationResult(claims, status));
 
         return validator;
+    }
+
+    private static SessionValidationResult CreateValidationResult(
+        ClaimsSnapshot claims,
+        UserStatus status = UserStatus.Active)
+    {
+        return SessionValidationResult.Active(
+            tenant: Tenant,
+            userKey: User,
+            sessionId: SessionId,
+            chainId: ChainId,
+            rootId: RootId,
+            claims: claims,
+            authenticatedAt: Now,
+            userStatus: status);
     }
 
     private static void AddSession(HttpClient client)
@@ -295,6 +376,26 @@ public sealed class ResourceApiAuthenticationTests
             new AuthenticationHeaderValue(
                 "Bearer",
                 SessionValue);
+    }
+
+    private static void VerifyNeverValidated(
+        Mock<ISessionValidator> validator)
+    {
+        validator.Verify(
+            x => x.ValidateSessionAsync(
+                It.IsAny<SessionValidationContext>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    private static void VerifyValidatedAtLeastOnce(
+        Mock<ISessionValidator> validator)
+    {
+        validator.Verify(
+            x => x.ValidateSessionAsync(
+                It.IsAny<SessionValidationContext>(),
+                It.IsAny<CancellationToken>()),
+            Times.AtLeastOnce);
     }
 
     private sealed class IdentityResponse
