@@ -398,22 +398,15 @@ public sealed class UAuthTokenIssuerTests
     [Theory]
     [InlineData(UAuthMode.Hybrid)]
     [InlineData(UAuthMode.SemiHybrid)]
-    [InlineData(UAuthMode.PureJwt)]
-    public async Task IssueRefreshTokenAsync_WhenSessionIdIsMissing_ShouldReturnNull(
-        UAuthMode mode)
+    public async Task IssueRefreshTokenAsync_WhenSessionIdIsMissing_ShouldReturnNull(UAuthMode mode)
     {
         var fixture = CreateFixture();
 
         var flow = CreateFlow(mode);
 
-        var context = CreateTokenContext(
-            sessionId: null);
+        var context = CreateTokenContext(sessionId: null);
 
-        var result =
-            await fixture.Sut.IssueRefreshTokenAsync(
-                flow,
-                context,
-                RefreshTokenPersistence.Persist, ct: TestContext.Current.CancellationToken);
+        var result = await fixture.Sut.IssueRefreshTokenAsync(flow, context, RefreshTokenPersistence.Persist, ct: TestContext.Current.CancellationToken);
 
         result.Should().BeNull();
 
@@ -423,6 +416,65 @@ public sealed class UAuthTokenIssuerTests
 
         fixture.Hasher.Verify(
             x => x.Hash(It.IsAny<string>()),
+            Times.Never);
+
+        fixture.StoreFactory.Verify(
+            x => x.Create(It.IsAny<TenantKey>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task IssueRefreshTokenAsync_PureJwt_WithoutSession_ShouldIssueRefreshToken()
+    {
+        var fixture = CreateFixture();
+
+        var flow = CreateFlow(UAuthMode.PureJwt);
+
+        var context = CreateTokenContext(sessionId: null) with
+        {
+            SessionChainId = null,
+            DeviceId = TestDevice.Default().DeviceId
+        };
+
+        var result = await fixture.Sut.IssueRefreshTokenAsync(flow, context, RefreshTokenPersistence.Persist, ct: TestContext.Current.CancellationToken);
+
+        result.Should().NotBeNull();
+        result!.Token.Should().NotBeNullOrWhiteSpace();
+        result.TokenHash.Should().NotBeNullOrWhiteSpace();
+
+        fixture.OpaqueGenerator.Verify(x => x.Generate(), Times.Once);
+
+        fixture.Hasher.Verify(x => x.Hash(result.Token), Times.Once);
+
+        fixture.StoreFactory.Verify(x => x.Create(flow.Tenant), Times.Once);
+    }
+
+    [Fact]
+    public async Task IssueRefreshTokenAsync_PureJwt_WithoutDeviceId_ShouldThrow()
+    {
+        var fixture = CreateFixture();
+
+        var flow = CreateFlow(UAuthMode.PureJwt);
+
+        var context = CreateTokenContext(sessionId: null) with
+        {
+            SessionChainId = null,
+            DeviceId = null
+        };
+
+        var act = () => fixture.Sut.IssueRefreshTokenAsync(
+            flow,
+            context,
+            RefreshTokenPersistence.Persist,
+            ct: TestContext.Current.CancellationToken);
+
+        await act.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage(
+                "PureJwt refresh requires a device ID and must not be session-bound.");
+
+        fixture.OpaqueGenerator.Verify(
+            x => x.Generate(),
             Times.Never);
 
         fixture.StoreFactory.Verify(

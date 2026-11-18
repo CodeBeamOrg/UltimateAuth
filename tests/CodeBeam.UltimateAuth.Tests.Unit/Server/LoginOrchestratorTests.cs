@@ -798,7 +798,7 @@ public class LoginOrchestratorTests
     }
 
     [Fact]
-    public async Task PureJwt_login_should_issue_jwt_without_session()
+    public async Task PureJwt_login_should_issue_jwt_and_refresh_token_without_session()
     {
         var runtime = new TestAuthRuntime<UserKey>();
         var flow = await CreatePureJwtFlowAsync(runtime);
@@ -817,8 +817,9 @@ public class LoginOrchestratorTests
         result.AccessToken.Token.Should().NotBeNullOrWhiteSpace();
         result.AccessToken.SessionId.Should().BeNull();
 
-        // Refresh family is not implemented yet.
-        result.RefreshToken.Should().BeNull();
+        result.RefreshToken.Should().NotBeNull();
+        result.RefreshToken!.Token.Should().NotBeNullOrWhiteSpace();
+        result.RefreshToken.ExpiresAt.Should().BeAfter(DateTimeOffset.UtcNow);
     }
 
     [Fact]

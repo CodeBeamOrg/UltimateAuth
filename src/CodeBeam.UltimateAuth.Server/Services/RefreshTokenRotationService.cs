@@ -184,7 +184,7 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
             {
                 if (validation.SessionChainId is SessionChainId sessionChainId)
                 {
-                    await store.RevokeByChainAsync(sessionChainId, now, transactionCt);
+                    await store.RevokeBySessionChainAsync(sessionChainId, now, transactionCt);
 
                     return;
                 }

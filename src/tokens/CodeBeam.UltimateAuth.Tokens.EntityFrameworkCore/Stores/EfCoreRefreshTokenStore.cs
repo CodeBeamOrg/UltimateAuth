@@ -184,7 +184,7 @@ internal sealed class EfCoreRefreshTokenStore<TDbContext> : IRefreshTokenStore w
                 ct);
     }
 
-    public Task RevokeByChainAsync(SessionChainId chainId, DateTimeOffset revokedAt, CancellationToken ct = default)
+    public Task RevokeBySessionChainAsync(SessionChainId chainId, DateTimeOffset revokedAt, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
         EnsureTransaction();
