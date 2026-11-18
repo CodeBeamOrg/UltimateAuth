@@ -238,6 +238,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IRefreshFlowService, RefreshFlowService>();
         services.TryAddScoped<IPkceService, PkceService>();
         services.TryAddScoped<IAuthenticationLockoutService, AuthenticationLockoutService>();
+        services.TryAddScoped<IPureJwtLogoutService, PureJwtLogoutService>();
 
         services.TryAddSingleton<IClock, CodeBeam.UltimateAuth.Server.Infrastructure.SystemClock>();
 

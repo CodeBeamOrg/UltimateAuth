@@ -4,11 +4,11 @@ using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Endpoints;
+using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using CodeBeam.UltimateAuth.Users.Contracts;
@@ -653,6 +653,79 @@ public sealed class LogoutEndpointHandlerTests
             Times.Never);
     }
 
+    [Fact]
+    public async Task LogoutAsync_ValidRefreshToken_RevokesRefreshChain()
+    {
+        var flow = CreatePureJwtFlow();
+        var refreshChainId = RefreshChainId.New();
+
+        var validator = new Mock<IRefreshTokenValidator>();
+        var storeFactory = new Mock<IRefreshTokenStoreFactory>();
+        var store = new Mock<IRefreshTokenStore>();
+        var clock = new Mock<IClock>();
+
+        var now = DateTimeOffset.UtcNow;
+
+        clock.SetupGet(x => x.UtcNow).Returns(now);
+
+        var token = RefreshToken.Create(
+            tokenId: TokenId.New(),
+            tokenHash: "hashed-refresh-token",
+            tenant: flow.Tenant,
+            userKey: flow.UserKey!.Value,
+            sessionId: null,
+            sessionChainId: null,
+            createdAt: now.AddMinutes(-5),
+            expiresAt: now.AddDays(1),
+            refreshChainId: refreshChainId,
+            deviceId: flow.Device.DeviceId);
+
+        validator
+            .Setup(x => x.ValidateAsync(
+                It.IsAny<RefreshTokenValidationContext>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                RefreshTokenValidationResult.Valid(
+                    token,
+                    token.TokenHash));
+
+        storeFactory
+            .Setup(x => x.Create(flow.Tenant))
+            .Returns(store.Object);
+
+        store
+            .Setup(x => x.ExecuteAsync(
+                It.IsAny<Func<CancellationToken, Task>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(
+                (Func<CancellationToken, Task> action,
+                 CancellationToken ct) => action(ct));
+
+        store
+            .Setup(x => x.RevokeByRefreshChainAsync(
+                refreshChainId,
+                now,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var sut = new PureJwtLogoutService(
+            validator.Object,
+            storeFactory.Object,
+            clock.Object);
+
+        var result = await sut.LogoutAsync(
+            flow,
+            "raw-refresh-token", TestContext.Current.CancellationToken);
+
+        Assert.True(result);
+
+        store.Verify(x => x.RevokeByRefreshChainAsync(
+            refreshChainId,
+            now,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
 
     // =====================================================================
     // Helpers
@@ -684,9 +757,19 @@ public sealed class LogoutEndpointHandlerTests
         var redirectResolver =
             new Mock<IAuthRedirectResolver>(MockBehavior.Strict);
 
+        var refreshResolver =
+            new Mock<IRefreshTokenResolver>(MockBehavior.Strict);
+
+        var jwtLogoutService =
+            new Mock<IPureJwtLogoutService>(MockBehavior.Strict);
+
         authContext
             .SetupGet(x => x.Current)
             .Returns(flow);
+
+        refreshResolver
+            .Setup(x => x.Resolve(It.IsAny<HttpContext>()))
+            .Returns((string?)null);
 
         var httpContext = new DefaultHttpContext();
 
@@ -696,7 +779,9 @@ public sealed class LogoutEndpointHandlerTests
             accessFactory.Object,
             sessions.Object,
             cookieManager.Object,
-            redirectResolver.Object);
+            redirectResolver.Object,
+            refreshResolver.Object,
+            jwtLogoutService.Object);
 
         return new Fixture(
             sut,
