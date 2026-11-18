@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Runtime;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Runtime;
 using CodeBeam.UltimateAuth.Server.Middlewares;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Builder;
@@ -77,9 +78,7 @@ public static class UltimateAuthApplicationBuilderExtensions
 
     public static IApplicationBuilder UseUltimateAuthResourceApi(this IApplicationBuilder app)
     {
-        var logger = app.ApplicationServices
-            .GetRequiredService<ILoggerFactory>()
-            .CreateLogger("UltimateAuth");
+        var logger = app.ApplicationServices.GetRequiredService<ILoggerFactory>().CreateLogger("UltimateAuth");
 
         var options = app.ApplicationServices.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value;
 
@@ -91,8 +90,13 @@ public static class UltimateAuthApplicationBuilderExtensions
 
         app.UseUAuthExceptionHandling();
         app.UseMiddleware<TenantMiddleware>();
-        app.UseMiddleware<SessionResolutionMiddleware>();
-        app.UseMiddleware<RemoteSessionValidationMiddleware>();
+
+        if (options.AuthMode != UAuthMode.PureJwt)
+        {
+            app.UseMiddleware<SessionResolutionMiddleware>();
+            app.UseMiddleware<RemoteSessionValidationMiddleware>();
+        }
+
         app.UseMiddleware<UserMiddleware>();
 
         return app;

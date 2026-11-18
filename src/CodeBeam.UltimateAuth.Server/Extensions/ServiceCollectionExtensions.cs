@@ -37,6 +37,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -153,8 +154,7 @@ public static class ServiceCollectionExtensions
 
             if (signingProvider is not ConfiguredJwtSigningKeyProvider)
             {
-                throw new InvalidOperationException(
-                    "A custom JWT signing provider requires an explicit IJwtVerificationKeyProvider registration.");
+                throw new InvalidOperationException("A custom JWT signing provider requires an explicit IJwtVerificationKeyProvider registration.");
             }
 
             var signingKey = signingProvider.Resolve(null);
@@ -527,7 +527,39 @@ public static class ServiceCollectionExtensions
         // Resource API Specific
         services.AddSingleton<IUAuthRuntimeMarker, ResourceRuntimeMarker>();
 
+        services.AddSingleton<IOptions<UAuthJwtValidationOptions>>(sp =>
+        {
+            var configuration = sp.GetRequiredService<IConfiguration>();
+
+            var section = configuration.GetSection(
+                "UltimateAuth:ResourceApi:Jwt");
+
+            var issuer = section["Issuer"];
+            var audience = section["Audience"];
+            var algorithms = section
+                .GetSection("ValidAlgorithms")
+                .Get<string[]>();
+
+            if (string.IsNullOrWhiteSpace(issuer) ||
+                string.IsNullOrWhiteSpace(audience) ||
+                algorithms is null ||
+                algorithms.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    "Resource API JWT validation is not configured.");
+            }
+
+            return Microsoft.Extensions.Options.Options.Create(new UAuthJwtValidationOptions
+            {
+                Issuer = issuer,
+                Audience = audience,
+                ValidAlgorithms = algorithms
+            });
+        });
+
         services.AddScoped<ISessionValidator, RemoteSessionValidator>();
+        services.TryAddScoped<IUAuthJwtValidator, UAuthJwtValidator>();
+
         services.AddScoped<IUserAccessor<UserKey>, ResourceUserAccessor<UserKey>>();
         //services.AddScoped<IAuthContextFactory, ResourceAuthContextFactory>();
         services.AddScoped<IAccessOrchestrator, UAuthResourceAccessOrchestrator>();

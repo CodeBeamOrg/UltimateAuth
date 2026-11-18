@@ -1,9 +1,25 @@
+using CodeBeam.UltimateAuth.Server.Abstractions;
+using CodeBeam.UltimateAuth.Server.Contracts;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
+using Microsoft.IdentityModel.Tokens;
+using System.Buffers.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+
+var keyBytes = Convert.FromBase64String("VUxUSU1BVEVBVVRIX0RFVl9KV1RfU0lHTklOR19LRVlfVjE=");
+
+var verificationKey = new SymmetricSecurityKey(keyBytes)
+{
+    KeyId = "uauth-hs256-v1"
+};
+
+builder.Services.AddSingleton<IJwtVerificationKeyProvider>(
+    new StaticJwtVerificationKeyProvider(
+        new[] { verificationKey }));
 
 builder.Services.AddUltimateAuthResourceApi(o =>
     {

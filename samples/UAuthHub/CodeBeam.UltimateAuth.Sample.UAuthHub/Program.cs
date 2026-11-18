@@ -1,6 +1,8 @@
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
 using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
@@ -27,6 +29,8 @@ builder.Services.AddMudExtensions();
 builder.Services.AddScoped<DarkModeManager>();
 
 builder.Services.AddUltimateAuthServer(o => {
+    //o.AuthMode = UAuthMode.PureJwt;
+    //o.GrantDelivery.Default = GrantDeliveryMode.Cookie;
     o.Diagnostics.EnableRefreshDetails = true;
     o.Login.MaxFailedAttempts = 2;
     o.Login.LockoutDuration = TimeSpan.FromSeconds(10);
