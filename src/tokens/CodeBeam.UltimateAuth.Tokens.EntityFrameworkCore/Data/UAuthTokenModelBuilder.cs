@@ -47,7 +47,9 @@ public static class UAuthTokensModelBuilder
                 .IsRequired();
 
             e.Property(x => x.SessionId)
-                .HasConversion(new AuthSessionIdConverter());
+                .HasConversion(new NullableAuthSessionIdConverter());
+
+            e.Property(x => x.RefreshChainId).IsRequired();
 
             e.Property(x => x.ChainId)
                 .HasConversion(new NullableSessionChainIdConverter());
@@ -68,6 +70,7 @@ public static class UAuthTokensModelBuilder
             e.HasIndex(x => new { x.Tenant, x.ExpiresAt });
             e.HasIndex(x => new { x.Tenant, x.ExpiresAt, x.RevokedAt });
             e.HasIndex(x => new { x.Tenant, x.ReplacedByTokenHash });
+            e.HasIndex(x => new { x.Tenant, x.RefreshChainId });
         });
     }
 }

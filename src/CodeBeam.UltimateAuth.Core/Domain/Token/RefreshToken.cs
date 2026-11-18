@@ -14,9 +14,13 @@ public sealed record RefreshToken : IVersionedEntity
 
     public required UserKey UserKey { get; init; }
 
-    public AuthSessionId SessionId { get; init; }
+    public RefreshChainId RefreshChainId { get; init; }
+
+    public AuthSessionId? SessionId { get; init; }
 
     public SessionChainId? ChainId { get; init; }
+
+    public DeviceId? DeviceId { get; init; }
 
     public DateTimeOffset CreatedAt { get; init; }
 
@@ -41,11 +45,23 @@ public sealed record RefreshToken : IVersionedEntity
         string tokenHash,
         TenantKey tenant,
         UserKey userKey,
-        AuthSessionId sessionId,
+        AuthSessionId? sessionId,
         SessionChainId? chainId,
         DateTimeOffset createdAt,
-        DateTimeOffset expiresAt)
+        DateTimeOffset expiresAt,
+        RefreshChainId? refreshChainId = null,
+        DeviceId? deviceId = null)
     {
+        if (sessionId is null && chainId is not null)
+        {
+            throw new ArgumentException("A session chain requires a session.");
+        }
+
+        if (refreshChainId is { } id && id.Value == Guid.Empty)
+        {
+            throw new ArgumentException("RefreshChainId cannot be empty.", nameof(refreshChainId));
+        }
+
         return new RefreshToken
         {
             TokenId = tokenId,
@@ -54,6 +70,8 @@ public sealed record RefreshToken : IVersionedEntity
             UserKey = userKey,
             SessionId = sessionId,
             ChainId = chainId,
+            RefreshChainId = refreshChainId ?? RefreshChainId.New(),
+            DeviceId = deviceId,
             CreatedAt = createdAt,
             ExpiresAt = expiresAt,
             Version = 0

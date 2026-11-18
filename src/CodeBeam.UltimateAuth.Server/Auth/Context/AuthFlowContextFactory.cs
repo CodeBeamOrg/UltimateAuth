@@ -114,35 +114,6 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
             }
         }
 
-        if (effectiveMode is UAuthMode.PureOpaque or UAuthMode.Hybrid && !sessionCtx.IsAnonymous)
-        {
-            var validation = await _sessionValidator.ValidateSessionAsync(
-                new SessionValidationContext
-                {
-                    Tenant = tenant,
-                    SessionId = sessionCtx.SessionId!.Value,
-                    Device = deviceContext,
-                    SessionOptions = options.Session,
-                    Now = _clock.UtcNow
-                },
-                ct);
-
-            sessionSecurityContext = SessionValidationMapper.ToSecurityContext(validation);
-
-            if (effectiveMode is UAuthMode.PureOpaque or UAuthMode.Hybrid)
-            {
-                isAuthenticated = validation.IsValid;
-
-                if (!isAuthenticated)
-                    userKey = null;
-            }
-        }
-        else if (effectiveMode is UAuthMode.PureOpaque or UAuthMode.Hybrid)
-        {
-            isAuthenticated = false;
-            userKey = null;
-        }
-
         if (!tenant.IsValid || tenant.IsUnresolved)
             throw new InvalidOperationException("AuthFlowContext cannot be created with invalid or unresolved tenant.");
 

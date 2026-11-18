@@ -15,9 +15,13 @@ public sealed class RefreshTokenProjection
 
     public UserKey UserKey { get; set; } = default!;
 
-    public AuthSessionId SessionId { get; set; } = default!;
+    public AuthSessionId? SessionId { get; set; } = default!;
 
     public SessionChainId? ChainId { get; set; }
+
+    public Guid RefreshChainId { get; set; }
+
+    public DeviceId? DeviceId { get; set; }
 
     public string? ReplacedByTokenHash { get; set; }
 

@@ -281,12 +281,18 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                 throw new InvalidOperationException("PureJwt must issue a JWT access token.");
             }
 
-            // Refresh issuance is deliberately not called here yet.
-            // It requires an independent, session-free refresh family.
+            var refreshIssuance = await _tokens.IssueRefreshTokenAsync(flow, tokenContext, RefreshTokenPersistence.Persist, ct);
+
             var authTokens = new AuthTokens
             {
                 AccessToken = accessToken,
-                RefreshToken = null
+                RefreshToken = refreshIssuance is null
+                    ? null
+                    : new RefreshTokenInfo
+                    {
+                        Token = refreshIssuance.Token,
+                        ExpiresAt = refreshIssuance.ExpiresAt
+                    }
             };
 
             await _events.DispatchAsync(new UserLoggedInContext(flow.Tenant, userKey.Value, now, flow.Device, sessionId: null));

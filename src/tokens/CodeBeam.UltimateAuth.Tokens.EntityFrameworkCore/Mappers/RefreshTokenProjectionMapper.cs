@@ -14,7 +14,9 @@ internal static class RefreshTokenProjectionMapper
             sessionId: p.SessionId,
             chainId: p.ChainId,
             createdAt: p.CreatedAt,
-            expiresAt: p.ExpiresAt
+            expiresAt: p.ExpiresAt,
+            refreshChainId: RefreshChainId.From(p.RefreshChainId),
+            deviceId: p.DeviceId
         ) with
         {
             RevokedAt = p.RevokedAt,
@@ -33,6 +35,8 @@ internal static class RefreshTokenProjectionMapper
             UserKey = t.UserKey,
             SessionId = t.SessionId,
             ChainId = t.ChainId,
+            RefreshChainId = t.RefreshChainId.Value,
+            DeviceId = t.DeviceId,
             CreatedAt = t.CreatedAt,
             ExpiresAt = t.ExpiresAt,
             RevokedAt = t.RevokedAt,

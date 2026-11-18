@@ -62,10 +62,23 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
     public async Task<RefreshTokenIssuanceResult?> IssueRefreshTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, RefreshTokenPersistence persistence, CancellationToken ct = default)
     {
         if (flow.EffectiveMode == UAuthMode.PureOpaque || !flow.Options.Token.IssueRefresh)
+        {
             return null;
+        }
 
-        if (context.SessionId is not AuthSessionId sessionId)
+        if (flow.EffectiveMode == UAuthMode.PureJwt)
+        {
+            if (context.SessionId is not null ||
+                context.ChainId is not null ||
+                context.DeviceId is null)
+            {
+                throw new InvalidOperationException("PureJwt refresh requires a device ID and must not be session-bound.");
+            }
+        }
+        else if (context.SessionId is null)
+        {
             return null;
+        }
 
         var now = _clock.UtcNow;
         var expires = now.Add(flow.Options.Token.RefreshTokenLifetime);
@@ -78,19 +91,23 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
             tokenHash: hash,
             tenant: flow.Tenant,
             userKey: context.UserKey,
-            sessionId: sessionId,
+            sessionId: context.SessionId,
             chainId: context.ChainId,
             createdAt: now,
-            expiresAt: expires);
+            expiresAt: expires,
+            refreshChainId: context.RefreshChainId,
+            deviceId: context.DeviceId);
 
         if (persistence == RefreshTokenPersistence.Persist)
         {
             var store = _storeFactory.Create(flow.Tenant);
 
-            await store.ExecuteAsync(async transactionCt =>
-            {
-                await store.StoreAsync(stored, transactionCt);
-            }, ct);
+            await store.ExecuteAsync(
+                async transactionCt =>
+                {
+                    await store.StoreAsync(stored, transactionCt);
+                },
+                ct);
         }
 
         return new RefreshTokenIssuanceResult

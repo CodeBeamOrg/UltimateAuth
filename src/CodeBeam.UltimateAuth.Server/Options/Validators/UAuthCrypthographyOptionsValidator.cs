@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Server.Infrastructure;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using System.Security.Cryptography;
 
 namespace CodeBeam.UltimateAuth.Server.Options;
 
@@ -21,12 +22,12 @@ public sealed class UAuthCryptographyOptionsValidator(string environmentName, bo
 
         if (usesBuiltInSigning)
         {
-            signingKey = ValidateKey(crypto.JwtSigningKey, nameof(crypto.JwtSigningKey), UAuthCryptographyConstants.DevelopmentJwtSigningKey, failures);
+            signingKey = ValidateKey(crypto.JwtSigningKey, nameof(crypto.JwtSigningKey), failures);
         }
 
         if (usesBuiltInHashing)
         {
-            hashingKey = ValidateKey(crypto.TokenHashingKey, nameof(crypto.TokenHashingKey), UAuthCryptographyConstants.DevelopmentTokenHashingKey, failures);
+            hashingKey = ValidateKey(crypto.TokenHashingKey, nameof(crypto.TokenHashingKey), failures);
         }
 
         if (signingKey is not null && hashingKey is not null)
@@ -46,7 +47,7 @@ public sealed class UAuthCryptographyOptionsValidator(string environmentName, bo
             : ValidateOptionsResult.Fail(failures);
     }
 
-    private byte[]? ValidateKey(string? value, string name, string developmentDefault, List<string> failures)
+    private byte[]? ValidateKey(string? value, string name, List<string> failures)
     {
         byte[] key;
 
@@ -60,13 +61,20 @@ public sealed class UAuthCryptographyOptionsValidator(string environmentName, bo
             return null;
         }
 
-        if (!string.Equals(environmentName, Environments.Development, StringComparison.OrdinalIgnoreCase) && 
-            (string.Equals(value, UAuthCryptographyConstants.DevelopmentJwtSigningKey, StringComparison.Ordinal) ||
-            string.Equals(value, UAuthCryptographyConstants.DevelopmentTokenHashingKey, StringComparison.Ordinal)))
+        if (!string.Equals(environmentName, Environments.Development, StringComparison.OrdinalIgnoreCase) &&
+            (MatchesDevelopmentKey(key, UAuthCryptographyConstants.DevelopmentJwtSigningKey) ||
+             MatchesDevelopmentKey(key, UAuthCryptographyConstants.DevelopmentTokenHashingKey)))
         {
             failures.Add($"Cryptography.{name} cannot use a known UltimateAuth development key outside Development.");
         }
 
         return key;
+    }
+
+    private static bool MatchesDevelopmentKey(byte[] key, string developmentKey)
+    {
+        var expected = Convert.FromBase64String(developmentKey);
+
+        return key.Length == expected.Length && CryptographicOperations.FixedTimeEquals(key, expected);
     }
 }
