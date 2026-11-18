@@ -265,7 +265,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                 UserKey = userKey.Value,
                 Claims = claims,
                 SessionId = null,
-                ChainId = null,
+                SessionChainId = null,
                 DeviceId = deviceId,
 
                 PrimaryUserName = identifiers?.UserName,
@@ -336,7 +336,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                 Tenant = flow.Tenant,
                 UserKey = userKey.Value,
                 SessionId = issuedSession.Session.SessionId,
-                ChainId = issuedSession.Session.ChainId,
+                SessionChainId = issuedSession.Session.ChainId,
                 Claims = claims
             };
 

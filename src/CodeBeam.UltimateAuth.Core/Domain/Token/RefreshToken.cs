@@ -18,11 +18,13 @@ public sealed record RefreshToken : IVersionedEntity
 
     public AuthSessionId? SessionId { get; init; }
 
-    public SessionChainId? ChainId { get; init; }
+    public SessionChainId? SessionChainId { get; init; }
 
     public DeviceId? DeviceId { get; init; }
 
     public DateTimeOffset CreatedAt { get; init; }
+
+    public DateTimeOffset? AuthenticatedAt { get; init; }
 
     public DateTimeOffset ExpiresAt { get; init; }
 
@@ -46,13 +48,14 @@ public sealed record RefreshToken : IVersionedEntity
         TenantKey tenant,
         UserKey userKey,
         AuthSessionId? sessionId,
-        SessionChainId? chainId,
+        SessionChainId? sessionChainId,
         DateTimeOffset createdAt,
         DateTimeOffset expiresAt,
         RefreshChainId? refreshChainId = null,
-        DeviceId? deviceId = null)
+        DeviceId? deviceId = null,
+        DateTimeOffset? authenticatedAt = null)
     {
-        if (sessionId is null && chainId is not null)
+        if (sessionId is null && sessionChainId is not null)
         {
             throw new ArgumentException("A session chain requires a session.");
         }
@@ -69,10 +72,11 @@ public sealed record RefreshToken : IVersionedEntity
             Tenant = tenant,
             UserKey = userKey,
             SessionId = sessionId,
-            ChainId = chainId,
+            SessionChainId = sessionChainId,
             RefreshChainId = refreshChainId ?? RefreshChainId.New(),
             DeviceId = deviceId,
             CreatedAt = createdAt,
+            AuthenticatedAt = authenticatedAt,
             ExpiresAt = expiresAt,
             Version = 0
         };

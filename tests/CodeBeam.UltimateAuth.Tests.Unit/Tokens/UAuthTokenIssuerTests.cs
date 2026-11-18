@@ -528,7 +528,7 @@ public sealed class UAuthTokenIssuerTests
         captured.SessionId.Should()
             .Be(sessionId);
 
-        captured.ChainId.Should()
+        captured.SessionChainId.Should()
             .Be(chainId);
 
         captured.CreatedAt.Should()
@@ -1222,7 +1222,7 @@ public sealed class UAuthTokenIssuerTests
             UserKey = UserKey.New(),
             Tenant = Tenant,
             SessionId = sessionId,
-            ChainId = chainId,
+            SessionChainId = chainId,
             Claims = claims ?? ClaimsSnapshot.Empty,
             DeviceId = deviceId ?? DeviceId.Create("unit-test-device-0000000000000123456789")
         };

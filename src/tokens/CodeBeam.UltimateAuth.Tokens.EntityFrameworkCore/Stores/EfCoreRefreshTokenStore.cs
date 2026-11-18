@@ -192,10 +192,27 @@ internal sealed class EfCoreRefreshTokenStore<TDbContext> : IRefreshTokenStore w
         return DbSet
             .Where(x =>
                 x.Tenant == _tenant &&
-                x.ChainId == chainId &&
+                x.SessionChainId == chainId &&
                 x.RevokedAt == null)
             .ExecuteUpdateAsync(
                 x => x.SetProperty(t => t.RevokedAt, revokedAt),
+                ct);
+    }
+
+    public Task RevokeByRefreshChainAsync(RefreshChainId refreshChainId, DateTimeOffset revokedAt, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        EnsureTransaction();
+
+        return DbSet
+            .Where(x =>
+                x.Tenant == _tenant &&
+                x.RefreshChainId == refreshChainId.Value &&
+                x.RevokedAt == null)
+            .ExecuteUpdateAsync(
+                x => x.SetProperty(
+                    t => t.RevokedAt,
+                    revokedAt),
                 ct);
     }
 

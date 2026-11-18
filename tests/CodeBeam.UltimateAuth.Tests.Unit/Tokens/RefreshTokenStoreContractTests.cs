@@ -46,7 +46,7 @@ public abstract class RefreshTokenStoreContractTests
         persisted.Tenant.Should().Be(token.Tenant);
         persisted.UserKey.Should().Be(token.UserKey);
         persisted.SessionId.Should().Be(token.SessionId);
-        persisted.ChainId.Should().Be(token.ChainId);
+        persisted.SessionChainId.Should().Be(token.SessionChainId);
         persisted.CreatedAt.Should().Be(token.CreatedAt);
         persisted.ExpiresAt.Should().Be(token.ExpiresAt);
         persisted.RevokedAt.Should().BeNull();
@@ -955,7 +955,7 @@ public abstract class RefreshTokenStoreContractTests
             tenant: TenantA,
             userKey: UserKey.New(),
             sessionId: TestIds.Session("session-without-chain"),
-            chainId: null,
+            sessionChainId: null,
             createdAt: Now,
             expiresAt: Now.AddDays(30));
 
@@ -965,7 +965,7 @@ public abstract class RefreshTokenStoreContractTests
             await store.FindByHashAsync(token.TokenHash, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
-        persisted!.ChainId.Should().BeNull();
+        persisted!.SessionChainId.Should().BeNull();
         persisted.TokenId.Should().Be(token.TokenId);
     }
 
@@ -1002,7 +1002,7 @@ public abstract class RefreshTokenStoreContractTests
             tenant: tenant,
             userKey: user,
             sessionId: session,
-            chainId: chain,
+            sessionChainId: chain,
             createdAt: Now,
             expiresAt: Now.AddDays(30));
     }

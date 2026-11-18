@@ -10,6 +10,6 @@ public sealed record RefreshTokenRotationExecution
     // INTERNAL – flow/orchestrator only
     public UserKey? UserKey { get; init; }
     public AuthSessionId? SessionId { get; init; }
-    public SessionChainId? ChainId { get; init; }
+    public SessionChainId? SessionChainId { get; init; }
     public TenantKey Tenant { get; init; }
 }

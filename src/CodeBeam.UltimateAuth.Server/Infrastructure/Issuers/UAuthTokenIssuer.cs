@@ -47,7 +47,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
 
             UAuthMode.PureJwt
                 when context.SessionId is null &&
-                     context.ChainId is null &&
+                     context.SessionChainId is null &&
                      context.DeviceId is not null =>
                 Task.FromResult(IssueJwtAccessToken(context, tokens, expires)),
 
@@ -69,7 +69,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
         if (flow.EffectiveMode == UAuthMode.PureJwt)
         {
             if (context.SessionId is not null ||
-                context.ChainId is not null ||
+                context.SessionChainId is not null ||
                 context.DeviceId is null)
             {
                 throw new InvalidOperationException("PureJwt refresh requires a device ID and must not be session-bound.");
@@ -92,8 +92,9 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
             tenant: flow.Tenant,
             userKey: context.UserKey,
             sessionId: context.SessionId,
-            chainId: context.ChainId,
+            sessionChainId: context.SessionChainId,
             createdAt: now,
+            authenticatedAt: context.AuthenticatedAt,
             expiresAt: expires,
             refreshChainId: context.RefreshChainId,
             deviceId: context.DeviceId);

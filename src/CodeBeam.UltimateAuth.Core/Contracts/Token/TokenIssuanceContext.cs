@@ -9,7 +9,7 @@ public sealed record TokenIssuanceContext
     public required TenantKey Tenant { get; init; }
     public ClaimsSnapshot Claims { get; init; } = ClaimsSnapshot.Empty;
     public AuthSessionId? SessionId { get; init; }
-    public SessionChainId? ChainId { get; init; }
+    public SessionChainId? SessionChainId { get; init; }
     public RefreshChainId? RefreshChainId { get; init; }
     public DeviceId? DeviceId { get; init; }
 

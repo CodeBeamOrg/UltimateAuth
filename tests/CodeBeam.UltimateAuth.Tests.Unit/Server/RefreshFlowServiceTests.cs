@@ -505,7 +505,7 @@ public sealed class RefreshFlowServiceTests
             Tenant = TenantKey.Single,
             UserKey = UserKey.New(),
             SessionId = SessionId,
-            ChainId = SessionChainId.New(),
+            SessionChainId = SessionChainId.New(),
             Result = RefreshTokenRotationResult.Success(access, RefreshTokenMapper.ToTransport(refresh))
         };
     }

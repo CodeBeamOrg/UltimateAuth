@@ -109,7 +109,7 @@ public sealed class RefreshTokenRotationServiceTests
             tenant: tenant,
             userKey: UserKey.New(),
             sessionId: TestIds.Session("expired-session"),
-            chainId: SessionChainId.New(),
+            sessionChainId: SessionChainId.New(),
             createdAt: Now.AddDays(-8),
             expiresAt: Now.AddMinutes(-1));
 
@@ -166,7 +166,7 @@ public sealed class RefreshTokenRotationServiceTests
             tenant: tenant,
             userKey: UserKey.New(),
             sessionId: sessionId,
-            chainId: chainId,
+            sessionChainId: chainId,
             createdAt: Now.AddDays(-1),
             expiresAt: Now.AddDays(6))
             .Revoke(
@@ -357,7 +357,7 @@ public sealed class RefreshTokenRotationServiceTests
         result.Tenant.Should().Be(tenant);
         result.UserKey.Should().Be(validation.UserKey);
         result.SessionId.Should().Be(validation.SessionId);
-        result.ChainId.Should().Be(validation.ChainId);
+        result.SessionChainId.Should().Be(validation.SessionChainId);
 
         store.Verify(x => x.TryConsumeAsync(
             validation.TokenHash!,
@@ -372,7 +372,7 @@ public sealed class RefreshTokenRotationServiceTests
                 token.Tenant == tenant &&
                 token.UserKey == validation.UserKey &&
                 token.SessionId == validation.SessionId &&
-                token.ChainId == validation.ChainId &&
+                token.SessionChainId == validation.SessionChainId &&
                 token.CreatedAt == Now &&
                 token.ExpiresAt == refreshToken.ExpiresAt),
             It.IsAny<CancellationToken>()),
@@ -383,7 +383,7 @@ public sealed class RefreshTokenRotationServiceTests
             It.Is<TokenIssuanceContext>(ctx =>
                 ctx.UserKey == validation.UserKey &&
                 ctx.SessionId == validation.SessionId &&
-                ctx.ChainId == validation.ChainId),
+                ctx.SessionChainId == validation.SessionChainId),
             It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -733,7 +733,7 @@ public sealed class RefreshTokenRotationServiceTests
             tenant: tenant,
             userKey: UserKey.New(),
             sessionId: TestIds.Session("rotation-session"),
-            chainId: SessionChainId.New(),
+            sessionChainId: SessionChainId.New(),
             createdAt: Now.AddDays(-1),
             expiresAt: Now.AddDays(7));
 

@@ -17,7 +17,7 @@ public sealed class RefreshTokenProjection
 
     public AuthSessionId? SessionId { get; set; } = default!;
 
-    public SessionChainId? ChainId { get; set; }
+    public SessionChainId? SessionChainId { get; set; }
 
     public Guid RefreshChainId { get; set; }
 
@@ -26,6 +26,7 @@ public sealed class RefreshTokenProjection
     public string? ReplacedByTokenHash { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? AuthenticatedAt { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }
     public DateTimeOffset? RevokedAt { get; set; }
 
