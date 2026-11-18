@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Server.Authorization;
@@ -49,24 +50,38 @@ internal sealed class UAuthStatusAuthorizationResultHandler : IAuthorizationMidd
         var runtime = context.RequestServices
             .GetRequiredService<IUAuthRuntimeMarker>();
 
-        // Resource runtime must retain its existing validation contract.
-        // PureJwt stateless authorization applies only to Server runtime.
-        if (runtime is not ResourceRuntimeMarker)
+        if (runtime is ResourceRuntimeMarker)
         {
-            var profileReader = context.RequestServices.GetRequiredService<IClientProfileReader>();
+            var resourceOptions = context.RequestServices
+                .GetRequiredService<IOptions<UAuthResourceApiOptions>>()
+                .Value;
 
-            var optionsProvider = context.RequestServices.GetRequiredService<IEffectiveServerOptionsProvider>();
+            if (resourceOptions.AuthMode == UAuthMode.PureJwt)
+            {
+                // Authentication handler already validated JWT signature,
+                // issuer, audience, lifetime, tenant and device binding.
+                // ASP.NET Core authorization has already succeeded.
+                await _default.HandleAsync(
+                    next, context, policy, authorizeResult);
+
+                return;
+            }
+        }
+        else
+        {
+            var profileReader = context.RequestServices
+                .GetRequiredService<IClientProfileReader>();
+
+            var optionsProvider = context.RequestServices
+                .GetRequiredService<IEffectiveServerOptionsProvider>();
 
             var clientProfile = await profileReader.ReadAsync(context);
-
             var effective = optionsProvider.GetEffective(context, clientProfile);
 
             if (effective.Mode == UAuthMode.PureJwt)
             {
-                // Authentication already validated the JWT.
-                // ASP.NET Core authorization has already succeeded.
-                // No runtime user-state lookup is required.
-                await _default.HandleAsync(next, context, policy, authorizeResult);
+                await _default.HandleAsync(
+                    next, context, policy, authorizeResult);
 
                 return;
             }

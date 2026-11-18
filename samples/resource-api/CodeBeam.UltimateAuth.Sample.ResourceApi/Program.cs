@@ -1,28 +1,48 @@
+using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Contracts;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using CodeBeam.UltimateAuth.Server.Options;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Buffers.Text;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-var keyBytes = Convert.FromBase64String("VUxUSU1BVEVBVVRIX0RFVl9KV1RfU0lHTklOR19LRVlfVjE=");
+const string devKey =
+    "UltimateAuth-Development-JWT-Signing-Key-2026-Only";
 
-var verificationKey = new SymmetricSecurityKey(keyBytes)
-{
-    KeyId = "uauth-hs256-v1"
-};
+builder.Services.AddSingleton<IOptions<UAuthJwtValidationOptions>>(
+    Options.Create(new UAuthJwtValidationOptions
+    {
+        Issuer = "UAuth",
+        Audience = "UAuthClient",
+        ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 }
+    }));
 
 builder.Services.AddSingleton<IJwtVerificationKeyProvider>(
     new StaticJwtVerificationKeyProvider(
-        new[] { verificationKey }));
+        new SecurityKey[]
+        {
+            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(devKey))
+            {
+                KeyId = "uauth-hs256-v1"
+            }
+        }));
 
 builder.Services.AddUltimateAuthResourceApi(o =>
     {
+        //o.AuthMode = UAuthMode.PureJwt;
+        //o.AccessTokenDeliveryMode = GrantDeliveryMode.Cookie;
+        //o.AccessTokenCookieName = "uat";
+
         // TODO: Make multiple UAuthHub support via resolver, then different client apps can use different UAuthHub instances if needed.
         o.UAuthHubBaseUrl = "https://localhost:6110";
         // o.UAuthHubBaseUrl = "https://localhost:7213"; // Comment upper line and uncomment this if you want to try blazor server sample.
@@ -42,7 +62,26 @@ if (app.Environment.IsDevelopment())
 }
 app.UseHttpsRedirection();
 
-app.UseUltimateAuthResourceApiWithAspNetCore();
+app.UseUltimateAuthResourceApi();
+app.UseAuthentication();
+
+app.Use(async (context, next) =>
+{
+    var result = await context.AuthenticateAsync("UltimateAuth");
+
+    Console.WriteLine(
+        $"AUTH: Success={result.Succeeded}, " +
+        $"Failure={result.Failure?.Message}, " +
+        $"PrincipalAuthenticated={result.Principal?.Identity?.IsAuthenticated}, " +
+        $"ContextAuthenticated={context.User.Identity?.IsAuthenticated}, " +
+        $"Admin={context.User.IsInRole("Admin")}");
+
+    await next(context);
+
+    Console.WriteLine($"FINAL STATUS: {context.Response.StatusCode}");
+});
+
+app.UseAuthorization();
 
 app.MapControllers();
 app.Run();

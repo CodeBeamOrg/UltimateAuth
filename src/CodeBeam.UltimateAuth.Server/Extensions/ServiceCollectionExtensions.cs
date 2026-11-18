@@ -527,7 +527,7 @@ public static class ServiceCollectionExtensions
         // Resource API Specific
         services.AddSingleton<IUAuthRuntimeMarker, ResourceRuntimeMarker>();
 
-        services.AddSingleton<IOptions<UAuthJwtValidationOptions>>(sp =>
+        services.TryAddSingleton<IOptions<UAuthJwtValidationOptions>>(sp =>
         {
             var configuration = sp.GetRequiredService<IConfiguration>();
 

@@ -4,6 +4,7 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
@@ -57,17 +58,36 @@ internal sealed class UAuthResourceAuthenticationHandler : AuthenticationHandler
         return await AuthenticateSessionAsync(tenant);
     }
 
-    private async Task<AuthenticateResult> AuthenticateSessionAsync(
-        TenantKey tenant)
+    private async Task<AuthenticateResult> AuthenticateSessionAsync(TenantKey tenant)
     {
-        var credential = await _credentialResolver.ResolveAsync(Context);
+        var mode = _resourceOptions.AuthMode;
+
+        var sessionDelivery = new EffectiveGrantDelivery(
+            GrantKind.Session,
+            TokenFormat.Opaque,
+            _resourceOptions.SessionDeliveryMode,
+            name: "Authorization",
+            headerFormat: HeaderTokenFormat.Bearer,
+            cookie: new UAuthCookieOptions
+            {
+                Name = _resourceOptions.SessionCookieName
+            });
+
+        var response = new EffectiveAuthResponse(
+            sessionDelivery,
+            EffectiveGrantDelivery.Disabled(GrantKind.AccessToken),
+            EffectiveGrantDelivery.Disabled(GrantKind.RefreshToken),
+            EffectiveRedirectResponse.Disabled);
+
+        var credential = await _credentialResolver.ResolveAsync(Context, mode, response);
 
         if (credential is null)
             return AuthenticateResult.NoResult();
 
         if (credential.Kind != TransportCredentialKind.Session)
-            return AuthenticateResult.Fail(
-                "Resource authentication requires a session credential.");
+        {
+            return AuthenticateResult.Fail("Resource authentication requires a session credential.");
+        }
 
         if (!AuthSessionId.TryCreate(credential.Value, out var sessionId))
             return AuthenticateResult.Fail("Invalid session");
@@ -100,23 +120,43 @@ internal sealed class UAuthResourceAuthenticationHandler : AuthenticationHandler
 
         var identity = new ClaimsIdentity(claims, Scheme.Name);
 
-        return AuthenticateResult.Success(
-            new AuthenticationTicket(
-                new ClaimsPrincipal(identity),
-                Scheme.Name));
+        return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme.Name));
     }
 
     private async Task<AuthenticateResult> AuthenticatePureJwtAsync(CodeBeam.UltimateAuth.Core.MultiTenancy.TenantKey tenant)
     {
-        var token = ResolveJwtAccessToken();
+        var accessDelivery = new EffectiveGrantDelivery(
+        GrantKind.AccessToken,
+        TokenFormat.Jwt,
+        _resourceOptions.AccessTokenDeliveryMode,
+        name: _resourceOptions.AccessTokenHeaderName,
+        headerFormat: _resourceOptions.AccessTokenHeaderFormat,
+        cookie: new UAuthCookieOptions
+        {
+            Name = _resourceOptions.AccessTokenCookieName
+        });
 
-        if (string.IsNullOrWhiteSpace(token))
+        var response = new EffectiveAuthResponse(
+            EffectiveGrantDelivery.Disabled(GrantKind.Session),
+            accessDelivery,
+            EffectiveGrantDelivery.Disabled(GrantKind.RefreshToken),
+            EffectiveRedirectResponse.Disabled);
+
+        var credential = await _credentialResolver.ResolveAsync(
+            Context,
+            UAuthMode.PureJwt,
+            response);
+
+        if (credential is null)
             return AuthenticateResult.NoResult();
+
+        if (credential.Kind != TransportCredentialKind.AccessToken)
+            return AuthenticateResult.Fail("PureJwt requires an access token.");
 
         var validator = _services.GetRequiredService<IUAuthJwtValidator>();
 
         var validated = await validator.ValidateAsync(
-            token,
+            credential.Value,
             tenant,
             Context.RequestAborted);
 
@@ -155,26 +195,5 @@ internal sealed class UAuthResourceAuthenticationHandler : AuthenticationHandler
         var principal = new ClaimsPrincipal(identity);
 
         return AuthenticateResult.Success(new AuthenticationTicket(principal, Scheme.Name));
-    }
-
-    private string? ResolveJwtAccessToken()
-    {
-        var authorization = Context.Request.Headers.Authorization.ToString();
-
-        if (!string.IsNullOrWhiteSpace(authorization))
-        {
-            const string prefix = "Bearer ";
-
-            if (!authorization.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            {
-                return null;
-            }
-
-            return authorization[prefix.Length..].Trim();
-        }
-
-        return Context.Request.Cookies.TryGetValue("uat", out var cookie)
-            ? cookie
-            : null;
     }
 }
