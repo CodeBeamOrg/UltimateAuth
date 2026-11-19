@@ -569,6 +569,44 @@ The Resource Client simplifies communication.
 
 It does not replace the receiving server's security responsibilities.
 
+### Authentication Mode Compatibility
+
+UAuthHub and Resource APIs are configured independently.
+
+UAuthHub determines which authentication credentials are issued to a client. A Resource API determines which credentials it accepts and how they are validated.
+
+Using the same UltimateAuth infrastructure does not automatically make all authentication modes interchangeable.
+
+| Client Credential | Resource API Validation | Current Support |
+|---|---|---|
+| PureOpaque session | Remote session validation | Supported |
+| PureJwt access token | Local JWT validation | Supported |
+| Hybrid session credential | Remote session validation | Supported when correctly configured |
+| Hybrid JWT access token | Hybrid-aware JWT validation | Not yet implemented |
+| PureOpaque session | PureJwt-only validation | Not supported |
+
+A PureJwt Resource API cannot authenticate an opaque session credential as a JWT.
+
+Likewise, configuring a Resource API URL in the client SDK does not automatically exchange session credentials for JWT access tokens.
+
+### Credential Delivery
+
+The client and Resource API must agree on how the credential is transported.
+
+For header delivery, the API must read the configured access-token header and format.
+
+For cookie delivery, the API must read the configured access-token cookie. Browser origin, cookie scope, SameSite, Secure, and CORS settings must permit the credential to reach the API.
+
+The Resource API must independently validate the credential and enforce authorization policies.
+
+### PureJwt and UAuthHub Connectivity
+
+A PureJwt Resource API does not need to contact UAuthHub to validate each JWT.
+
+However, clients still use UAuthHub for login, refresh, and logout operations.
+
+This separation allows protected APIs to validate access tokens independently while the authentication authority manages refresh-token state.
+
 ---
 
 ## 8. Device and Client Profile Metadata

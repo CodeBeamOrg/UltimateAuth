@@ -470,25 +470,15 @@ The effective authentication mode is resolved by the server's authentication mod
 
 Setting `AllowedModes` does not directly choose which mode every client will use.
 
-### Unsupported Modes
+### Supported Authentication Modes
 
-In the current implementation, `SemiHybrid` and `PureJwt` are not yet accepted as enabled server modes.
+UltimateAuth currently implements PureOpaque, Hybrid, and PureJwt.
 
-The server options validator rejects them when explicitly included in `AllowedModes`.
+SemiHybrid remains unavailable.
 
-For example, this configuration is invalid:
+The effective authentication mode is resolved from server-controlled configuration and application profile defaults.
 
-```csharp
-builder.Services.AddUltimateAuthServer(options =>
-{
-    options.AllowedModes =
-    [
-        UAuthMode.PureJwt
-    ];
-});
-```
-
-Do not enable an unsupported mode merely because it exists in the enum.
+Resource API mode resolution is independent from UAuthHub mode resolution. A Resource API does not automatically discover or adopt the mode selected for a particular client by UAuthHub.
 
 For supported modes and their behavior, see [Authentication Modes](/docs/fundamentals/auth-modes).
 
@@ -645,6 +635,41 @@ For example:
 A Resource API does not become a full UltimateAuth authentication server merely by registering this integration.
 
 Its role is to protect application resources using the configured UltimateAuth authentication infrastructure.
+
+### PureJwt Resource API
+
+A PureJwt Resource API validates access tokens locally and does not require a connection to UAuthHub for each authenticated request.
+
+```csharp
+builder.Services.AddUltimateAuthResourceApi(options =>
+{
+    options.Auth.Mode = UAuthMode.PureJwt;
+
+    options.Auth.Jwt = new UAuthJwtValidationOptions
+    {
+        Issuer = "https://auth.example.com",
+        Audience = "products-api",
+        ValidAlgorithms = [SecurityAlgorithms.HmacSha256]
+    };
+
+    options.Cryptography.JwtVerificationKeys.Add(
+        new UAuthJwtVerificationKeyOptions
+        {
+            KeyId = "uauth-hs256-v1",
+            Key = builder.Configuration["UltimateAuth:JwtVerificationKey"]!
+        });
+
+    options.Auth.AccessToken.DeliveryMode = GrantDeliveryMode.Header;
+});
+```
+
+The Resource API must trust the signing key used by UAuthHub and must configure matching issuer, audience, algorithm, and key ID values.
+
+The example uses a symmetric key. Production deployments must protect shared signing material and distribute it only through trusted configuration or secret-management systems.
+
+For PureJwt, `Hub.BaseUrl` is optional because access-token validation does not require remote session validation.
+
+For session-based Resource API validation, `Hub.BaseUrl` is required.
 
 ### Important: Resource API CORS Configuration
 

@@ -35,6 +35,69 @@ For example, an application might use an EF Core-backed UAuthHub, a standalone B
 
 The frontend handles user interaction, UAuthHub manages authentication, and the Resource API enforces access to protected resources.
 
+## Cryptographic Key Configuration
+
+Every application hosting UltimateAuth Server must configure its cryptographic secrets securely.
+
+This applies to integrated Blazor Server applications, standalone UAuthHub deployments, and applications using either in-memory or Entity Framework Core persistence.
+
+### Required key configuration
+
+| Setting | Purpose |
+|---|---|
+| `Cryptography.TokenHashingKey` | HMAC-SHA256 hashing for server-managed token material |
+| `Cryptography.JwtSigningKey` | HS256 signing of JWT access tokens |
+
+Both settings accept Base64-encoded keys containing at least 32 bytes of cryptographically secure random key material.
+
+PureOpaque does not issue JWT access tokens, but it should still configure the token-hashing key.
+
+Hybrid and PureJwt require JWT signing capability.
+
+### Recommended configuration
+
+Store secrets outside application source code.
+
+For local development, use .NET User Secrets. For deployed applications, use environment variables or a trusted secret-management service.
+
+Environment variable names:
+
+```text
+UltimateAuth__Cryptography__TokenHashingKey
+UltimateAuth__Cryptography__JwtSigningKey
+```
+
+The double underscore (`__`) represents a configuration hierarchy separator in .NET environment-variable configuration.
+
+Configure the server:
+
+```csharp
+builder.Services.AddUltimateAuthServer(options =>
+{
+    options.Cryptography.TokenHashingKey =
+        builder.Configuration["UltimateAuth:Cryptography:TokenHashingKey"]
+        ?? throw new InvalidOperationException("UltimateAuth token hashing key is missing.");
+
+    options.Cryptography.JwtSigningKey =
+        builder.Configuration["UltimateAuth:Cryptography:JwtSigningKey"]
+        ?? throw new InvalidOperationException("UltimateAuth JWT signing key is missing.");
+});
+```
+
+Do not generate new keys automatically on every application startup. Keys must remain consistent across application instances that share authentication state.
+
+Never use the same key for token hashing and JWT signing.
+
+### Resource API verification keys
+
+A Resource API using PureJwt validates JWT signatures with trusted verification keys.
+
+The built-in HS256 configuration uses symmetric cryptography, so the Resource API must be configured with the same JWT key material used by the issuing UAuthHub.
+
+The Resource API does not require the Hub's token-hashing key.
+
+Protect JWT verification keys as secrets when using symmetric signing algorithms.
+
 ## 2. Persistent Storage with Entity Framework Core
 
 For applications that need authentication state to survive restarts, use a persistent storage provider.
@@ -62,7 +125,16 @@ using CodeBeam.UltimateAuth.EntityFrameworkCore;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using Microsoft.EntityFrameworkCore;
 
-builder.Services.AddUltimateAuthServer()
+builder.Services.AddUltimateAuthServer(options =>
+{
+    options.Cryptography.TokenHashingKey =
+        builder.Configuration["UltimateAuth:Cryptography:TokenHashingKey"]
+        ?? throw new InvalidOperationException("Token hashing key is missing.");
+
+    options.Cryptography.JwtSigningKey =
+        builder.Configuration["UltimateAuth:Cryptography:JwtSigningKey"]
+        ?? throw new InvalidOperationException("JWT signing key is missing.");
+})
     .AddUltimateAuthEntityFrameworkCore(db =>
     {
         db.UseSqlite("Data Source=uauth.db", sqlite => sqlite.MigrationsAssembly(typeof(Program).Assembly.GetName().Name!));
@@ -220,7 +292,16 @@ builder.Services
     .AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddUltimateAuthServer()
+builder.Services.AddUltimateAuthServer(options =>
+{
+    options.Cryptography.TokenHashingKey =
+        builder.Configuration["UltimateAuth:Cryptography:TokenHashingKey"]
+        ?? throw new InvalidOperationException("Token hashing key is missing.");
+
+    options.Cryptography.JwtSigningKey =
+        builder.Configuration["UltimateAuth:Cryptography:JwtSigningKey"]
+        ?? throw new InvalidOperationException("JWT signing key is missing.");
+})
     .AddUltimateAuthEntityFrameworkCore(db =>
     {
         db.UseSqlite("Data Source=uauth.db");
@@ -325,7 +406,16 @@ using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
 using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Server.Extensions;
 
-builder.Services.AddUltimateAuthServer()
+builder.Services.AddUltimateAuthServer(options =>
+{
+    options.Cryptography.TokenHashingKey =
+        builder.Configuration["UltimateAuth:Cryptography:TokenHashingKey"]
+        ?? throw new InvalidOperationException("Token hashing key is missing.");
+
+    options.Cryptography.JwtSigningKey =
+        builder.Configuration["UltimateAuth:Cryptography:JwtSigningKey"]
+        ?? throw new InvalidOperationException("JWT signing key is missing.");
+})
     .AddUltimateAuthInMemory()
     .AddUAuthHub(options =>
     {
@@ -345,7 +435,16 @@ For persistent storage:
 using CodeBeam.UltimateAuth.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-builder.Services.AddUltimateAuthServer()
+builder.Services.AddUltimateAuthServer(options =>
+{
+    options.Cryptography.TokenHashingKey =
+        builder.Configuration["UltimateAuth:Cryptography:TokenHashingKey"]
+        ?? throw new InvalidOperationException("Token hashing key is missing.");
+
+    options.Cryptography.JwtSigningKey =
+        builder.Configuration["UltimateAuth:Cryptography:JwtSigningKey"]
+        ?? throw new InvalidOperationException("JWT signing key is missing.");
+})
     .AddUltimateAuthEntityFrameworkCore(db =>
     {
         db.UseSqlite("Data Source=uauthhub.db");
@@ -471,13 +570,17 @@ For example, its root application or routing component can contain:
 
 Include the UltimateAuth JavaScript asset in the application's HTML host page.
 
-### Authentication modes
+### Authentication modes and signing keys
 
-The default `BlazorWasm` profile resolves to `Hybrid` in the current mode resolver.
+A single UAuthHub can issue different authentication credentials according to the resolved client profile and server configuration.
 
-Do not manually force `PureOpaque` for a standalone browser client simply because a Blazor Server application uses it.
+Blazor Server defaults to PureOpaque, while Blazor WebAssembly and MAUI default to Hybrid. API-oriented profiles default to PureJwt.
 
-The transport and authentication lifecycle must match the client environment.
+JWT-enabled modes require a signing key. The UAuthHub remains responsible for protecting that key and issuing trusted access tokens.
+
+For PureJwt, refresh-token persistence is still required even though authentication sessions are not created.
+
+A separate Resource API does not automatically inherit the authentication mode or cryptographic configuration of UAuthHub.
 
 ## 6. Blazor Web App — Interactive WebAssembly
 
@@ -648,28 +751,67 @@ dotnet add package CodeBeam.UltimateAuth.Server
 
 ### Configure services
 
-In the Resource API's `Program.cs`:
+`PureJwt` Resource API's `Program.cs`:
 
 ```csharp
-using CodeBeam.UltimateAuth.Server.Extensions;
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
 builder.Services.AddUltimateAuthResourceApi(options =>
 {
-    options.UAuthHubBaseUrl = "https://localhost:6112";
-    options.AllowedClientOrigins.Add("https://localhost:6132");
-    options.CorsPolicyName = "resourceApi";
+    options.Auth.Jwt = new UAuthJwtValidationOptions
+    {
+        Issuer = "https://auth.example.com",
+        Audience = "products-api",
+        ValidAlgorithms = [SecurityAlgorithms.HmacSha256]
+    };
+
+    options.Cryptography.JwtVerificationKeys.Add(
+        new UAuthJwtVerificationKeyOptions
+        {
+            KeyId = "uauth-hs256-v1",
+            Key = builder.Configuration["UltimateAuth:JwtVerificationKey"]
+                ?? throw new InvalidOperationException("JWT verification key is missing.")
+        });
+
+    options.Auth.AccessToken.DeliveryMode = GrantDeliveryMode.Header;
+
+    options.Cors.AllowedOrigins.Add("https://app.example.com");
+});
+
+var app = builder.Build();
+
+app.UseHttpsRedirection();
+app.UseUltimateAuthResourceApiWithAspNetCore();
+
+app.MapControllers();
+app.Run();
+
+```
+
+`PureOpaque` Resource API's `Program.cs`:
+
+```csharp
+builder.Services.AddUltimateAuthResourceApi(options =>
+{
+    options.Auth.Mode = UAuthMode.PureOpaque;
+
+    options.Hub.BaseUrl = "https://auth.example.com";
+
+    options.Auth.Session.DeliveryMode = GrantDeliveryMode.Cookie;
+
+    options.Auth.Session.CookieName = "uas";
+
+    options.Cors.AllowedOrigins.Add("https://app.example.com");
 });
 ```
 
-`UAuthHubBaseUrl` is the base address of the authentication server.
+`Hub.BaseUrl` is the base address of the authentication server.
 
 Notice that this example uses the Hub origin without the `/auth` suffix, matching the current Resource API samples.
 
-`AllowedClientOrigins` controls the browser origins permitted by the Resource API's CORS configuration.
+`AllowedOrigins` controls the browser origins permitted by the Resource API's CORS configuration.
 
 ### Configure the pipeline
 
