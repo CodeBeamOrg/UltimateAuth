@@ -548,6 +548,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<ISessionValidator, RemoteSessionValidator>();
         services.TryAddScoped<IUAuthJwtValidator, UAuthJwtValidator>();
+        services.TryAddSingleton<IJwtVerificationKeyProvider, ConfiguredJwtVerificationKeyProvider>();
 
         services.AddScoped<IUserAccessor<UserKey>, ResourceUserAccessor<UserKey>>();
         //services.AddScoped<IAuthContextFactory, ResourceAuthContextFactory>();
@@ -605,14 +606,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthorizationHandler, UAuthAuthorizationHandler>();
         services.AddScoped<IAuthorizationMiddlewareResultHandler, UAuthStatusAuthorizationResultHandler>();
 
-        services.AddHttpClient<ISessionValidator, RemoteSessionValidator>((sp, client) =>
+        services.AddHttpClient<ISessionValidator, RemoteSessionValidator>(
+        (sp, client) =>
         {
-            var opts = sp.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value;
+            var mode = sp.GetRequiredService<ResourceApiAuthModeProvider>().Mode;
 
-            if (string.IsNullOrWhiteSpace(opts.Hub.BaseUrl))
-                throw new InvalidOperationException("Hub.BaseUrl is not configured. Add it via UAuthResourceApiOptions.");
+            if (mode == UAuthMode.PureJwt)
+                return;
 
-            client.BaseAddress = new Uri(opts.Hub.BaseUrl);
+            var options = sp.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value;
+
+            client.BaseAddress = new Uri(options.Hub.BaseUrl, UriKind.Absolute);
         });
 
         return services;

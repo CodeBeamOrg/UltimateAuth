@@ -14,12 +14,15 @@ public sealed class UAuthResourceApiOptions
 
     public UAuthMultiTenantOptions MultiTenant { get; set; } = new();
 
+    public UAuthResourceCryptographyOptions Cryptography { get; set; } = new();
+
     internal UAuthResourceApiOptions Clone() => new()
     {
         Auth = Auth.Clone(),
         Hub = Hub.Clone(),
         Cors = Cors.Clone(),
-        MultiTenant = MultiTenant.Clone()
+        MultiTenant = MultiTenant.Clone(),
+        Cryptography = Cryptography.Clone()
     };
 }
 
@@ -144,4 +147,31 @@ public sealed class UAuthResourceCorsOptions
         AllowedOrigins = new HashSet<string>(AllowedOrigins, AllowedOrigins.Comparer),
         PolicyName = PolicyName
     };
+}
+
+public sealed class UAuthResourceCryptographyOptions
+{
+    public List<UAuthJwtVerificationKeyOptions> JwtVerificationKeys { get; set; } = [];
+
+    internal UAuthResourceCryptographyOptions Clone() => new()
+    {
+        JwtVerificationKeys = JwtVerificationKeys
+            .Select(x => new UAuthJwtVerificationKeyOptions
+            {
+                KeyId = x.KeyId,
+                Key = x.Key
+            })
+            .ToList()
+    };
+}
+
+public sealed class UAuthJwtVerificationKeyOptions
+{
+    public string KeyId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Base64-encoded symmetric verification key.
+    /// Development and explicitly configured symmetric JWT validation.
+    /// </summary>
+    public string Key { get; set; } = string.Empty;
 }

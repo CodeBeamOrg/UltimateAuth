@@ -19,16 +19,14 @@ public sealed class UAuthResourceApiOptionsValidator : IValidateOptions<UAuthRes
     {
         if (options is null)
         {
-            return ValidateOptionsResult.Fail(
-                "Resource API options cannot be null.");
+            return ValidateOptionsResult.Fail("Resource API options cannot be null.");
         }
 
         var auth = options.Auth;
 
         if (auth is null)
         {
-            return ValidateOptionsResult.Fail(
-                "Resource API Auth options cannot be null.");
+            return ValidateOptionsResult.Fail("Resource API Auth options cannot be null.");
         }
 
         var errors = new List<string>();
@@ -64,6 +62,9 @@ public sealed class UAuthResourceApiOptionsValidator : IValidateOptions<UAuthRes
 
         if (auth.Device is null)
             errors.Add("Auth.Device must be configured.");
+
+        if (options.Cryptography is null)
+            errors.Add("Cryptography must be configured.");
 
         if (auth.Session is not null)
         {
