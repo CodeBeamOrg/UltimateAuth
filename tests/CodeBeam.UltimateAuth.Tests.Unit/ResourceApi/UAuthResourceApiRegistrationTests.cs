@@ -1,4 +1,5 @@
 ﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
@@ -256,8 +257,7 @@ public sealed class UAuthResourceApiRegistrationTests
     {
         var services = new ServiceCollection();
 
-        var configuration = new ConfigurationBuilder()
-            .Build();
+        var configuration = new ConfigurationBuilder().Build();
 
         services.AddSingleton<IConfiguration>(configuration);
         services.AddLogging();
@@ -265,6 +265,7 @@ public sealed class UAuthResourceApiRegistrationTests
         services.AddUltimateAuthResourceApi(options =>
         {
             options.Hub.BaseUrl = "https://uauth.test";
+            options.Auth.Mode = UAuthMode.PureOpaque;
 
             options.MultiTenant.Enabled = true;
             options.MultiTenant.EnableHeader = true;
@@ -300,6 +301,7 @@ public sealed class UAuthResourceApiRegistrationTests
         services.AddUltimateAuthResourceApi(options =>
         {
             options.Hub.BaseUrl = "https://uauth.test";
+            options.Auth.Mode = UAuthMode.PureOpaque;
 
             options.MultiTenant.Enabled = true;
             options.MultiTenant.EnableHeader = true;
@@ -390,6 +392,7 @@ public sealed class UAuthResourceApiRegistrationTests
 
         services.AddUltimateAuthResourceApi(options =>
         {
+            options.Auth.Mode = UAuthMode.PureOpaque;
             options.Hub.BaseUrl = "https://uauth.test";
 
             configure?.Invoke(options);

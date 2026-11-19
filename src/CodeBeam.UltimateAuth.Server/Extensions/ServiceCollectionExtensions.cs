@@ -533,33 +533,18 @@ public static class ServiceCollectionExtensions
 
         services.TryAddSingleton<IOptions<UAuthJwtValidationOptions>>(sp =>
         {
-            var configuration = sp.GetRequiredService<IConfiguration>();
+            var resource = sp.GetRequiredService<
+                IOptions<UAuthResourceApiOptions>>().Value;
 
-            var section = configuration.GetSection(
-                "UltimateAuth:ResourceApi:Jwt");
+            var jwt = resource.Auth.Jwt
+                ?? throw new InvalidOperationException(
+                    "Auth.Jwt is required for JWT validation.");
 
-            var issuer = section["Issuer"];
-            var audience = section["Audience"];
-            var algorithms = section
-                .GetSection("ValidAlgorithms")
-                .Get<string[]>();
-
-            if (string.IsNullOrWhiteSpace(issuer) ||
-                string.IsNullOrWhiteSpace(audience) ||
-                algorithms is null ||
-                algorithms.Length == 0)
-            {
-                throw new InvalidOperationException(
-                    "Resource API JWT validation is not configured.");
-            }
-
-            return Microsoft.Extensions.Options.Options.Create(new UAuthJwtValidationOptions
-            {
-                Issuer = issuer,
-                Audience = audience,
-                ValidAlgorithms = algorithms
-            });
+            return Microsoft.Extensions.Options.Options.Create(jwt);
         });
+
+        services.TryAddSingleton<IEffectiveAuthModeResolver, EffectiveAuthModeResolver>();
+        services.AddSingleton<ResourceApiAuthModeProvider>();
 
         services.AddScoped<ISessionValidator, RemoteSessionValidator>();
         services.TryAddScoped<IUAuthJwtValidator, UAuthJwtValidator>();
@@ -572,13 +557,6 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IUserAccessor, UserAccessorBridge>();
         services.TryAddScoped<ISessionContextAccessor, SessionContextAccessor>();
         services.TryAddScoped<ICurrentUser, HttpContextCurrentUser>();
-
-        services.AddScoped<IInnerSessionIdResolver, BearerSessionIdResolver>();
-        services.AddScoped<IInnerSessionIdResolver, HeaderSessionIdResolver>();
-        services.AddScoped<IInnerSessionIdResolver, QuerySessionIdResolver>();
-        services.AddScoped<IInnerSessionIdResolver, CookieSessionIdResolver>();
-
-        services.TryAddScoped<ISessionIdResolver, ResourceCompositeSessionIdResolver>();
 
         services.TryAddScoped<ITransportCredentialResolver, TransportCredentialResolver>();
         services.TryAddScoped<IDeviceContextFactory, DeviceContextFactory>();

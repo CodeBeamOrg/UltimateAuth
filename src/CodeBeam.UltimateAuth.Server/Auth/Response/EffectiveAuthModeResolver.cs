@@ -14,6 +14,7 @@ internal sealed class EffectiveAuthModeResolver : IEffectiveAuthModeResolver
             UAuthApplicationProfile.BlazorWasm => UAuthMode.Hybrid,
             UAuthApplicationProfile.Maui => UAuthMode.Hybrid,
             UAuthApplicationProfile.Api => UAuthMode.PureJwt,
+            UAuthApplicationProfile.ResourceApi => UAuthMode.PureJwt,
             _ => UAuthMode.Hybrid
         };
     }

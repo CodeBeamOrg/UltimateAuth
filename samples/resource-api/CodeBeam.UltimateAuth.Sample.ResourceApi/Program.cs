@@ -1,3 +1,4 @@
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -12,22 +13,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-const string devKey =
-    "UltimateAuth-Development-JWT-Signing-Key-2026-Only";
-
-builder.Services.AddSingleton<IOptions<UAuthJwtValidationOptions>>(
-    Options.Create(new UAuthJwtValidationOptions
-    {
-        Issuer = "UAuth",
-        Audience = "UAuthClient",
-        ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 }
-    }));
+// Development only. Production must use secure key management.
+const string devKey = "UltimateAuth-Development-JWT-Signing-Key-2026-Only";
 
 builder.Services.AddSingleton<IJwtVerificationKeyProvider>(
     new StaticJwtVerificationKeyProvider(
         new SecurityKey[]
         {
-            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(devKey))
+            new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(devKey))
             {
                 KeyId = "uauth-hs256-v1"
             }
@@ -36,7 +30,13 @@ builder.Services.AddSingleton<IJwtVerificationKeyProvider>(
 builder.Services.AddUltimateAuthResourceApi(o =>
     {
         //o.AuthMode = UAuthMode.PureJwt;
-        //o.AccessTokenDeliveryMode = GrantDeliveryMode.Cookie;
+        o.Auth.Jwt = new UAuthJwtValidationOptions
+        {
+            Issuer = "UAuth",
+            Audience = "UAuthClient",
+            ValidAlgorithms = [ SecurityAlgorithms.HmacSha256 ]
+        };
+        o.Auth.AccessToken.DeliveryMode = GrantDeliveryMode.Cookie;
         //o.AccessTokenCookieName = "uat";
 
         // TODO: Make multiple UAuthHub support via resolver, then different client apps can use different UAuthHub instances if needed.

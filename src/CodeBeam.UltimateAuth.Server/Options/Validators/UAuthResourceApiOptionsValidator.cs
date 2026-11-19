@@ -1,19 +1,48 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.ResourceApi;
 using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Options;
 
 public sealed class UAuthResourceApiOptionsValidator : IValidateOptions<UAuthResourceApiOptions>
 {
+    private readonly IEffectiveAuthModeResolver _modeResolver;
+
+    public UAuthResourceApiOptionsValidator(IEffectiveAuthModeResolver modeResolver)
+    {
+        _modeResolver = modeResolver;
+    }
+
     public ValidateOptionsResult Validate(string? name, UAuthResourceApiOptions options)
     {
-        var errors = new List<string>();
+        if (options is null)
+        {
+            return ValidateOptionsResult.Fail(
+                "Resource API options cannot be null.");
+        }
 
         var auth = options.Auth;
 
-        if (options is null || auth is null)
-            return ValidateOptionsResult.Fail("ResourceApi Auth options cannot be null.");
+        if (auth is null)
+        {
+            return ValidateOptionsResult.Fail(
+                "Resource API Auth options cannot be null.");
+        }
+
+        var errors = new List<string>();
+
+        UAuthMode mode;
+
+        try
+        {
+            mode = ResourceApiAuthModeProvider.Resolve(options, _modeResolver);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            return ValidateOptionsResult.Fail(ex.Message);
+        }
 
         if (options.Hub is null)
             errors.Add("Hub must be configured.");
@@ -26,9 +55,6 @@ public sealed class UAuthResourceApiOptionsValidator : IValidateOptions<UAuthRes
 
         if (errors.Count > 0)
             return ValidateOptionsResult.Fail(errors);
-
-        if (!Enum.IsDefined(auth.Mode))
-            errors.Add("Auth.Mode is invalid.");
 
         if (auth.Session is null)
             errors.Add("Auth.Session must be configured.");
@@ -70,16 +96,13 @@ public sealed class UAuthResourceApiOptionsValidator : IValidateOptions<UAuthRes
             if (!Enum.IsDefined(auth.Device.MismatchBehavior))
                 errors.Add("Auth.Device.MismatchBehavior is invalid.");
 
-            if (auth.Mode == UAuthMode.PureJwt &&
-                auth.Device.MismatchBehavior ==
-                    DeviceMismatchBehavior.AllowAndRebind)
+            if (mode == UAuthMode.PureJwt && auth.Device.MismatchBehavior == DeviceMismatchBehavior.AllowAndRebind)
             {
-                errors.Add(
-                    "PureJwt does not support device rebinding.");
+                errors.Add("PureJwt does not support device rebinding.");
             }
         }
 
-        if (auth.Mode == UAuthMode.PureJwt)
+        if (mode == UAuthMode.PureJwt)
         {
             if (auth.Jwt is null)
             {
@@ -95,11 +118,9 @@ public sealed class UAuthResourceApiOptionsValidator : IValidateOptions<UAuthRes
 
                 if (auth.Jwt.ValidAlgorithms is null ||
                     auth.Jwt.ValidAlgorithms.Count == 0 ||
-                    auth.Jwt.ValidAlgorithms.Any(
-                        string.IsNullOrWhiteSpace))
+                    auth.Jwt.ValidAlgorithms.Any(string.IsNullOrWhiteSpace))
                 {
-                    errors.Add(
-                        "Auth.Jwt.ValidAlgorithms must contain valid algorithms.");
+                    errors.Add("Auth.Jwt.ValidAlgorithms must contain valid algorithms.");
                 }
 
                 if (auth.Jwt.ClockSkew < TimeSpan.Zero)
@@ -111,7 +132,7 @@ public sealed class UAuthResourceApiOptionsValidator : IValidateOptions<UAuthRes
             }
         }
 
-        if (auth.Mode != UAuthMode.PureJwt)
+        if (mode != UAuthMode.PureJwt)
         {
             if (string.IsNullOrWhiteSpace(options.Hub?.BaseUrl))
             {

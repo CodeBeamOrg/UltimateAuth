@@ -13,9 +13,11 @@ using CodeBeam.UltimateAuth.Server.Authentication;
 using CodeBeam.UltimateAuth.Server.Contracts;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Server.ResourceApi;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Moq;
 using System.Security.Claims;
@@ -26,16 +28,13 @@ public sealed class UAuthResourceAuthenticationHandlerTests
 {
     private const string Scheme = UAuthConstants.SchemeDefaults.GlobalScheme;
 
-    private const string TestSessionId =
-        "test-session-id-00000000000000000000000000000001";
+    private const string TestSessionId = "test-session-id-00000000000000000000000000000001";
 
     private const string TestJwt = "test-jwt-access-token";
 
-    private static readonly TenantKey Tenant =
-        TenantKey.FromExternal("tenant-1");
+    private static readonly TenantKey Tenant = TenantKey.FromExternal("tenant-1");
 
-    private static readonly UserKey User =
-        UserKey.FromString("user-1");
+    private static readonly UserKey User = UserKey.FromString("user-1");
 
     private static readonly DateTimeOffset Now =
         new(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
@@ -793,6 +792,9 @@ public sealed class UAuthResourceAuthenticationHandlerTests
             .AddAuthentication(Scheme)
             .AddUAuthResourceApi();
 
+        services.TryAddSingleton<IEffectiveAuthModeResolver, EffectiveAuthModeResolver>();
+        services.AddSingleton<ResourceApiAuthModeProvider>();
+
         var provider = services.BuildServiceProvider();
 
         var http = new DefaultHttpContext
@@ -800,8 +802,7 @@ public sealed class UAuthResourceAuthenticationHandlerTests
             RequestServices = provider
         };
 
-        http.Items[UAuthConstants.HttpItems.TenantContextKey] =
-            UAuthTenantContext.Resolved(Tenant);
+        http.Items[UAuthConstants.HttpItems.TenantContextKey] = UAuthTenantContext.Resolved(Tenant);
 
         return new TestSetup(
             http,
@@ -818,9 +819,7 @@ public sealed class UAuthResourceAuthenticationHandlerTests
         return setup.HttpContext.AuthenticateAsync(Scheme);
     }
 
-    private static TransportCredential CreateSessionCredential(
-        string value,
-        DeviceInfo? device = null)
+    private static TransportCredential CreateSessionCredential(string value, DeviceInfo? device = null)
     {
         return new TransportCredential
         {

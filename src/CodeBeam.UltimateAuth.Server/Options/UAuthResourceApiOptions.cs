@@ -29,7 +29,15 @@ public sealed class UAuthResourceApiOptions
 /// </summary>
 public sealed class UAuthResourceAuthOptions
 {
-    public UAuthMode Mode { get; set; }
+    /// <summary>
+    /// Gets or sets an explicit authentication mode for this Resource API.
+    /// </summary>
+    /// <remarks>
+    /// When null, the registered authentication mode resolver determines the mode using the ResourceApi application profile.
+    /// The built-in resolver selects PureJwt.
+    /// The resolved mode is fixed for this Resource API runtime.
+    /// </remarks>
+    public UAuthMode? Mode { get; set; }
 
     public UAuthResourceSessionOptions Session { get; set; } = new();
 

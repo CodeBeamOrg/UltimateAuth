@@ -10,6 +10,7 @@ using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Server.ResourceApi;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -25,6 +26,7 @@ internal sealed class UAuthResourceAuthenticationHandler : AuthenticationHandler
     private readonly ISessionValidator _sessionValidator;
     private readonly IDeviceContextFactory _deviceFactory;
     private readonly IServiceProvider _services;
+    private readonly ResourceApiAuthModeProvider _modeProvider;
     private readonly UAuthResourceApiOptions _resourceOptions;
     private readonly IClock _clock;
 
@@ -33,6 +35,7 @@ internal sealed class UAuthResourceAuthenticationHandler : AuthenticationHandler
         ISessionValidator sessionValidator,
         IDeviceContextFactory deviceFactory,
         IServiceProvider services,
+        ResourceApiAuthModeProvider modeProvider,
         IOptions<UAuthResourceApiOptions> resourceOptions,
         IClock clock,
         IOptionsMonitor<UAuthAuthenticationSchemeOptions> options,
@@ -44,6 +47,7 @@ internal sealed class UAuthResourceAuthenticationHandler : AuthenticationHandler
         _sessionValidator = sessionValidator;
         _deviceFactory = deviceFactory;
         _services = services;
+        _modeProvider = modeProvider;
         _resourceOptions = resourceOptions.Value;
         _clock = clock;
     }
@@ -52,15 +56,14 @@ internal sealed class UAuthResourceAuthenticationHandler : AuthenticationHandler
     {
         var tenant = Context.GetTenant();
 
-        if (_resourceOptions.Auth.Mode == UAuthMode.PureJwt)
-            return await AuthenticatePureJwtAsync(tenant);
-
-        return await AuthenticateSessionAsync(tenant);
+        return _modeProvider.Mode == UAuthMode.PureJwt
+            ? await AuthenticatePureJwtAsync(tenant)
+            : await AuthenticateSessionAsync(tenant);
     }
 
     private async Task<AuthenticateResult> AuthenticateSessionAsync(TenantKey tenant)
     {
-        var mode = _resourceOptions.Auth.Mode;
+        var mode = _modeProvider.Mode;
 
         var sessionDelivery = new EffectiveGrantDelivery(
             GrantKind.Session,
