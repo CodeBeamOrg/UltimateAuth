@@ -11,7 +11,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace CodeBeam.UltimateAuth.Tests.Unit.Server.ResourceApi;
+namespace CodeBeam.UltimateAuth.Tests.Unit.ResourceApi;
 
 public sealed class RemoteSessionValidatorTests
 {
