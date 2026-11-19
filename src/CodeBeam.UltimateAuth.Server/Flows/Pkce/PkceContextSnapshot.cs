@@ -12,7 +12,7 @@ namespace CodeBeam.UltimateAuth.Server.Flows;
 public sealed class PkceContextSnapshot
 {
     public PkceContextSnapshot(
-        UAuthClientProfile clientProfile,
+        UAuthApplicationProfile clientProfile,
         TenantKey tenant,
         string? redirectUri,
         DeviceContext device)
@@ -26,7 +26,7 @@ public sealed class PkceContextSnapshot
     /// <summary>
     /// Client profile resolved at runtime (e.g. BlazorWasm).
     /// </summary>
-    public UAuthClientProfile ClientProfile { get; }
+    public UAuthApplicationProfile ClientProfile { get; }
 
     /// <summary>
     /// Tenant context at the time of authorization.

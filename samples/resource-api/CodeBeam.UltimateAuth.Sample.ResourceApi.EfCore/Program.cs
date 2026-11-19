@@ -7,9 +7,9 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddUltimateAuthResourceApi(o =>
 {
-    o.UAuthHubBaseUrl = "https://localhost:6112";
-    o.AllowedClientOrigins.Add("https://localhost:6132");
-    o.CorsPolicyName = "resourceApi";
+    o.Hub.BaseUrl = "https://localhost:6112";
+    o.Cors.AllowedOrigins.Add("https://localhost:6132");
+    o.Cors.PolicyName = "resourceApi";
 });
 
 var app = builder.Build();

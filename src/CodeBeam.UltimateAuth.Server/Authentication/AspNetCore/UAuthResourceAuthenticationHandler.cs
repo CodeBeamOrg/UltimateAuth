@@ -52,7 +52,7 @@ internal sealed class UAuthResourceAuthenticationHandler : AuthenticationHandler
     {
         var tenant = Context.GetTenant();
 
-        if (_resourceOptions.AuthMode == UAuthMode.PureJwt)
+        if (_resourceOptions.Auth.Mode == UAuthMode.PureJwt)
             return await AuthenticatePureJwtAsync(tenant);
 
         return await AuthenticateSessionAsync(tenant);
@@ -60,17 +60,17 @@ internal sealed class UAuthResourceAuthenticationHandler : AuthenticationHandler
 
     private async Task<AuthenticateResult> AuthenticateSessionAsync(TenantKey tenant)
     {
-        var mode = _resourceOptions.AuthMode;
+        var mode = _resourceOptions.Auth.Mode;
 
         var sessionDelivery = new EffectiveGrantDelivery(
             GrantKind.Session,
             TokenFormat.Opaque,
-            _resourceOptions.SessionDeliveryMode,
+            _resourceOptions.Auth.Session.DeliveryMode,
             name: "Authorization",
             headerFormat: HeaderTokenFormat.Bearer,
             cookie: new UAuthCookieOptions
             {
-                Name = _resourceOptions.SessionCookieName
+                Name = _resourceOptions.Auth.Session.CookieName
             });
 
         var response = new EffectiveAuthResponse(
@@ -128,12 +128,12 @@ internal sealed class UAuthResourceAuthenticationHandler : AuthenticationHandler
         var accessDelivery = new EffectiveGrantDelivery(
         GrantKind.AccessToken,
         TokenFormat.Jwt,
-        _resourceOptions.AccessTokenDeliveryMode,
-        name: _resourceOptions.AccessTokenHeaderName,
-        headerFormat: _resourceOptions.AccessTokenHeaderFormat,
+        _resourceOptions.Auth.AccessToken.DeliveryMode,
+        name: _resourceOptions.Auth.AccessToken.HeaderName,
+        headerFormat: _resourceOptions.Auth.AccessToken.HeaderFormat,
         cookie: new UAuthCookieOptions
         {
-            Name = _resourceOptions.AccessTokenCookieName
+            Name = _resourceOptions.Auth.AccessToken.CookieName
         });
 
         var response = new EffectiveAuthResponse(
@@ -176,7 +176,7 @@ internal sealed class UAuthResourceAuthenticationHandler : AuthenticationHandler
             return AuthenticateResult.Fail("PureJwt requires a valid device binding.");
         }
 
-        var mismatchBehavior = _resourceOptions.DeviceMismatchBehavior;
+        var mismatchBehavior = _resourceOptions.Auth.Device.MismatchBehavior;
 
         if (mismatchBehavior == DeviceMismatchBehavior.AllowAndRebind)
         {

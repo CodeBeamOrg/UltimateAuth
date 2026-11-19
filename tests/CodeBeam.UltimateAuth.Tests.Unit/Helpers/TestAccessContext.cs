@@ -20,7 +20,7 @@ internal static class TestAccessContext
             targetUserKey: null,
             resourceTenant: TenantKey.Single,
             action: action,
-            clientProfile: UAuthClientProfile.NotSpecified,
+            clientProfile: UAuthApplicationProfile.NotSpecified,
             attributes: EmptyAttributes.Instance
         );
     }
@@ -45,7 +45,7 @@ internal static class TestAccessContext
             targetUserKey: userKey,
             resourceTenant: t,
             action: action,
-            clientProfile: UAuthClientProfile.NotSpecified,
+            clientProfile: UAuthApplicationProfile.NotSpecified,
             attributes: EmptyAttributes.Instance
         );
     }
@@ -71,7 +71,7 @@ internal static class TestAccessContext
             targetUserKey: targetUserKey,
             resourceTenant: t,
             action: action,
-            clientProfile: UAuthClientProfile.NotSpecified,
+            clientProfile: UAuthApplicationProfile.NotSpecified,
             attributes: EmptyAttributes.Instance
         );
     }

@@ -621,7 +621,7 @@ public sealed class HubFlowServiceTests
         {
             AuthorizationCode = AuthorizationCode,
             CodeVerifier = CodeVerifier,
-            ClientProfile = UAuthClientProfile.BlazorWasm,
+            ClientProfile = UAuthApplicationProfile.BlazorWasm,
             Tenant = TenantKey.Single,
             Device = TestDevice.Default(),
             ReturnUrl = ReturnUrl,
@@ -645,7 +645,7 @@ public sealed class HubFlowServiceTests
         return new HubFlowArtifact(
             HubSessionId.New(),
             HubFlowType.Login,
-            UAuthClientProfile.BlazorWasm,
+            UAuthApplicationProfile.BlazorWasm,
             TenantKey.Single,
             TestDevice.Default(),
             ReturnUrl,

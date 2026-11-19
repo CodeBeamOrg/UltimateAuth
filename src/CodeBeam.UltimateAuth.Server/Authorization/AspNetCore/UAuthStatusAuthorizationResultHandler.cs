@@ -56,7 +56,7 @@ internal sealed class UAuthStatusAuthorizationResultHandler : IAuthorizationMidd
                 .GetRequiredService<IOptions<UAuthResourceApiOptions>>()
                 .Value;
 
-            if (resourceOptions.AuthMode == UAuthMode.PureJwt)
+            if (resourceOptions.Auth.Mode == UAuthMode.PureJwt)
             {
                 // Authentication handler already validated JWT signature,
                 // issuer, audience, lifetime, tenant and device binding.
@@ -70,7 +70,7 @@ internal sealed class UAuthStatusAuthorizationResultHandler : IAuthorizationMidd
         else
         {
             var profileReader = context.RequestServices
-                .GetRequiredService<IClientProfileReader>();
+                .GetRequiredService<IApplicationProfileReader>();
 
             var optionsProvider = context.RequestServices
                 .GetRequiredService<IEffectiveServerOptionsProvider>();

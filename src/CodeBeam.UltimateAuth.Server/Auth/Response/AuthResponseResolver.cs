@@ -10,7 +10,7 @@ namespace CodeBeam.UltimateAuth.Server.Auth;
 
 internal sealed class AuthResponseResolver : IAuthResponseResolver
 {
-    public EffectiveAuthResponse Resolve(UAuthMode effectiveMode, AuthFlowType flowType, UAuthClientProfile clientProfile, EffectiveUAuthServerOptions effectiveOptions)
+    public EffectiveAuthResponse Resolve(UAuthMode effectiveMode, AuthFlowType flowType, UAuthApplicationProfile clientProfile, EffectiveUAuthServerOptions effectiveOptions)
     {
         var options = effectiveOptions.Options;
 
@@ -28,12 +28,12 @@ internal sealed class AuthResponseResolver : IAuthResponseResolver
         return ResolveCore(effectiveMode, clientProfile, effectiveOptions, redirect);
     }
 
-    public EffectiveAuthResponse ResolveForAuthentication(UAuthMode effectiveMode, UAuthClientProfile clientProfile, EffectiveUAuthServerOptions effectiveOptions)
+    public EffectiveAuthResponse ResolveForAuthentication(UAuthMode effectiveMode, UAuthApplicationProfile clientProfile, EffectiveUAuthServerOptions effectiveOptions)
     {
         return ResolveCore(effectiveMode, clientProfile, effectiveOptions, EffectiveRedirectResponse.Disabled);
     }
 
-    private EffectiveAuthResponse ResolveCore(UAuthMode effectiveMode, UAuthClientProfile clientProfile, EffectiveUAuthServerOptions effectiveOptions, EffectiveRedirectResponse redirect)
+    private EffectiveAuthResponse ResolveCore(UAuthMode effectiveMode, UAuthApplicationProfile clientProfile, EffectiveUAuthServerOptions effectiveOptions, EffectiveRedirectResponse redirect)
     {
         var options = effectiveOptions.Options;
         var delivery = options.GrantDelivery;
@@ -96,7 +96,7 @@ internal sealed class AuthResponseResolver : IAuthResponseResolver
         GrantDeliveryMode modeDefault,
         GrantDeliveryOptions configured,
         GrantDeliveryMode? globalDefault,
-        UAuthClientProfile clientProfile,
+        UAuthApplicationProfile clientProfile,
         UAuthServerOptions server)
     {
         if (!available)
@@ -111,7 +111,7 @@ internal sealed class AuthResponseResolver : IAuthResponseResolver
             return EffectiveGrantDelivery.Disabled(kind);
         }
 
-        var profileDefault = clientProfile == UAuthClientProfile.Maui &&
+        var profileDefault = clientProfile == UAuthApplicationProfile.Maui &&
                              modeDefault == GrantDeliveryMode.Cookie
             ? GrantDeliveryMode.Header
             : modeDefault;

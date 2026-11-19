@@ -148,7 +148,7 @@ public sealed class HubCredentialResolverTests
         var fixture = CreateFixture();
 
         var artifact = CreateHubFlowArtifact(
-            clientProfile: UAuthClientProfile.BlazorWasm);
+            clientProfile: UAuthApplicationProfile.BlazorWasm);
 
         SetupArtifact(fixture, artifact);
 
@@ -159,7 +159,7 @@ public sealed class HubCredentialResolverTests
 
         result!.AuthorizationCode.Should().Be(AuthorizationCode);
         result.CodeVerifier.Should().Be(CodeVerifier);
-        result.ClientProfile.Should().Be(UAuthClientProfile.BlazorWasm);
+        result.ClientProfile.Should().Be(UAuthApplicationProfile.BlazorWasm);
     }
 
     [Fact]
@@ -253,7 +253,7 @@ public sealed class HubCredentialResolverTests
 
     private static HubFlowArtifact CreateHubFlowArtifact(
         HubFlowPayload? payload = null,
-        UAuthClientProfile clientProfile = UAuthClientProfile.BlazorWasm,
+        UAuthApplicationProfile clientProfile = UAuthApplicationProfile.BlazorWasm,
         DateTimeOffset? expiresAt = null)
     {
         payload ??= CreateValidPayload();

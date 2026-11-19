@@ -27,9 +27,9 @@ internal class HandleHub
         var deviceId = form["device_id"].ToString();
         var returnUrl = form[UAuthConstants.Form.ReturnUrl].ToString();
 
-        if (!Enum.TryParse<UAuthClientProfile>(form["__uauth_client_profile"], ignoreCase: true, out var clientProfile))
+        if (!Enum.TryParse<UAuthApplicationProfile>(form["__uauth_client_profile"], ignoreCase: true, out var clientProfile))
         {
-            clientProfile = UAuthClientProfile.NotSpecified;
+            clientProfile = UAuthApplicationProfile.NotSpecified;
         }
 
         var hubSessionId = HubSessionId.New();

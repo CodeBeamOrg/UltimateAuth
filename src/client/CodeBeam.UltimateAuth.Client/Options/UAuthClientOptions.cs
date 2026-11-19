@@ -44,7 +44,7 @@ public sealed class UAuthClientOptions
     /// <remarks>
     /// Determines how authentication flows are executed (e.g., session-based, PKCE, token-based).
     /// </remarks>
-    public UAuthClientProfile ClientProfile { get; set; } = UAuthClientProfile.NotSpecified;
+    public UAuthApplicationProfile ClientProfile { get; set; } = UAuthApplicationProfile.NotSpecified;
 
     /// <summary>
     /// Enables automatic detection of the client profile.

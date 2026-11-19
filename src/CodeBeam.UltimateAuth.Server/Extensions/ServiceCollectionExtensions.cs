@@ -99,14 +99,14 @@ public static class ServiceCollectionExtensions
         var temp = new UAuthResourceApiOptions();
         configure?.Invoke(temp);
 
-        if (temp.AllowedClientOrigins?.Count > 0)
+        if (temp.Cors.AllowedOrigins?.Count > 0)
         {
             services.AddCors(cors =>
             {
-                cors.AddPolicy(temp.CorsPolicyName, policy =>
+                cors.AddPolicy(temp.Cors.PolicyName, policy =>
                 {
                     policy
-                        .WithOrigins(temp.AllowedClientOrigins.ToArray())
+                        .WithOrigins(temp.Cors.AllowedOrigins.ToArray())
                         .AllowAnyHeader()
                         .AllowAnyMethod()
                         .AllowCredentials();
@@ -322,7 +322,7 @@ public static class ServiceCollectionExtensions
 
         services.TryAddScoped<ICredentialResponseWriter, CredentialResponseWriter>();
         services.TryAddScoped<IRefreshResponseWriter, RefreshResponseWriter>();
-        services.TryAddSingleton<IClientProfileReader, ClientProfileReader>();
+        services.TryAddSingleton<IApplicationProfileReader, ApplicationProfileReader>();
         
         services.TryAddScoped<IEffectiveServerOptionsProvider, EffectiveServerOptionsProvider>();
 
@@ -528,6 +528,9 @@ public static class ServiceCollectionExtensions
         // Resource API Specific
         services.AddSingleton<IUAuthRuntimeMarker, ResourceRuntimeMarker>();
 
+        services.AddSingleton<IValidateOptions<UAuthResourceApiOptions>, UAuthResourceApiOptionsValidator>();
+        services.AddOptions<UAuthResourceApiOptions>().ValidateOnStart();
+
         services.TryAddSingleton<IOptions<UAuthJwtValidationOptions>>(sp =>
         {
             var configuration = sp.GetRequiredService<IConfiguration>();
@@ -628,10 +631,10 @@ public static class ServiceCollectionExtensions
         {
             var opts = sp.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value;
 
-            if (string.IsNullOrWhiteSpace(opts.UAuthHubBaseUrl))
-                throw new InvalidOperationException("UAuthHubBaseUrl is not configured. Add it via UAuthResourceApiOptions.");
+            if (string.IsNullOrWhiteSpace(opts.Hub.BaseUrl))
+                throw new InvalidOperationException("Hub.BaseUrl is not configured. Add it via UAuthResourceApiOptions.");
 
-            client.BaseAddress = new Uri(opts.UAuthHubBaseUrl);
+            client.BaseAddress = new Uri(opts.Hub.BaseUrl);
         });
 
         return services;

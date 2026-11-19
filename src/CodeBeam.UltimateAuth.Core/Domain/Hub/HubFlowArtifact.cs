@@ -8,7 +8,7 @@ public sealed class HubFlowArtifact : AuthArtifact
     public HubSessionId HubSessionId { get; }
     public HubFlowType FlowType { get; }
 
-    public UAuthClientProfile ClientProfile { get; }
+    public UAuthApplicationProfile ClientProfile { get; }
     public TenantKey Tenant { get; }
     public DeviceContext Device { get; }
     public string? ReturnUrl { get; }
@@ -20,7 +20,7 @@ public sealed class HubFlowArtifact : AuthArtifact
     public HubFlowArtifact(
         HubSessionId hubSessionId,
         HubFlowType flowType,
-        UAuthClientProfile clientProfile,
+        UAuthApplicationProfile clientProfile,
         TenantKey tenant,
         DeviceContext device,
         string? returnUrl,

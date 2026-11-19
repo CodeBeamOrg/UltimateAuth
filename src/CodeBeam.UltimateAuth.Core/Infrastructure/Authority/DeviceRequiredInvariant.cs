@@ -23,9 +23,9 @@ public sealed class DeviceRequiredInvariant : IAuthorityInvariant
         {
             return context.ClientProfile switch
             {
-                UAuthClientProfile.BlazorWasm => true,
-                UAuthClientProfile.BlazorServer => true,
-                UAuthClientProfile.Maui => true,
+                UAuthApplicationProfile.BlazorWasm => true,
+                UAuthApplicationProfile.BlazorServer => true,
+                UAuthApplicationProfile.Maui => true,
                 _ => false // service, system, internal
             };
         }

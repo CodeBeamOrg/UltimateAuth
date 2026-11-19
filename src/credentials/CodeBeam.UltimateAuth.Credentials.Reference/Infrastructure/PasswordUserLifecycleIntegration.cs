@@ -33,7 +33,7 @@ internal sealed class PasswordUserLifecycleIntegration : IUserLifecycleIntegrati
         _clock = clock;
     }
 
-    public async Task OnUserCreatedAsync(TenantKey tenant, UserKey userKey, object request, UAuthClientProfile clientProfile, CancellationToken ct)
+    public async Task OnUserCreatedAsync(TenantKey tenant, UserKey userKey, object request, UAuthApplicationProfile clientProfile, CancellationToken ct)
     {
         if (request is not CreateUserRequest r)
             return;

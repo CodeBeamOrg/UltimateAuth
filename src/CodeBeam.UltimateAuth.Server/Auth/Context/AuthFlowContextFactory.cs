@@ -14,7 +14,7 @@ namespace CodeBeam.UltimateAuth.Server.Auth;
 
 internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
 {
-    private readonly IClientProfileReader _clientProfileReader;
+    private readonly IApplicationProfileReader _clientProfileReader;
     private readonly IPrimaryTokenResolver _primaryTokenResolver;
     private readonly IEffectiveServerOptionsProvider _serverOptionsProvider;
     private readonly IAuthResponseResolver _authResponseResolver;
@@ -24,7 +24,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
     private readonly IClock _clock;
 
     public AuthFlowContextFactory(
-        IClientProfileReader clientProfileReader,
+        IApplicationProfileReader clientProfileReader,
         IPrimaryTokenResolver primaryTokenResolver,
         IEffectiveServerOptionsProvider serverOptionsProvider,
         IAuthResponseResolver authResponseResolver,
@@ -136,7 +136,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         );
     }
 
-    public async ValueTask<AuthFlowContext> RecreateWithClientProfileAsync(AuthFlowContext existing, UAuthClientProfile overriddenProfile, CancellationToken ct = default)
+    public async ValueTask<AuthFlowContext> RecreateWithClientProfileAsync(AuthFlowContext existing, UAuthApplicationProfile overriddenProfile, CancellationToken ct = default)
     {
         var flowType = existing.FlowType;
         var tenant = existing.Tenant;

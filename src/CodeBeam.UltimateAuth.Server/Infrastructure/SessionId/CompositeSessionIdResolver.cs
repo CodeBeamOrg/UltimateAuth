@@ -10,10 +10,10 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 public sealed class CompositeSessionIdResolver : ISessionIdResolver
 {
     private readonly IReadOnlyDictionary<string, IInnerSessionIdResolver> _resolvers;
-    private readonly IClientProfileReader _clientProfileReader;
+    private readonly IApplicationProfileReader _clientProfileReader;
     private readonly IEffectiveServerOptionsProvider _effectiveOptionsProvider;
 
-    public CompositeSessionIdResolver(IEnumerable<IInnerSessionIdResolver> resolvers, IClientProfileReader clientProfileReader, IEffectiveServerOptionsProvider effectiveOptionsProvider)
+    public CompositeSessionIdResolver(IEnumerable<IInnerSessionIdResolver> resolvers, IApplicationProfileReader clientProfileReader, IEffectiveServerOptionsProvider effectiveOptionsProvider)
     {
         _resolvers = resolvers.ToDictionary(r => r.Name, StringComparer.OrdinalIgnoreCase);
         _clientProfileReader = clientProfileReader;

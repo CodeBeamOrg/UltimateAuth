@@ -660,7 +660,7 @@ public sealed class SessionEndpointHandlerTests
             targetUserKey: targetUser,
             resourceTenant: flow.Tenant,
             action: action,
-            clientProfile: UAuthClientProfile.NotSpecified,
+            clientProfile: UAuthApplicationProfile.NotSpecified,
             attributes: new Dictionary<string, object>());
     }
 

@@ -82,16 +82,16 @@ public static class UltimateAuthApplicationBuilderExtensions
 
         var options = app.ApplicationServices.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value;
 
-        if (options.AllowedClientOrigins?.Count > 0)
+        if (options.Cors.AllowedOrigins?.Count > 0)
         {
-            app.UseCors(options.CorsPolicyName);
+            app.UseCors(options.Cors.PolicyName);
             logger.LogInformation("UAuth Resource API initialized with CORS.");
         }
 
         app.UseUAuthExceptionHandling();
         app.UseMiddleware<TenantMiddleware>();
 
-        if (options.AuthMode != UAuthMode.PureJwt)
+        if (options.Auth.Mode != UAuthMode.PureJwt)
         {
             app.UseMiddleware<SessionResolutionMiddleware>();
             app.UseMiddleware<RemoteSessionValidationMiddleware>();

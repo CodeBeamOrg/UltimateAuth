@@ -10,7 +10,7 @@ public sealed class LoginPreviewArtifact : AuthArtifact
     public CredentialType Factor { get; }
     public string DeviceId { get; }
     public string Identifier { get; }
-    public UAuthClientProfile ClientProfile { get; }
+    public UAuthApplicationProfile ClientProfile { get; }
     public string Fingerprint { get; }
 
     public LoginPreviewArtifact(
@@ -19,7 +19,7 @@ public sealed class LoginPreviewArtifact : AuthArtifact
         CredentialType factor,
         string deviceId,
         string identifier,
-        UAuthClientProfile clientProfile,
+        UAuthApplicationProfile clientProfile,
         string fingerprint,
         DateTimeOffset expiresAt)
         : base(AuthArtifactType.LoginPreview, expiresAt)
@@ -39,7 +39,7 @@ public sealed class LoginPreviewArtifact : AuthArtifact
         CredentialType factor,
         string deviceId,
         string identifier,
-        UAuthClientProfile clientProfile,
+        UAuthApplicationProfile clientProfile,
         string fingerprint)
     {
         return Tenant == tenant

@@ -191,7 +191,7 @@ public sealed class HubFlowReaderTests
 
         var artifact = CreateArtifact(
             flowType: HubFlowType.Reauthentication,
-            clientProfile: UAuthClientProfile.BlazorWasm,
+            clientProfile: UAuthApplicationProfile.BlazorWasm,
             returnUrl: "/account/security");
 
         SetupArtifact(fixture, artifact);
@@ -208,7 +208,7 @@ public sealed class HubFlowReaderTests
             HubFlowType.Reauthentication);
 
         result.ClientProfile.Should().Be(
-            UAuthClientProfile.BlazorWasm);
+            UAuthApplicationProfile.BlazorWasm);
 
         result.ReturnUrl.Should().Be(
             "/account/security");
@@ -347,7 +347,7 @@ public sealed class HubFlowReaderTests
     private static HubFlowArtifact CreateArtifact(
         DateTimeOffset? expiresAt = null,
         HubFlowType flowType = HubFlowType.Login,
-        UAuthClientProfile clientProfile = UAuthClientProfile.BlazorWasm,
+        UAuthApplicationProfile clientProfile = UAuthApplicationProfile.BlazorWasm,
         string? returnUrl = ReturnUrl)
     {
         var payload = new HubFlowPayload();

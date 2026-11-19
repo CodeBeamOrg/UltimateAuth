@@ -24,7 +24,7 @@ internal sealed class ResourceUserAccessor<TUserId> : IUserAccessor<TUserId>
 
     public async Task ResolveAsync(HttpContext context)
     {
-        if (_options.AuthMode == UAuthMode.PureJwt)
+        if (_options.Auth.Mode == UAuthMode.PureJwt)
         {
             await ResolveJwtAsync(context);
             return;

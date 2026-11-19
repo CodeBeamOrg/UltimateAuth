@@ -43,9 +43,9 @@ internal sealed class ResourceApiTestHost : IAsyncDisposable
 
         builder.Services.AddUltimateAuthResourceApi(options =>
         {
-            options.UAuthHubBaseUrl = "https://uauth.test";
-            options.AuthMode = UAuthMode.PureOpaque;
-            options.SessionDeliveryMode = GrantDeliveryMode.Header;
+            options.Hub.BaseUrl = "https://uauth.test";
+            options.Auth.Mode = UAuthMode.PureOpaque;
+            options.Auth.Session.DeliveryMode = GrantDeliveryMode.Header;
 
             configureResourceApi?.Invoke(options);
         });
@@ -53,9 +53,9 @@ internal sealed class ResourceApiTestHost : IAsyncDisposable
         builder.Services.AddScoped<ISessionValidator>(
             _ => sessionValidator);
 
-        var clientProfile = UAuthClientProfile.BlazorServer;
+        var clientProfile = UAuthApplicationProfile.BlazorServer;
 
-        var profileReader = new Mock<IClientProfileReader>();
+        var profileReader = new Mock<IApplicationProfileReader>();
 
         profileReader
             .Setup(x => x.ReadAsync(It.IsAny<HttpContext>()))

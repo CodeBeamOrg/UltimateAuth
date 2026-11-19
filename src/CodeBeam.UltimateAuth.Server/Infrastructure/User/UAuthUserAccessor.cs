@@ -16,13 +16,13 @@ public sealed class UAuthUserAccessor<TUserId> : IUserAccessor<TUserId>
 {
     private readonly ISessionStoreFactory _kernelFactory;
     private readonly IUserIdConverter<TUserId> _userIdConverter;
-    private readonly IClientProfileReader _clientProfileReader;
+    private readonly IApplicationProfileReader _clientProfileReader;
     private readonly IEffectiveServerOptionsProvider _effectiveOptions;
 
     public UAuthUserAccessor(
         ISessionStoreFactory kernelFactory,
         IUserIdConverterResolver converterResolver,
-        IClientProfileReader clientProfileReader,
+        IApplicationProfileReader clientProfileReader,
         IEffectiveServerOptionsProvider effectiveOptions)
     {
         _kernelFactory = kernelFactory;

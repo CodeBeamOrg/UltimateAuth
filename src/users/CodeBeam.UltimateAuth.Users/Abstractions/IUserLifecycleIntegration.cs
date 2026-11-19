@@ -11,7 +11,7 @@ namespace CodeBeam.UltimateAuth.Users;
 /// </summary>
 public interface IUserLifecycleIntegration
 {
-    Task OnUserCreatedAsync(TenantKey tenant, UserKey userKey, object request, UAuthClientProfile clientProfile, CancellationToken ct = default);
+    Task OnUserCreatedAsync(TenantKey tenant, UserKey userKey, object request, UAuthApplicationProfile clientProfile, CancellationToken ct = default);
 
     Task OnUserDeletedAsync(TenantKey tenant, UserKey userKey, DeleteMode mode, CancellationToken ct = default);
 }

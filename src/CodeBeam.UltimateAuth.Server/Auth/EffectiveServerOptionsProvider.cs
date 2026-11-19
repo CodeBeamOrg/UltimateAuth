@@ -24,7 +24,7 @@ internal sealed class EffectiveServerOptionsProvider : IEffectiveServerOptionsPr
         return _baseOptions.Value;
     }
 
-    public EffectiveUAuthServerOptions GetEffective(HttpContext context, UAuthClientProfile clientProfile)
+    public EffectiveUAuthServerOptions GetEffective(HttpContext context, UAuthApplicationProfile clientProfile)
     {
         return CreateEffective(new AuthModeResolutionContext
         {
@@ -34,7 +34,7 @@ internal sealed class EffectiveServerOptionsProvider : IEffectiveServerOptionsPr
         });
     }
 
-    public EffectiveUAuthServerOptions GetEffective(TenantKey tenant, UAuthClientProfile clientProfile)
+    public EffectiveUAuthServerOptions GetEffective(TenantKey tenant, UAuthApplicationProfile clientProfile)
     {
         return CreateEffective(new AuthModeResolutionContext
         {

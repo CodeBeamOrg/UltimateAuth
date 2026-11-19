@@ -1,6 +1,6 @@
 ﻿namespace CodeBeam.UltimateAuth.Core.Options;
 
-public enum UAuthClientProfile
+public enum UAuthApplicationProfile
 {
     NotSpecified = 0,
     BlazorWasm = 10,
@@ -8,5 +8,6 @@ public enum UAuthClientProfile
     Maui = 30,
     WebServer = 40,
     Api = 50,
+    ResourceApi = 60,
     UAuthHub = 100
 }

@@ -161,7 +161,10 @@ public sealed class ResourceUserAccessorTests
 
         var options = Options.Create(new UAuthResourceApiOptions
         {
-            AuthMode = UAuthMode.PureJwt
+            Auth = new UAuthResourceAuthOptions
+            {
+                Mode = UAuthMode.PureJwt
+            }
         });
 
         var sut = new ResourceUserAccessor<string>(

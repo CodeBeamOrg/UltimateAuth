@@ -27,7 +27,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
     private readonly IAuthStateSnapshotFactory _snapshotFactory;
     private readonly IUAuthJwtValidator _jwtValidator;
     private readonly IEffectiveServerOptionsProvider _effectiveOptions;
-    private readonly IClientProfileReader _clientProfileReader;
+    private readonly IApplicationProfileReader _clientProfileReader;
     private readonly IAuthResponseResolver _authResponseResolver;
     private readonly UAuthServerOptions _serverOptions;
     private readonly IClock _clock;
@@ -42,7 +42,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         IAuthStateSnapshotFactory snapshotFactory,
         IUAuthJwtValidator jwtValidator,
         IEffectiveServerOptionsProvider effectiveOptions,
-        IClientProfileReader clientProfileReader,
+        IApplicationProfileReader clientProfileReader,
         IAuthResponseResolver authResponseResolver,
         IOptions<UAuthServerOptions> serverOptions,
         IClock uauthClock)

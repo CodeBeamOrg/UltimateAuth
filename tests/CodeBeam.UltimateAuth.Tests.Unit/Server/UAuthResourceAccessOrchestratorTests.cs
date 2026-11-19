@@ -475,7 +475,7 @@ public sealed class UAuthResourceAccessOrchestratorTests
             targetUserKey: null,
             resourceTenant: default,
             action: "users.read",
-            clientProfile: UAuthClientProfile.NotSpecified,
+            clientProfile: UAuthApplicationProfile.NotSpecified,
             attributes: EmptyAttributes.Instance);
     }
 

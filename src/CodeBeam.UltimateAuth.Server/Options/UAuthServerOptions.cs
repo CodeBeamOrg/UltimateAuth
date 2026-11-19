@@ -78,7 +78,7 @@ public sealed class UAuthServerOptions
     /// <br/><br/>
     /// Cannot be combined with an explicit AuthMode.
     /// </remarks>
-    public Dictionary<UAuthClientProfile, UAuthMode> ClientProfileModes { get; set; } = new();
+    public Dictionary<UAuthApplicationProfile, UAuthMode> ClientProfileModes { get; set; } = new();
 
     /// <summary>
     /// Cryptographic keys used by the built-in implementations.

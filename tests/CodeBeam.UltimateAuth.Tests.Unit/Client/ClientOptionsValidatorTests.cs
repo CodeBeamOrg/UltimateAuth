@@ -16,7 +16,7 @@ public class ClientOptionsValidatorTests
         services.AddOptions<UAuthClientOptions>()
             .Configure(o =>
             {
-                o.ClientProfile = UAuthClientProfile.NotSpecified;
+                o.ClientProfile = UAuthApplicationProfile.NotSpecified;
                 o.AutoDetectClientProfile = false;
             });
 
@@ -51,7 +51,7 @@ public class ClientOptionsValidatorTests
         services.AddOptions<UAuthClientOptions>()
             .Configure(o =>
             {
-                o.ClientProfile = UAuthClientProfile.BlazorWasm;
+                o.ClientProfile = UAuthApplicationProfile.BlazorWasm;
                 o.AutoDetectClientProfile = false;
                 o.Endpoints.BasePath = "/auth";
             });
@@ -60,7 +60,7 @@ public class ClientOptionsValidatorTests
         services.AddSingleton<IValidateOptions<UAuthClientOptions>, UAuthClientEndpointOptionsValidator>();
         var provider = services.BuildServiceProvider();
         var options = provider.GetRequiredService<IOptions<UAuthClientOptions>>().Value;
-        options.ClientProfile.Should().Be(UAuthClientProfile.BlazorWasm);
+        options.ClientProfile.Should().Be(UAuthApplicationProfile.BlazorWasm);
     }
 
     [Fact]

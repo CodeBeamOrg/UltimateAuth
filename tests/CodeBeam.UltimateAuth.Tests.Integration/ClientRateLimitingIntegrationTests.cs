@@ -92,7 +92,7 @@ public sealed class ClientRateLimitingIntegrationTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
-        services.AddUltimateAuthClient(o => { o.ClientProfile = UAuthClientProfile.BlazorServer; o.AutoDetectClientProfile = false; });
+        services.AddUltimateAuthClient(o => { o.ClientProfile = UAuthApplicationProfile.BlazorServer; o.AutoDetectClientProfile = false; });
         services.AddSingleton<UAuthClientDiagnostics>();
         services.AddSingleton<IClock>(factory.Clock);
         services.AddSingleton<IUAuthRequestClient>(transport);

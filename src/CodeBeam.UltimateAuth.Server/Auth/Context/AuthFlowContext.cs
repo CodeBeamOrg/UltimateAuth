@@ -12,7 +12,7 @@ public sealed class AuthFlowContext
 {
 
     public AuthFlowType FlowType { get; }
-    public UAuthClientProfile ClientProfile { get; }
+    public UAuthApplicationProfile ClientProfile { get; }
     public UAuthMode EffectiveMode { get; }
     public DeviceContext Device { get; }
 
@@ -38,7 +38,7 @@ public sealed class AuthFlowContext
 
     internal AuthFlowContext(
         AuthFlowType flowType,
-        UAuthClientProfile clientProfile,
+        UAuthApplicationProfile clientProfile,
         UAuthMode effectiveMode,
         DeviceContext device,
         TenantKey tenantKey,

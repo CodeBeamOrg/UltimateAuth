@@ -102,7 +102,7 @@ public sealed class HandleHubTests
             HubFlowType.Login);
 
         flow.ClientProfile.Should().Be(
-            UAuthClientProfile.BlazorWasm);
+            UAuthApplicationProfile.BlazorWasm);
 
         flow.ReturnUrl.Should().Be(ReturnUrl);
 
@@ -204,7 +204,7 @@ public sealed class HandleHubTests
         var artifact = await ExecuteAndCaptureArtifact(fixture);
 
         artifact.ClientProfile.Should().Be(
-            UAuthClientProfile.BlazorWasm);
+            UAuthApplicationProfile.BlazorWasm);
     }
 
     [Fact]
@@ -222,7 +222,7 @@ public sealed class HandleHubTests
         var artifact = await ExecuteAndCaptureArtifact(fixture);
 
         artifact.ClientProfile.Should().Be(
-            UAuthClientProfile.NotSpecified);
+            UAuthApplicationProfile.NotSpecified);
     }
 
     [Fact]
@@ -239,7 +239,7 @@ public sealed class HandleHubTests
         var artifact = await ExecuteAndCaptureArtifact(fixture);
 
         artifact.ClientProfile.Should().Be(
-            UAuthClientProfile.NotSpecified);
+            UAuthApplicationProfile.NotSpecified);
     }
 
     // ---------------------------------------------------------------------
@@ -583,7 +583,7 @@ public sealed class HandleHubTests
                 ReturnUrl,
 
             ["__uauth_client_profile"] =
-                UAuthClientProfile.BlazorWasm.ToString()
+                UAuthApplicationProfile.BlazorWasm.ToString()
         };
     }
 

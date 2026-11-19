@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Auth;
 
-internal sealed class ClientProfileReader : IClientProfileReader
+internal sealed class ApplicationProfileReader : IApplicationProfileReader
 {
-    public async Task<UAuthClientProfile> ReadAsync(HttpContext context)
+    public async Task<UAuthApplicationProfile> ReadAsync(HttpContext context)
     {
         if (context.Request.Headers.TryGetValue(UAuthConstants.Headers.ClientProfile, out var headerValue) && TryParse(headerValue, out var headerProfile))
         {
@@ -21,10 +21,10 @@ internal sealed class ClientProfileReader : IClientProfileReader
             return formProfile;
         }
 
-        return UAuthClientProfile.NotSpecified;
+        return UAuthApplicationProfile.NotSpecified;
     }
 
-    private static bool TryParse(string? value, out UAuthClientProfile profile)
+    private static bool TryParse(string? value, out UAuthApplicationProfile profile)
     {
         return Enum.TryParse(value, ignoreCase: true, out profile);
     }

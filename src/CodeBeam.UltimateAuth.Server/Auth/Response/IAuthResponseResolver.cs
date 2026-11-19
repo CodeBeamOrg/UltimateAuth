@@ -6,6 +6,6 @@ namespace CodeBeam.UltimateAuth.Server.Auth;
 
 public interface IAuthResponseResolver
 {
-    EffectiveAuthResponse Resolve(UAuthMode effectiveMode, AuthFlowType flowType, UAuthClientProfile clientProfile, EffectiveUAuthServerOptions effectiveOptions);
-    EffectiveAuthResponse ResolveForAuthentication(UAuthMode effectiveMode, UAuthClientProfile clientProfile, EffectiveUAuthServerOptions effectiveOptions);
+    EffectiveAuthResponse Resolve(UAuthMode effectiveMode, AuthFlowType flowType, UAuthApplicationProfile clientProfile, EffectiveUAuthServerOptions effectiveOptions);
+    EffectiveAuthResponse ResolveForAuthentication(UAuthMode effectiveMode, UAuthApplicationProfile clientProfile, EffectiveUAuthServerOptions effectiveOptions);
 }

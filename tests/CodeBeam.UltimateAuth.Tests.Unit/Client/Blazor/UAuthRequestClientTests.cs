@@ -24,7 +24,7 @@ public sealed class UAuthRequestClientTests : BunitContext
             .Returns(Task.CompletedTask);
     }
 
-    private UAuthRequestClient CreateSut(UAuthClientProfile profile = UAuthClientProfile.BlazorWasm, string? basePath = null)
+    private UAuthRequestClient CreateSut(UAuthApplicationProfile profile = UAuthApplicationProfile.BlazorWasm, string? basePath = null)
     {
         var options = new UAuthClientOptions
         {

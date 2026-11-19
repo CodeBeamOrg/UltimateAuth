@@ -47,7 +47,7 @@ internal sealed class UAuthFlowService : IUAuthFlowService, IUAuthInternalFlowSe
     {
         var effectiveFlow = execution.EffectiveClientProfile is null
             ? flow
-            : await _authFlowContextFactory.RecreateWithClientProfileAsync(flow, (UAuthClientProfile)execution.EffectiveClientProfile, ct);
+            : await _authFlowContextFactory.RecreateWithClientProfileAsync(flow, (UAuthApplicationProfile)execution.EffectiveClientProfile, ct);
         effectiveFlow = execution.Device is null
             ? effectiveFlow
             : await _authFlowContextFactory.RecreateWithDeviceAsync(effectiveFlow, execution.Device, ct);
@@ -63,7 +63,7 @@ internal sealed class UAuthFlowService : IUAuthFlowService, IUAuthInternalFlowSe
     {
         var effectiveFlow = execution.EffectiveClientProfile is null
             ? flow
-            : await _authFlowContextFactory.RecreateWithClientProfileAsync(flow, (UAuthClientProfile)execution.EffectiveClientProfile, ct);
+            : await _authFlowContextFactory.RecreateWithClientProfileAsync(flow, (UAuthApplicationProfile)execution.EffectiveClientProfile, ct);
         effectiveFlow = execution.Device is null
             ? effectiveFlow
             : await _authFlowContextFactory.RecreateWithDeviceAsync(effectiveFlow, execution.Device, ct);

@@ -304,7 +304,7 @@ public sealed class PkceServiceTests
 
         var artifact = CreatePkceArtifact(
             clientProfile:
-                UAuthClientProfile.BlazorWasm,
+                UAuthApplicationProfile.BlazorWasm,
             device: device);
 
         SetupSuccessfulValidation(
@@ -338,7 +338,7 @@ public sealed class PkceServiceTests
 
         captured!.EffectiveClientProfile
             .Should().Be(
-                UAuthClientProfile.BlazorWasm);
+                UAuthApplicationProfile.BlazorWasm);
 
         captured.Device
             .Should().BeSameAs(device);
@@ -714,7 +714,7 @@ public sealed class PkceServiceTests
     string challengeMethod = "S256",
     DeviceContext? device = null,
     string? redirectUri = "/callback",
-    UAuthClientProfile clientProfile = UAuthClientProfile.BlazorWasm,
+    UAuthApplicationProfile clientProfile = UAuthApplicationProfile.BlazorWasm,
     TenantKey? tenant = null)
     {
         return new PkceAuthorizeCommand
@@ -752,7 +752,7 @@ public sealed class PkceServiceTests
         string codeChallenge = "code-challenge",
         PkceChallengeMethod challengeMethod = PkceChallengeMethod.S256,
         DateTimeOffset? expiresAt = null,
-        UAuthClientProfile clientProfile = UAuthClientProfile.BlazorWasm,
+        UAuthApplicationProfile clientProfile = UAuthApplicationProfile.BlazorWasm,
         TenantKey? tenant = null,
         string? redirectUri = "/callback",
         DeviceContext? device = null)
@@ -773,7 +773,7 @@ public sealed class PkceServiceTests
 
     private static HubFlowArtifact CreateHubArtifact(
         string? authorizationCode = null,
-        UAuthClientProfile clientProfile = UAuthClientProfile.BlazorWasm,
+        UAuthApplicationProfile clientProfile = UAuthApplicationProfile.BlazorWasm,
         TenantKey? tenant = null,
         DeviceContext? device = null,
         string? returnUrl = "/callback")

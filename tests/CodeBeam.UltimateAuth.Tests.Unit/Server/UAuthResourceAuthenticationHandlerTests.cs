@@ -775,9 +775,18 @@ public sealed class UAuthResourceAuthenticationHandlerTests
         services.AddSingleton<IOptions<UAuthResourceApiOptions>>(
             Options.Create(new UAuthResourceApiOptions
             {
-                AuthMode = mode,
-                SessionDeliveryMode = GrantDeliveryMode.Cookie,
-                AccessTokenDeliveryMode = GrantDeliveryMode.Cookie
+                Auth = new UAuthResourceAuthOptions
+                {
+                    Mode = mode,
+                    Session = new UAuthResourceSessionOptions
+                    {
+                        DeliveryMode = GrantDeliveryMode.Cookie
+                    },
+                    AccessToken = new UAuthResourceAccessTokenOptions
+                    {
+                        DeliveryMode = GrantDeliveryMode.Cookie
+                    }
+                },
             }));
 
         services

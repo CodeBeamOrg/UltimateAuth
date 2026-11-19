@@ -205,11 +205,11 @@ public sealed class UAuthServerStatusAuthorizationTests
         builder.Services.AddSingleton(provider.Object);
         builder.Services.AddSingleton<IUAuthRuntimeMarker, ServerRuntimeMarker>();
 
-        var profileReader = new Mock<IClientProfileReader>();
+        var profileReader = new Mock<IApplicationProfileReader>();
 
         profileReader
             .Setup(x => x.ReadAsync(It.IsAny<HttpContext>()))
-            .ReturnsAsync(UAuthClientProfile.BlazorServer);
+            .ReturnsAsync(UAuthApplicationProfile.BlazorServer);
 
         builder.Services.AddSingleton(profileReader.Object);
 
@@ -219,7 +219,7 @@ public sealed class UAuthServerStatusAuthorizationTests
         effectiveOptionsProvider
             .Setup(x => x.GetEffective(
                 It.IsAny<HttpContext>(),
-                It.IsAny<UAuthClientProfile>()))
+                It.IsAny<UAuthApplicationProfile>()))
             .Returns(new EffectiveUAuthServerOptions
             {
                 Mode = UAuthMode.PureOpaque,

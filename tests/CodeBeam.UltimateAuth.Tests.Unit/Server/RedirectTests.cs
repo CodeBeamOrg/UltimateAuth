@@ -38,8 +38,8 @@ public class RedirectTests
         var optionsProvider = provider.GetRequiredService<IEffectiveServerOptionsProvider>();
         var resolver = provider.GetRequiredService<IAuthResponseResolver>();
 
-        var effective = optionsProvider.GetEffective(TenantKey.Single, UAuthClientProfile.BlazorServer);
-        var response = resolver.Resolve(effective.Mode, AuthFlowType.Login, UAuthClientProfile.BlazorServer, effective);
+        var effective = optionsProvider.GetEffective(TenantKey.Single, UAuthApplicationProfile.BlazorServer);
+        var response = resolver.Resolve(effective.Mode, AuthFlowType.Login, UAuthApplicationProfile.BlazorServer, effective);
 
         response.Redirect.AllowReturnUrlOverride.Should().BeFalse();
         response.Redirect.SuccessPath.Should().Be("/welcome");
@@ -48,18 +48,18 @@ public class RedirectTests
     [Fact]
     public async Task ClientProfile_Is_Read_From_Header()
     {
-        var reader = new ClientProfileReader();
+        var reader = new ApplicationProfileReader();
         var ctx = TestHttpContext.Create();
         ctx.Request.Headers[UAuthConstants.Headers.ClientProfile] = "BlazorServer";
 
         var profile = await reader.ReadAsync(ctx);
-        profile.Should().Be(UAuthClientProfile.BlazorServer);
+        profile.Should().Be(UAuthApplicationProfile.BlazorServer);
     }
 
     [Theory]
-    [InlineData(UAuthClientProfile.BlazorWasm, UAuthMode.Hybrid)]
-    [InlineData(UAuthClientProfile.BlazorServer, UAuthMode.PureOpaque)]
-    public void ClientProfile_Resolves_To_Correct_Mode(UAuthClientProfile profile, UAuthMode expected)
+    [InlineData(UAuthApplicationProfile.BlazorWasm, UAuthMode.Hybrid)]
+    [InlineData(UAuthApplicationProfile.BlazorServer, UAuthMode.PureOpaque)]
+    public void ClientProfile_Resolves_To_Correct_Mode(UAuthApplicationProfile profile, UAuthMode expected)
     {
         var resolver = new EffectiveAuthModeResolver();
         var mode = resolver.Resolve(new AuthModeResolutionContext() { ClientProfile = profile, Tenant = TenantKey.Single });

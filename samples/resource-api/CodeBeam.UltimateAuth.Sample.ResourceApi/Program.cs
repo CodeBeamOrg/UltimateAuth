@@ -1,14 +1,10 @@
-using CodeBeam.UltimateAuth.Core;
-using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
-using CodeBeam.UltimateAuth.Server.Contracts;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using System.Buffers.Text;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -44,14 +40,14 @@ builder.Services.AddUltimateAuthResourceApi(o =>
         //o.AccessTokenCookieName = "uat";
 
         // TODO: Make multiple UAuthHub support via resolver, then different client apps can use different UAuthHub instances if needed.
-        o.UAuthHubBaseUrl = "https://localhost:6110";
+        o.Hub.BaseUrl = "https://localhost:6110";
         // o.UAuthHubBaseUrl = "https://localhost:7213"; // Comment upper line and uncomment this if you want to try blazor server sample.
 
         // Standalone WASM
-        o.AllowedClientOrigins.Add("https://localhost:6130");
+        o.Cors.AllowedOrigins.Add("https://localhost:6130");
 
         // Blazor Server
-        o.AllowedClientOrigins.Add("https://localhost:7213");
+        o.Cors.AllowedOrigins.Add("https://localhost:7213");
     });
 
 var app = builder.Build();

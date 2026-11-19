@@ -25,7 +25,7 @@ public sealed class AuthModeResolutionContext
     /// Gets the resolved client environment.
     /// This value must not be treated as authenticated identity.
     /// </summary>
-    public required UAuthClientProfile ClientProfile { get; init; }
+    public required UAuthApplicationProfile ClientProfile { get; init; }
 
     /// <summary>
     /// Gets the current HTTP context, when available.

@@ -46,7 +46,7 @@ public sealed class UAuthClientProductInfo
     /// <summary>
     /// Gets the client profile associated with the UltimateAuth client. This is a required property that must be initialized with a valid UAuthClientProfile value.
     /// </summary>
-    public UAuthClientProfile ClientProfile { get; init; } = default!;
+    public UAuthApplicationProfile ClientProfile { get; init; } = default!;
 
 
     /// <summary>

@@ -16,7 +16,7 @@ public sealed class UAuthClientOptionsValidator : IValidateOptions<UAuthClientOp
     /// <returns></returns>
     public ValidateOptionsResult Validate(string? name, UAuthClientOptions options)
     {
-        if (options.ClientProfile == UAuthClientProfile.NotSpecified && options.AutoDetectClientProfile == false)
+        if (options.ClientProfile == UAuthApplicationProfile.NotSpecified && options.AutoDetectClientProfile == false)
         {
             return ValidateOptionsResult.Fail("ClientProfile is NotSpecified while AutoDetectClientProfile is disabled. " +
                 "Either specify a ClientProfile or enable auto-detection.");

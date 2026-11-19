@@ -540,7 +540,7 @@ public sealed class RefreshTokenRotationServiceTests
 
             Flow = new AuthFlowContext(
                 flowType: AuthFlowType.RefreshSession,
-                clientProfile: UAuthClientProfile.Api,
+                clientProfile: UAuthApplicationProfile.Api,
                 effectiveMode: mode,
                 device: TestDevice.Default(),
                 tenantKey: Tenant,
