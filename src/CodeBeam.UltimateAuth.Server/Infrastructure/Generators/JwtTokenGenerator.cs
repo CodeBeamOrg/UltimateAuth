@@ -70,37 +70,27 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
     {
         if (string.IsNullOrWhiteSpace(descriptor.Subject))
         {
-            throw new ArgumentException(
-                "JWT subject must be specified.",
-                nameof(descriptor));
+            throw new ArgumentException("JWT subject must be specified.", nameof(descriptor));
         }
 
         if (string.IsNullOrWhiteSpace(descriptor.Issuer))
         {
-            throw new ArgumentException(
-                "JWT issuer must be specified.",
-                nameof(descriptor));
+            throw new ArgumentException("JWT issuer must be specified.", nameof(descriptor));
         }
 
         if (string.IsNullOrWhiteSpace(descriptor.Audience))
         {
-            throw new ArgumentException(
-                "JWT audience must be specified.",
-                nameof(descriptor));
+            throw new ArgumentException("JWT audience must be specified.", nameof(descriptor));
         }
 
         if (string.IsNullOrWhiteSpace(descriptor.Tenant.Value))
         {
-            throw new ArgumentException(
-                "JWT tenant must be specified.",
-                nameof(descriptor));
+            throw new ArgumentException("JWT tenant must be specified.", nameof(descriptor));
         }
 
         if (descriptor.ExpiresAt <= descriptor.IssuedAt)
         {
-            throw new ArgumentException(
-                "JWT expiration must be after issuance.",
-                nameof(descriptor));
+            throw new ArgumentException("JWT expiration must be after issuance.", nameof(descriptor));
         }
     }
 

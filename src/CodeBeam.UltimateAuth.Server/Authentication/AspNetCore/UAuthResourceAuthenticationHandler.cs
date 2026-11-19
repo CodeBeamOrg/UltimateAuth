@@ -176,9 +176,31 @@ internal sealed class UAuthResourceAuthenticationHandler : AuthenticationHandler
             return AuthenticateResult.Fail("PureJwt requires a valid device binding.");
         }
 
-        var requestDevice = await Context.GetDeviceAsync();
+        var mismatchBehavior = _resourceOptions.DeviceMismatchBehavior;
 
-        if (!DeviceId.TryCreate(requestDevice.DeviceId.Value, out var requestDeviceId) || requestDeviceId != tokenDeviceId)
+        if (mismatchBehavior == DeviceMismatchBehavior.AllowAndRebind)
+        {
+            return AuthenticateResult.Fail("Device rebinding is not supported in PureJwt.");
+        }
+
+        if (mismatchBehavior is not (DeviceMismatchBehavior.Reject or DeviceMismatchBehavior.Allow))
+        {
+            return AuthenticateResult.Fail("Unsupported device mismatch behavior.");
+        }
+
+        DeviceId? requestDeviceId = null;
+
+        if (mismatchBehavior == DeviceMismatchBehavior.Reject)
+        {
+            var requestDevice = await Context.GetDeviceAsync();
+
+            if (DeviceId.TryCreate(requestDevice.DeviceId.Value, out var parsedDeviceId))
+            {
+                requestDeviceId = parsedDeviceId;
+            }
+        }
+
+        if (!PureJwtDevicePolicy.IsAllowed(mismatchBehavior, tokenDeviceId, requestDeviceId))
         {
             return AuthenticateResult.Fail("JWT device mismatch.");
         }

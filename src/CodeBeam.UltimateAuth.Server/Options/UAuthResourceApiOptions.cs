@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Options;
@@ -16,6 +17,7 @@ public class UAuthResourceApiOptions
     public HashSet<string> AllowedClientOrigins { get; set; } = new();
     public string CorsPolicyName { get; set; } = "UAuthResource";
     public UAuthMultiTenantOptions MultiTenant { get; set; } = new();
+    public DeviceMismatchBehavior DeviceMismatchBehavior { get; set; } = DeviceMismatchBehavior.Reject;
 
     internal UAuthResourceApiOptions Clone() => new()
     {
@@ -29,6 +31,7 @@ public class UAuthResourceApiOptions
         SessionCookieName = SessionCookieName,
         AccessTokenCookieName = AccessTokenCookieName,
         AccessTokenHeaderName = AccessTokenHeaderName,
-        AccessTokenHeaderFormat = AccessTokenHeaderFormat
+        AccessTokenHeaderFormat = AccessTokenHeaderFormat,
+        DeviceMismatchBehavior = DeviceMismatchBehavior
     };
 }
