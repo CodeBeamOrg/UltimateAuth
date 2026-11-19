@@ -7,6 +7,7 @@ using CodeBeam.UltimateAuth.Core.Runtime;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Server.ResourceApi;
 using CodeBeam.UltimateAuth.Server.Runtime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
@@ -23,14 +24,12 @@ internal sealed class UAuthStatusAuthorizationResultHandler : IAuthorizationMidd
 
     public async Task HandleAsync(RequestDelegate next, HttpContext context, AuthorizationPolicy policy, PolicyAuthorizationResult authorizeResult)
     {
-        // Preserve the framework's normal challenge/forbid behavior.
         if (!authorizeResult.Succeeded)
         {
             await _default.HandleAsync(next, context, policy, authorizeResult);
             return;
         }
 
-        // The user must have a validated UltimateAuth identity.
         var identity = context.User.Identities.FirstOrDefault(x =>
             x.IsAuthenticated &&
             x.AuthenticationType == UAuthConstants.SchemeDefaults.GlobalScheme);
@@ -52,26 +51,18 @@ internal sealed class UAuthStatusAuthorizationResultHandler : IAuthorizationMidd
 
         if (runtime is ResourceRuntimeMarker)
         {
-            var resourceOptions = context.RequestServices
-                .GetRequiredService<IOptions<UAuthResourceApiOptions>>()
-                .Value;
+            var mode = context.RequestServices.GetRequiredService<ResourceApiAuthModeProvider>().Mode;
 
-            if (resourceOptions.Auth.Mode == UAuthMode.PureJwt)
+            if (mode == UAuthMode.PureJwt)
             {
-                // Authentication handler already validated JWT signature,
-                // issuer, audience, lifetime, tenant and device binding.
-                // ASP.NET Core authorization has already succeeded.
-                await _default.HandleAsync(
-                    next, context, policy, authorizeResult);
+                await _default.HandleAsync(next, context, policy, authorizeResult);
 
                 return;
             }
         }
         else
         {
-            var profileReader = context.RequestServices
-                .GetRequiredService<IApplicationProfileReader>();
-
+            var profileReader = context.RequestServices.GetRequiredService<IApplicationProfileReader>();
             var optionsProvider = context.RequestServices
                 .GetRequiredService<IEffectiveServerOptionsProvider>();
 
