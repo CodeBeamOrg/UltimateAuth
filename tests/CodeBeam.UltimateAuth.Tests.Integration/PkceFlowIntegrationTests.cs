@@ -1,4 +1,17 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core;
+using Microsoft.IdentityModel.Tokens;
+using CodeBeam.UltimateAuth.Server.Abstractions;
+using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Extensions;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using System.Net.Http.Headers;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Tests.Integration.Infrastructure;
 using AwesomeAssertions;
@@ -483,6 +496,124 @@ public sealed class PkceFlowIntegrationTests : IClassFixture<AuthServerFactory>
     // ---------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------
+
+    [Fact]
+    public async Task PureJwt_browser_cookie_restores_and_authorizes_resource_until_logout()
+    {
+        const string origin = "https://localhost:6130";
+        const string deviceId = "wasm-purejwt-test-device";
+        const string issuer = "https://localhost";
+        const string audience = "wasm-resource";
+
+        using var factory = AuthServerFactory.Create(options =>
+        {
+            options.AuthMode = UAuthMode.PureJwt;
+            options.AllowedModes = [UAuthMode.PureJwt];
+            options.Token.Issuer = issuer;
+            options.Token.Audience = audience;
+            options.GrantDelivery.RefreshToken.Mode = GrantDeliveryMode.Cookie;
+            options.Cookie.RefreshToken.SameSite = SameSiteMode.None;
+            options.Redirect.Login.RedirectEnabled = true;
+            options.Cookie.RefreshToken.Path = "/auth";
+        });
+        factory.Clock.Set(DateTimeOffset.UtcNow);
+        using var browser = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost"),
+            AllowAutoRedirect = false,
+            HandleCookies = false
+        });
+        browser.DefaultRequestHeaders.Add("Origin", origin);
+        browser.DefaultRequestHeaders.Add("X-UAuth-ApplicationProfile", "BlazorWasm");
+        browser.DefaultRequestHeaders.Add("X-UDID", deviceId);
+
+        var ct = TestContext.Current.CancellationToken;
+        var user = await factory.CreateLoginUserAsync(ct: ct);
+        var verifier = CreateVerifier();
+        var authorization = await AuthorizeAsync(browser, CreateChallenge(verifier), origin + "/callback");
+        using var login = await CompleteAsync(browser, authorization.AuthorizationCode, verifier,
+            user.Identifier, user.Secret, origin + "/callback");
+        login.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        login.Headers.Location.Should().Be(new Uri(origin + "/callback"));
+        var loginCookie = RefreshCookie(login);
+
+        // A newly loaded WASM application has the login cookie and no access credential.
+        browser.DefaultRequestHeaders.Add("Cookie", loginCookie);
+        using var missingCsrf = await browser.PostAsync("/auth/refresh", null, ct);
+        missingCsrf.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        using var restored = await CsrfTestClient.PostAsync(browser, "/auth/refresh");
+        restored.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        restored.Headers.GetValues("Access-Control-Allow-Origin").Should().ContainSingle().Which.Should().Be(origin);
+        restored.Headers.GetValues("Access-Control-Allow-Credentials").Should().ContainSingle().Which.Should().Be("true");
+        restored.Headers.GetValues("Access-Control-Expose-Headers").Single().Should().Contain("uat").And.Contain("X-UAuth-Access-Expires");
+        restored.Headers.CacheControl!.NoStore.Should().BeTrue();
+        DateTimeOffset.Parse(restored.Headers.GetValues("X-UAuth-Access-Expires").Single()).Should().BeAfter(factory.Clock.UtcNow);
+        var access = restored.Headers.GetValues("uat").Single();
+        var rotatedCookie = RefreshCookie(restored);
+        rotatedCookie.Should().NotBe(loginCookie);
+
+        browser.DefaultRequestHeaders.Remove("Cookie");
+        browser.DefaultRequestHeaders.Add("Cookie", rotatedCookie);
+        browser.DefaultRequestHeaders.Add("uat", access);
+        using var validate = await browser.PostAsync("/auth/validate", null, ct);
+        validate.StatusCode.Should().Be(HttpStatusCode.OK);
+        var validation = await validate.Content.ReadFromJsonAsync<AuthValidationResult>(ct);
+        validation!.Snapshot!.Identity.UserKey.Should().Be(user.UserKey);
+
+        var resource = WebApplication.CreateBuilder();
+        resource.WebHost.UseTestServer();
+        resource.Services.AddSingleton(factory.Services.GetRequiredService<IJwtVerificationKeyProvider>());
+        resource.Services.AddSingleton<IClock>(factory.Clock);
+        resource.Services.AddUltimateAuthResourceApi(options =>
+        {
+            options.Hub.BaseUrl = "https://localhost";
+            options.Auth.Jwt = new UAuthJwtValidationOptions { Issuer = issuer, Audience = audience, ValidAlgorithms = [SecurityAlgorithms.HmacSha256] };
+            options.Cors.AllowedOrigins.Add(origin);
+        });
+        await using var resourceApp = resource.Build();
+        resourceApp.UseUltimateAuthResourceApiWithAspNetCore();
+        resourceApp.MapGet("/protected", () => Results.Ok()).RequireAuthorization();
+        await resourceApp.StartAsync(ct);
+        using var api = resourceApp.GetTestClient();
+        using var protectedResponse = await GetProtectedAsync(api, access);
+        protectedResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        browser.DefaultRequestHeaders.Add("X-UAuth-Logout-Mode", "observe");
+        using var logout = await CsrfTestClient.PostAsync(browser, "/auth/logout");
+        logout.StatusCode.Should().Be(HttpStatusCode.OK);
+        logout.Headers.GetValues("Set-Cookie").Should().Contain(value =>
+            value.StartsWith("uar=", StringComparison.OrdinalIgnoreCase) &&
+            value.Contains("expires=", StringComparison.OrdinalIgnoreCase) &&
+            value.Contains("path=/auth", StringComparison.OrdinalIgnoreCase) &&
+            value.Contains("samesite=none", StringComparison.OrdinalIgnoreCase));
+
+        // Even if the last cookie is retained, the server has revoked its refresh chain.
+        browser.DefaultRequestHeaders.Remove("uat");
+        using var revoked = await CsrfTestClient.PostAsync(browser, "/auth/refresh");
+        revoked.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        browser.DefaultRequestHeaders.Remove("Cookie");
+        using var missing = await CsrfTestClient.PostAsync(browser, "/auth/refresh");
+        missing.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        async Task<HttpResponseMessage> GetProtectedAsync(HttpClient apiClient, string bearer)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/protected");
+            request.Headers.Authorization = AuthenticationHeaderValue.Parse(bearer);
+            request.Headers.Add("X-UDID", deviceId);
+            request.Headers.Add("X-UAuth-ApplicationProfile", "BlazorWasm");
+            request.Headers.Add("Origin", origin);
+            return await apiClient.SendAsync(request, ct);
+        }
+
+        static string RefreshCookie(HttpResponseMessage response)
+        {
+            response.Headers.Contains("uar").Should().BeFalse();
+            var cookie = response.Headers.GetValues("Set-Cookie").Single(value => value.StartsWith("uar=", StringComparison.OrdinalIgnoreCase));
+            cookie.Should().ContainEquivalentOf("httponly").And.ContainEquivalentOf("secure").And.ContainEquivalentOf("samesite=none");
+            return cookie.Split(';', 2)[0];
+        }
+    }
 
     private HttpClient CreateClient(
         string deviceId)

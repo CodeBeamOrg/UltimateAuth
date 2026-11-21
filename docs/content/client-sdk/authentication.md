@@ -1298,6 +1298,113 @@ For application-specific workflows that cannot be expressed through the componen
 
 **Solution:** Use the appropriate authentication state integration for UI rendering, and reserve explicit validation for operations that require it.
 
+## Blazor WebAssembly with a PureJwt Hub
+
+Enable the opt-in browser token flow in the WebAssembly app.
+
+```csharp
+builder.Services.AddUltimateAuthClientBlazor(options =>
+{
+    options.UsePureJwtBrowserTokens = true;
+    options.Pkce.Enabled = true;
+    options.Endpoints.BasePath = "https://auth.example.com/auth";
+    options.Resource.BaseAddress = "https://api.example.com";
+});
+```
+
+Keep `UAuthApp` around the router and protected content. Start interactive login with
+`await UAuthClient.Flows.BeginPkceAsync()`. The Hub completes the existing PKCE
+flow, sets the HttpOnly refresh cookie, and redirects to the configured return URL.
+
+On the first render after login or F5, the session coordinator refreshes using
+the cookie even though C# memory is empty. It receives a JWT and expiration,
+validates the JWT with the Hub, and populates the existing authentication state.
+Protected content waits for restoration. A missing, expired, or rejected cookie
+leaves the app anonymous. Startup transport or configuration errors produce a
+restoration error so the app does not mistake them for a request to sign in.
+
+```csharp
+var refreshed = await UAuthClient.Flows.RefreshAsync(isAuto: false, ct: cancellationToken);
+if (refreshed.IsSuccess)
+{
+    var products = await UAuthClient.Resource.GetAsync<List<Product>>("/api/products", cancellationToken);
+}
+```
+
+Concurrent refresh callers in one client share a rotation. Cancellation stops the
+caller's wait while the shared operation reconciles the response and rotated
+cookie. `LogoutAsync()` revokes the refresh chain, expires the cookie, and clears
+the in-memory credential and UI state on confirmed success. If logout needs an
+access credential, it uses the refresh cookie to obtain one for the Hub's
+authenticated logout operation. Already issued JWTs remain valid until expiry
+under ordinary PureJwt validation.
+
+The default `IUAuthTokenStore` is scoped and uses C# memory. It stores the JWT
+and its expiration, so reloading the WASM runtime discards both. Browser
+storage would keep the credential accessible after reload. WASM memory
+still offers no protection against XSS. To supply a custom implementation,
+register it before the client with
+`builder.Services.AddScoped<IUAuthTokenStore, MyTokenStore>()`. Preserve scope
+isolation, including per circuit for server-side Blazor. The browser token
+transport is available for the BlazorWasm profile.
+
+### Hub and Resource API configuration
+
+Configure the Hub to use PureJwt, retain existing PKCE and antiforgery
+middleware, and configure the browser's origin as an allowed Hub client and
+return origin using the existing Hub configuration.
+
+```csharp
+builder.Services.AddUltimateAuthServer(options =>
+{
+    options.AuthMode = UAuthMode.PureJwt;
+    options.Token.Issuer = "https://auth.example.com";
+    options.Token.Audience = "products-api";
+    options.Token.KeyId = "products-v1";
+    options.Cryptography.JwtSigningKey = builder.Configuration["UltimateAuth:JwtSigningKey"]
+        ?? throw new InvalidOperationException("JWT signing key is missing.");
+
+    options.GrantDelivery.AccessToken.Mode = GrantDeliveryMode.Header;
+    options.GrantDelivery.AccessToken.HeaderName = "uat";
+    options.GrantDelivery.AccessToken.HeaderFormat = HeaderTokenFormat.Bearer;
+    options.GrantDelivery.RefreshToken.Mode = GrantDeliveryMode.Cookie;
+    options.Cookie.RefreshToken.HttpOnly = true;
+    options.Cookie.RefreshToken.SecurePolicy = CookieSecurePolicy.Always;
+})
+.AddUltimateAuthInMemory()
+.AddUAuthHub(hub => hub.AllowedClientOrigins.Add("https://app.example.com"));
+```
+
+Provision the Hub's production signing key and refresh store. Configure JWT
+verification on the Resource API with the Hub's issuer, audience, algorithm and
+verification key. PureJwt Resource API authentication reads
+`Authorization: Bearer <access token>` by default. For a separate API origin,
+allow the app origin in `options.Cors.AllowedOrigins`. The API receives the bearer
+header, device ID and application profile. The browser transport omits
+cookies and rejects redirects.
+
+Serve all three origins over HTTPS. The credentialed Hub CORS policy must
+allow the exact app origin and expose `uat`, `X-UAuth-Access-Expires` and
+optionally `X-UAuth-Refresh` and `Retry-After`. The built-in UAuthHub policy
+exposes these for the configured header and cookie delivery. Keep the
+antiforgery token endpoint and middleware active, and allow its request header
+along with `uat`, `X-UDID`, `X-UAuth-ApplicationProfile` and
+`X-UAuth-Logout-Mode`. The refresh cookie path must cover both refresh and logout.
+
+A cross-origin deployment can still be same-site. If the app and Hub are
+cross-site, configure both the refresh cookie and antiforgery cookie with
+`SameSite=None; Secure` using the existing server options. Browsers that block
+third-party cookies can still prevent refresh and logout across those sites.
+Same-site HTTPS deployment avoids that particular dependency.
+
+PureOpaque continues to use its cookie/session flow with this option disabled.
+Hybrid and SemiHybrid retain their existing mode behavior. This browser
+integration targets a PureJwt Hub and PureJwt Resource API.
+
+PR #2 covers proactive and expiration-based refresh, request- or 401-triggered
+refresh and retry, advanced network recovery, and multi-tab coordination and sync.
+Optional access-token possession and sender-constrained tokens remain deferred.
+
 ## Next Steps
 
 - [Session Management](/docs/client-sdk/session-management) — Inspect and manage session and device information.

@@ -2,6 +2,10 @@
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using System.Net;
+using CodeBeam.UltimateAuth.Client.Abstractions;
+using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Client.Options;
+using Microsoft.Extensions.Options;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Users.Contracts;
 
@@ -16,14 +20,18 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
     private readonly IUAuthClient _client;
     private readonly IUAuthClientEvents _events;
     private readonly IClock _clock;
+    private readonly IUAuthTokenStore? _tokens;
+    private readonly bool _usePureJwtBrowserTokens;
 
     public UAuthState State { get; } = UAuthState.Anonymous();
 
-    public UAuthStateManager(IUAuthClient client, IUAuthClientEvents events, IClock clock)
+    public UAuthStateManager(IUAuthClient client, IUAuthClientEvents events, IClock clock, IUAuthTokenStore? tokens = null, IOptions<UAuthClientOptions>? options = null)
     {
         _client = client;
         _events = events;
         _clock = clock;
+        _tokens = tokens;
+        _usePureJwtBrowserTokens = options?.Value.UsePureJwtBrowserTokens == true;
 
         _events.StateChanged += HandleStateEvent;
     }
@@ -50,10 +58,12 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
         try
         {
             var result = await _client.Flows.ValidateAsync();
+            if (_usePureJwtBrowserTokens)
+                return; // The flow publishes the result while holding the credential gate.
 
             if (!result.IsValid)
             {
-                State.Clear();
+                Clear();
                 return;
             }
 
@@ -80,7 +90,7 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
 
     private async Task HandleStateEvent(UAuthStateEventArgs args)
     {
-        if (args.RefreshMode == UAuthStateEventHandlingMode.None)
+        if (!_usePureJwtBrowserTokens && args.RefreshMode == UAuthStateEventHandlingMode.None)
         {
             return;
         }
@@ -91,12 +101,19 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
             case UAuthStateEvent.CredentialsChanged:
             case UAuthStateEvent.UserDeleted:
             case UAuthStateEvent.LogoutVariant:
-                State.Clear();
+                Clear();
                 return;
         }
 
+        if (args.RefreshMode == UAuthStateEventHandlingMode.None)
+            return;
+
         switch (args)
         {
+            case UAuthStateEventArgs<AuthStateSnapshot> validation when args.Type == UAuthStateEvent.ValidationCalled:
+                State.ApplySnapshot(validation.Payload, _clock.UtcNow);
+                return;
+
             case UAuthStateEventArgs<UpdateProfileRequest> profile:
                 State.UpdateProfile(profile.Payload);
                 return;
@@ -134,7 +151,7 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
 
     public Task OnLogoutAsync()
     {
-        State.Clear();
+        Clear();
         return Task.CompletedTask;
     }
 
@@ -145,6 +162,7 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
 
     public void Clear()
     {
+        _tokens?.Clear();
         State.Clear();
     }
 

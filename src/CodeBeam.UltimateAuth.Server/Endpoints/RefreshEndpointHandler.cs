@@ -1,5 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
+using System.Globalization;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Flows;
@@ -65,6 +68,13 @@ public sealed class RefreshEndpointHandler : IRefreshEndpointHandler
         else if (primary == GrantKind.AccessToken && result.AccessToken is not null)
         {
             _credentialWriter.Write(ctx, GrantKind.AccessToken, result.AccessToken);
+            if (flow.EffectiveMode == UAuthMode.PureJwt &&
+                flow.Response.AccessTokenDelivery.Mode == GrantDeliveryMode.Header)
+            {
+                ctx.Response.Headers.CacheControl = "no-store";
+                ctx.Response.Headers["X-UAuth-Access-Expires"] =
+                    result.AccessToken.ExpiresAt.ToString("O", CultureInfo.InvariantCulture);
+            }
         }
 
         if (_refreshPolicy.WriteRefreshToken(flow) && result.RefreshToken is not null)

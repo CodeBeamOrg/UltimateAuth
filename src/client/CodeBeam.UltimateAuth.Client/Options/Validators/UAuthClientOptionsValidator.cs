@@ -22,6 +22,9 @@ public sealed class UAuthClientOptionsValidator : IValidateOptions<UAuthClientOp
                 "Either specify an ApplicationProfile or enable auto-detection.");
         }
 
+        if (options.UsePureJwtBrowserTokens && options.ApplicationProfile != UAuthApplicationProfile.BlazorWasm)
+            return ValidateOptionsResult.Fail("PureJwt browser token management requires the BlazorWasm application profile.");
+
         return ValidateOptionsResult.Success;
     }
 }

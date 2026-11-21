@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
+﻿using CodeBeam.UltimateAuth.Client.Abstractions;
+using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
@@ -12,12 +13,14 @@ internal sealed class UAuthResourceRequestClient : IUAuthResourceRequestClient
     private readonly IJSRuntime _js;
     private readonly IUAuthClientBootstrapper _bootstrapper;
     private readonly UAuthClientOptions _options;
+    private readonly IUAuthTokenStore? _tokens;
 
-    public UAuthResourceRequestClient(IJSRuntime js, IUAuthClientBootstrapper bootstrapper, IOptions<UAuthClientOptions> options)
+    public UAuthResourceRequestClient(IJSRuntime js, IUAuthClientBootstrapper bootstrapper, IOptions<UAuthClientOptions> options, IUAuthTokenStore? tokens = null)
     {
         _js = js;
         _bootstrapper = bootstrapper;
         _options = options.Value;
+        _tokens = tokens;
     }
 
     public async Task<UAuthResourceTransportResult> SendAsync(string method, string endpoint, object? payload = null, CancellationToken ct = default)
@@ -27,6 +30,10 @@ internal sealed class UAuthResourceRequestClient : IUAuthResourceRequestClient
         await _bootstrapper.EnsureStartedAsync();
 
         ct.ThrowIfCancellationRequested();
+
+        var token = _options.UsePureJwtBrowserTokens ? _tokens?.Read() : null;
+        if (_options.UsePureJwtBrowserTokens && (token is null || token.ExpiresAt <= DateTimeOffset.UtcNow))
+            return new UAuthResourceTransportResult { Status = 401 };
 
         var requestId = Guid.NewGuid().ToString("N");
 
@@ -45,7 +52,8 @@ internal sealed class UAuthResourceRequestClient : IUAuthResourceRequestClient
                     method,
                     payload,
                     applicationProfile = _options.ApplicationProfile.ToString(),
-                    credentials = _options.Resource.Credentials.ToString(),
+                    credentials = token is null ? _options.Resource.Credentials.ToString() : "Omit",
+                    accessToken = token?.Value,
                     requestId
                 });
 

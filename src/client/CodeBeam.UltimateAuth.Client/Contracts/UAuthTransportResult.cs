@@ -12,6 +12,14 @@ namespace CodeBeam.UltimateAuth.Client.Contracts;
 /// </remarks>
 public sealed class UAuthTransportResult
 {
+    [JsonInclude]
+    [JsonPropertyName("accessToken")]
+    internal string? AccessToken { get; init; }
+
+    [JsonInclude]
+    [JsonPropertyName("accessTokenExpiresAt")]
+    internal string? AccessTokenExpiresAt { get; init; }
+
     /// <summary>
     /// Gets a value indicating whether the transport response represents a successful operation.
     /// </summary>

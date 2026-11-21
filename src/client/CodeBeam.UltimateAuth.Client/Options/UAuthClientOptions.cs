@@ -120,4 +120,11 @@ public sealed class UAuthClientOptions
     /// Configures requests to UltimateAuth-protected application resources.
     /// </summary>
     public UAuthClientResourceOptions Resource { get; set; } = new();
+
+    /// <summary>
+    /// Enables PureJwt access tokens and startup restoration for Blazor WebAssembly.
+    /// Requires the Hub to issue the access token in the Bearer-formatted uat header
+    /// and the refresh token in an HttpOnly cookie.
+    /// </summary>
+    public bool UsePureJwtBrowserTokens { get; set; }
 }

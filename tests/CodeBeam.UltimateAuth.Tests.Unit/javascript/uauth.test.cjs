@@ -819,3 +819,78 @@ test("submitLoginForm TryAndCommit reuses original form", async () => {
         1
     );
 });
+
+test("resource bearer is sent only to the configured HTTPS origin without cookies or redirects", async () => {
+    const calls = [];
+    const uauth = createEnvironment(async (url, options) => {
+        calls.push({ url, options });
+        // The browser rejects a redirect in error mode before requesting its target.
+        assert.equal(options.redirect, "error");
+        throw new TypeError("redirect rejected");
+    });
+    const args = {
+        url: "/protected",
+        baseAddress: "https://resource.example.test/",
+        accessToken: "access-token",
+        credentials: "Omit",
+        applicationProfile: "BlazorWasm"
+    };
+
+    await assert.rejects(uauth.resourceRequest({ ...args, url: "//untrusted.example.test/protected" }), /configured API origin/);
+    await assert.rejects(uauth.resourceRequest({ ...args, baseAddress: "http://resource.example.test/" }), /HTTPS/);
+    assert.equal(calls.length, 0);
+    assert.equal((await uauth.resourceRequest(args)).status, 0);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, "https://resource.example.test/protected");
+    assert.equal(calls[0].options.credentials, "omit");
+    assert.equal(calls[0].options.headers.Authorization, "Bearer access-token");
+    assert.equal(calls[0].options.headers["X-UDID"], "test-device");
+    assert.equal(calls[0].options.headers["X-UAuth-ApplicationProfile"], "BlazorWasm");
+});
+
+test("refresh uses cookies and antiforgery without sending an access token", async () => {
+    const uauth = createEnvironment(csrfAwareFetch(async (url, options) => {
+        assert.equal(url, authUrl("/auth/refresh"));
+        assert.equal(options.credentials, "include");
+        assert.equal(options.redirect, "error");
+        assert.equal(options.cache, "no-store");
+        assert.equal(options.headers.uat, undefined);
+        assert.equal(options.headers.Authorization, undefined);
+        return {
+            ok: true,
+            status: 204,
+            headers: { get: name => ({ uat: "Bearer renewed", "X-UAuth-Access-Expires": "expiration", uar: "secret" })[name] }
+        };
+    }));
+    configureAntiforgery(uauth);
+
+    const result = await uauth.post({
+        url: authUrl("/auth/refresh"), trustedOrigin: HUB_ORIGIN, readAccessToken: true
+    });
+    assert.equal(result.accessToken, "Bearer renewed");
+    assert.equal(result.accessTokenExpiresAt, "expiration");
+    assert.equal(JSON.stringify(result).includes("secret"), false);
+});
+
+test("authenticated logout uses the same bearer for antiforgery and logout", async () => {
+    let calls = 0;
+    const uauth = createEnvironment(async (url, options) => {
+        calls++;
+        assert.equal(options.headers.uat, "Bearer active");
+        assert.equal(options.headers["X-UAuth-ApplicationProfile"], "BlazorWasm");
+        assert.equal(options.redirect, "error");
+        if (options.method === "GET") {
+            return { ok: true, json: async () => ({
+                requestToken: "bound-token", headerName: "X-CSRF", formFieldName: "csrf"
+            }) };
+        }
+        assert.equal(options.headers["X-CSRF"], "bound-token");
+        return { ok: true, status: 204, headers: { get: () => null } };
+    });
+    configureAntiforgery(uauth);
+    await uauth.post({
+        url: authUrl("/auth/logout"), trustedOrigin: HUB_ORIGIN, mode: "logout-observe",
+        accessToken: "active", applicationProfile: "BlazorWasm"
+    });
+    assert.equal(calls, 2);
+});

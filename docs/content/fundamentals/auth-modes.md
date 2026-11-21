@@ -452,6 +452,14 @@ Changes to user status, permissions, or account existence do not automatically i
 Applications should use appropriately short access-token lifetimes and avoid placing sensitive information in JWT payloads.
 
 
+### Blazor WebAssembly startup
+
+The opt-in PureJwt client uses a scoped in-memory access token and the Hub's
+HttpOnly refresh cookie. It restores authentication after a page reload by
+rotating the cookie and validating the new access token with the Hub. The
+Resource API continues to validate each JWT using its existing PureJwt
+configuration. [Blazor WebAssembly configuration](/docs/client-sdk/authentication#blazor-webassembly-with-a-purejwt-hub)
+
 ## Choosing a mode
 
 The most useful selection criterion is not the client technology alone, but the authentication guarantees the application requires.

@@ -9,4 +9,7 @@ public interface IUAuthCookieManager
     bool TryRead(HttpContext context, string name, out string value);
 
     void Delete(HttpContext context, string name);
+
+    void Delete(HttpContext context, string name, CookieOptions options)
+        => context.Response.Cookies.Delete(name, options);
 }

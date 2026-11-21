@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using CodeBeam.UltimateAuth.Client.Errors;
+using Microsoft.AspNetCore.Components;
 using System.Reflection;
 
 namespace CodeBeam.UltimateAuth.Client.Blazor;
@@ -28,6 +29,7 @@ public partial class UAuthApp
     private bool _initialized;
     private bool _coordinatorStarted;
     private bool _runtimeReady;
+    private bool _restorationFailed;
 
     /// <summary>
     /// Gets or sets the application content rendered within the UltimateAuth context.
@@ -130,8 +132,25 @@ public partial class UAuthApp
 
             StateManager.State.RequestRender = () => InvokeAsync(StateHasChanged);
 
-            await Bootstrapper.EnsureStartedAsync();
-            await StateManager.EnsureAsync();
+            if (ClientOptions.Value.UsePureJwtBrowserTokens)
+            {
+                try
+                {
+                    await Bootstrapper.EnsureStartedAsync();
+                    await Coordinator.RestoreAsync();
+                }
+                catch (Exception ex) when (ex is UAuthClientException or Microsoft.JSInterop.JSException)
+                {
+                    _restorationFailed = true;
+                    StateHasChanged();
+                    return;
+                }
+            }
+            else
+            {
+                await Bootstrapper.EnsureStartedAsync();
+                await StateManager.EnsureAsync();
+            }
 
             _runtimeReady = true;
 

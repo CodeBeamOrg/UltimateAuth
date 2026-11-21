@@ -195,7 +195,9 @@ window.uauth.post = async function (options) {
         mode,
         data,
         applicationProfile,
-        trustedOrigin
+        trustedOrigin,
+        readAccessToken,
+        accessToken
     } = options;
 
     const validatedUrl = window.uauth.validateAuthUrl(
@@ -245,6 +247,14 @@ window.uauth.post = async function (options) {
         mode === "logout" ||
         mode === "logout-observe";
   
+    const headers = isLogout ? { "X-UAuth-Logout-Mode": "observe" } : {};
+    if ((readAccessToken || accessToken) && new URL(validatedUrl).protocol !== "https:") {
+        throw new Error("Access token requests require HTTPS.");
+    }
+    if (accessToken) {
+        headers.uat = "Bearer " + accessToken;
+    }
+
     return window.uauth.request({
         url: validatedUrl,
         method: "POST",
@@ -256,9 +266,8 @@ window.uauth.post = async function (options) {
         antiforgery: true,
         trustedOrigin,
         navigateOnSuccess: mode === "logout",
-        headers: isLogout
-            ? { "X-UAuth-Logout-Mode": "observe" }
-            : {}
+        readAccessToken,
+        headers
     });
 };
 
@@ -366,7 +375,10 @@ window.uauth.request = async function (options) {
             throw new Error("UAuth antiforgery token origin differs from request origin.");
         }
 
-        const token = await window.uauth.antiforgery.getToken(options.trustedOrigin);
+        const identityHeaders = customHeaders.uat
+            ? { uat: customHeaders.uat, "X-UAuth-ApplicationProfile": applicationProfile }
+            : {};
+        const token = await window.uauth.antiforgery.getToken(options.trustedOrigin, identityHeaders);
         headers[token.headerName] = token.requestToken;
     }
 
@@ -376,6 +388,7 @@ window.uauth.request = async function (options) {
         response = await fetch(requestUrl.href, {
             method: requestMethod,
             credentials,
+            cache: options.readAccessToken ? "no-store" : "default",
             redirect: followRedirects ? "follow" : "error",
             headers,
             body
@@ -430,6 +443,9 @@ window.uauth.request = async function (options) {
         ok: response.ok,
         status: response.status,
         refreshOutcome: response.headers.get("X-UAuth-Refresh"),
+        accessToken: options.readAccessToken && response.ok ? response.headers.get("uat") : null,
+        accessTokenExpiresAt: options.readAccessToken && response.ok
+            ? response.headers.get("X-UAuth-Access-Expires") : null,
         body: responseBody
     };
 };
@@ -442,6 +458,7 @@ window.uauth.resourceRequest = async function (options) {
         payload = null,
         applicationProfile = "",
         credentials = "Auto",
+        accessToken,
         requestId
     } = options;
 
@@ -528,6 +545,13 @@ window.uauth.resourceRequest = async function (options) {
         "X-UAuth-ApplicationProfile": applicationProfile,
         "X-Requested-With": "UAuth"
     };
+
+    if (accessToken) {
+        if (requestUrl.protocol !== "https:") {
+            throw new Error("Resource access token requests require HTTPS.");
+        }
+        headers.Authorization = "Bearer " + accessToken;
+    }
 
     let body = null;
 
@@ -660,7 +684,7 @@ window.uauth.antiforgery = {
         );
     },
 
-    getToken: async function (trustedOrigin) {
+    getToken: async function (trustedOrigin, identityHeaders = {}) {
         if (!this.tokenUrl) {
             throw new Error("UAuth antiforgery is not configured.");
         }
@@ -676,6 +700,7 @@ window.uauth.antiforgery = {
             cache: "no-store",
             redirect: "error",
             headers: {
+                ...identityHeaders,
                 "X-UDID": window.uauth.deviceId
             }
         });

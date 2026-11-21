@@ -75,6 +75,10 @@ public interface IFlowClient
     /// </remarks>
     Task<RefreshResult> RefreshAsync(bool isAuto = false);
 
+    /// <summary>Refreshes credentials while allowing the caller to cancel its wait.</summary>
+    Task<RefreshResult> RefreshAsync(bool isAuto, CancellationToken ct)
+        => RefreshAsync(isAuto).WaitAsync(ct);
+
     /// <summary>
     /// Validates the current authentication state.
     /// </summary>

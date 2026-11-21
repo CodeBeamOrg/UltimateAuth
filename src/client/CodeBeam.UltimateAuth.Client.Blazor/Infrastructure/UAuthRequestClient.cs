@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
+﻿using CodeBeam.UltimateAuth.Client.Abstractions;
+using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
@@ -14,14 +15,16 @@ namespace CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
 internal sealed class UAuthRequestClient : IUAuthRequestClient
 {
     private readonly IJSRuntime _js;
-    IUAuthClientBootstrapper _bootstrapper;
-    private UAuthClientOptions _options;
+    private readonly IUAuthClientBootstrapper _bootstrapper;
+    private readonly UAuthClientOptions _options;
+    private readonly IUAuthTokenStore? _tokens;
 
-    public UAuthRequestClient(IJSRuntime js, IUAuthClientBootstrapper bootstrapper, IOptions<UAuthClientOptions> options)
+    public UAuthRequestClient(IJSRuntime js, IUAuthClientBootstrapper bootstrapper, IOptions<UAuthClientOptions> options, IUAuthTokenStore? tokens = null)
     {
         _js = js;
         _bootstrapper = bootstrapper;
         _options = options.Value;
+        _tokens = tokens;
     }
 
     public async Task NavigateAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
@@ -51,6 +54,8 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
             url = endpoint,
             mode = "fetch",
             data = form,
+            readAccessToken = _options.UsePureJwtBrowserTokens && endpoint == EndpointUrl(_options.Endpoints.Refresh),
+            accessToken = endpoint == EndpointUrl(_options.Endpoints.Validate) ? ReadAccessToken() : null,
             applicationProfile = _options.ApplicationProfile.ToString(),
             trustedOrigin = ResolveTrustedOrigin()
         });
@@ -79,6 +84,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
                 url = endpoint,
                 mode = navigateOnSuccess ? "logout" : "logout-observe",
                 data = form,
+                accessToken = endpoint == EndpointUrl(_options.Endpoints.Logout) ? ReadAccessToken() : null,
                 applicationProfile = _options.ApplicationProfile.ToString(),
                 trustedOrigin = ResolveTrustedOrigin()
             });
@@ -146,6 +152,12 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
         catch (JsonException ex) { throw new UAuthProtocolException("Invalid tryAndCommit response.", ex); }
     }
 
+
+    private string EndpointUrl(string path)
+        => UAuthUrlBuilder.Build(_options.Endpoints.BasePath, path, _options.MultiTenant);
+
+    private string? ReadAccessToken()
+        => _options.UsePureJwtBrowserTokens && _tokens?.Read() is { } token ? token.Value : null;
 
     private string? ResolveTrustedOrigin()
     {

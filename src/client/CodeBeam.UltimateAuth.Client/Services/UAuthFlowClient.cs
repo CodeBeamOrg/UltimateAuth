@@ -12,6 +12,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.Extensions.Options;
+using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -27,10 +28,14 @@ internal class UAuthFlowClient : IFlowClient
     private readonly IReturnUrlProvider _returnUrlProvider;
     private readonly UAuthClientOptions _options;
     private readonly UAuthClientDiagnostics _diagnostics;
+    private readonly IUAuthTokenStore _tokens;
+    private readonly SemaphoreSlim _credentialGate = new(1);
+    private readonly object _refreshLock = new();
+    private Task<RefreshResult>? _refreshTask;
     private DateTimeOffset _refreshNotBefore;
     private RefreshResult? _refreshThrottle;
 
-    public UAuthFlowClient(IUAuthRequestClient post, IUAuthClientEvents events, IClientDeviceProvider clientDeviceProvider, IReturnUrlProvider returnUrlProvider, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics)
+    public UAuthFlowClient(IUAuthRequestClient post, IUAuthClientEvents events, IClientDeviceProvider clientDeviceProvider, IReturnUrlProvider returnUrlProvider, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics, IUAuthTokenStore? tokens = null)
     {
         _post = post;
         _events = events;
@@ -38,6 +43,7 @@ internal class UAuthFlowClient : IFlowClient
         _returnUrlProvider = returnUrlProvider;
         _options = options.Value;
         _diagnostics = diagnostics;
+        _tokens = tokens ?? new InMemoryUAuthTokenStore();
     }
 
     private string Url(string path) => UAuthUrlBuilder.Build(_options.Endpoints.BasePath, path, _options.MultiTenant);
@@ -120,6 +126,33 @@ internal class UAuthFlowClient : IFlowClient
 
     public async Task LogoutAsync(bool navigate = true)
     {
+        if (!_options.UsePureJwtBrowserTokens)
+        {
+            await LogoutCoreAsync(navigate);
+            return;
+        }
+
+        await _credentialGate.WaitAsync();
+        try
+        {
+            // PureJwt chain revocation requires the authenticated subject and its refresh cookie.
+            if (_tokens.Read() is not { } token || token.ExpiresAt <= DateTimeOffset.UtcNow)
+            {
+                var refresh = await RefreshCoreAsync(applyState: false);
+                if (!refresh.IsSuccess && refresh.Outcome != RefreshOutcome.ReauthRequired)
+                    throw new UAuthTransportException("Could not obtain a credential for logout.", (HttpStatusCode)refresh.Status) { RetryAfter = refresh.RetryAfter };
+            }
+
+            await LogoutCoreAsync(navigate);
+        }
+        finally
+        {
+            _credentialGate.Release();
+        }
+    }
+
+    private async Task LogoutCoreAsync(bool navigate)
+    {
         var url = Url(_options.Endpoints.Logout);
         var raw = await _post.SendFormAsync(url, null, navigateOnSuccess: navigate);
 
@@ -128,16 +161,46 @@ internal class UAuthFlowClient : IFlowClient
         if (raw.Status is < 200 or >= 300)
             throw new UAuthTransportException("Server logout did not succeed.", (HttpStatusCode)raw.Status);
 
-        await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.StateEvents.HandlingMode));
+        if (_options.UsePureJwtBrowserTokens)
+            await ClearAuthenticationAsync();
+        else
+            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.StateEvents.HandlingMode));
     }
 
-    public async Task<RefreshResult> RefreshAsync(bool isAuto = false)
-    {
-        if (!isAuto)
-        {
-            _diagnostics.MarkManualRefresh();
-        }
+    public Task<RefreshResult> RefreshAsync(bool isAuto = false)
+        => RefreshAsync(isAuto, CancellationToken.None);
 
+    public Task<RefreshResult> RefreshAsync(bool isAuto, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!isAuto)
+            _diagnostics.MarkManualRefresh();
+
+        lock (_refreshLock)
+        {
+            if (_refreshTask is null || _refreshTask.IsCompleted)
+                _refreshTask = RefreshCoordinatedAsync();
+
+            // A canceled waiter does not interrupt a request that may have rotated the cookie.
+            return _refreshTask.WaitAsync(ct);
+        }
+    }
+
+    private async Task<RefreshResult> RefreshCoordinatedAsync()
+    {
+        await _credentialGate.WaitAsync();
+        try
+        {
+            return await RefreshCoreAsync();
+        }
+        finally
+        {
+            _credentialGate.Release();
+        }
+    }
+
+    private async Task<RefreshResult> RefreshCoreAsync(bool applyState = true)
+    {
         var now = DateTimeOffset.UtcNow;
         if (_refreshThrottle is not null && now < _refreshNotBefore)
             return _refreshThrottle with { RetryAfter = _refreshNotBefore - now };
@@ -161,6 +224,8 @@ internal class UAuthFlowClient : IFlowClient
         if (raw.Status == 401)
         {
             _diagnostics.MarkRefreshReauthRequired();
+            if (_options.UsePureJwtBrowserTokens)
+                await ClearAuthenticationAsync();
 
             return new RefreshResult
             {
@@ -174,6 +239,46 @@ internal class UAuthFlowClient : IFlowClient
 
         var outcome = RefreshOutcomeParser.Parse(raw.RefreshOutcome);
         var isSuccess = raw.Status is >= 200 and < 300 && raw.Ok;
+
+        if (_options.UsePureJwtBrowserTokens && isSuccess)
+        {
+            if (raw.AccessToken is not { Length: > 7 } header ||
+                !header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ||
+                !DateTimeOffset.TryParseExact(raw.AccessTokenExpiresAt, "O", CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out var expiresAt) || expiresAt <= DateTimeOffset.UtcNow)
+            {
+                await ClearAuthenticationAsync();
+                throw new UAuthProtocolException("Refresh did not return a usable PureJwt access credential. Check grant delivery and CORS exposure.");
+            }
+
+            outcome = RefreshOutcome.Rotated;
+            _tokens.Replace(new UAuthAccessToken(header["Bearer ".Length..], expiresAt));
+            if (applyState)
+            {
+                AuthValidationResult validation;
+                try
+                {
+                    validation = await ValidateCoreAsync();
+                }
+                catch
+                {
+                    await ClearAuthenticationAsync();
+                    throw;
+                }
+
+                if (validation.IsValid && validation.Snapshot is { } snapshot)
+                {
+                    await _events.PublishAsync(new UAuthStateEventArgs<AuthStateSnapshot>(
+                        UAuthStateEvent.ValidationCalled, UAuthStateEventHandlingMode.Patch, snapshot));
+                }
+                else
+                {
+                    await ClearAuthenticationAsync();
+                    _diagnostics.MarkRefreshReauthRequired();
+                    return new RefreshResult { Status = 401, Outcome = RefreshOutcome.ReauthRequired };
+                }
+            }
+        }
 
         // Never record a successful refresh outcome
         // for a failed HTTP response.
@@ -221,7 +326,36 @@ internal class UAuthFlowClient : IFlowClient
     //    await _post.NavigateAsync(url);
     //}
 
+    private Task ClearAuthenticationAsync()
+    {
+        _tokens.Clear();
+        return _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, UAuthStateEventHandlingMode.Patch));
+    }
+
     public async Task<AuthValidationResult> ValidateAsync()
+    {
+        if (!_options.UsePureJwtBrowserTokens)
+            return await ValidateCoreAsync();
+
+        await _credentialGate.WaitAsync();
+        try
+        {
+            var result = await ValidateCoreAsync();
+            if (result.IsValid && result.Snapshot is { } snapshot)
+                await _events.PublishAsync(new UAuthStateEventArgs<AuthStateSnapshot>(
+                    UAuthStateEvent.ValidationCalled, UAuthStateEventHandlingMode.Patch, snapshot));
+            else
+                await ClearAuthenticationAsync();
+
+            return result;
+        }
+        finally
+        {
+            _credentialGate.Release();
+        }
+    }
+
+    private async Task<AuthValidationResult> ValidateCoreAsync()
     {
         var url = Url(_options.Endpoints.Validate);
         var raw = await _post.SendFormAsync(url);
@@ -232,6 +366,9 @@ internal class UAuthFlowClient : IFlowClient
 
         if (raw.Status >= 500)
             throw new UAuthTransportException("Server error during validation.", (HttpStatusCode)raw.Status);
+
+        if (_options.UsePureJwtBrowserTokens && raw.Status == 401)
+            return new AuthValidationResult { State = SessionState.Invalid };
 
         if (raw.Body is null)
             throw new UAuthProtocolException("Validation response body was empty.");
@@ -254,7 +391,8 @@ internal class UAuthFlowClient : IFlowClient
         if (raw.Status == 401 || (raw.Status >= 200 && raw.Status < 300))
         {
             // Don't set refresh mode to validate here, it's already validated.
-            await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.ValidationCalled, UAuthStateEventHandlingMode.Patch));
+            if (!_options.UsePureJwtBrowserTokens)
+                await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.ValidationCalled, UAuthStateEventHandlingMode.Patch));
             return body;
         }
 

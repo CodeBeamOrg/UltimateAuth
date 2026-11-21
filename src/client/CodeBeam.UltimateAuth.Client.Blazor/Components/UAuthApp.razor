@@ -5,11 +5,20 @@
 @inject IUAuthStateManager StateManager
 @inject IUAuthClientBootstrapper Bootstrapper
 @inject ISessionCoordinator Coordinator
+@inject Microsoft.Extensions.Options.IOptions<CodeBeam.UltimateAuth.Client.Options.UAuthClientOptions> ClientOptions
 
 <CascadingAuthenticationState>
     <CascadingValue Value="@StateManager.State" IsFixed="true">
         <CascadingValue Name="UAuthRuntimeReady" Value="@_runtimeReady">
-            @if (RenderMode == UAuthRenderMode.Reactive)
+            @if (_restorationFailed)
+            {
+                <p role="alert">Session restoration failed. Reload the page to try again.</p>
+            }
+            else if (ClientOptions.Value.UsePureJwtBrowserTokens && !_runtimeReady)
+            {
+                <p role="status">Restoring session…</p>
+            }
+            else if (RenderMode == UAuthRenderMode.Reactive)
             {
                 <UAuthScope>
                     @ChildContent

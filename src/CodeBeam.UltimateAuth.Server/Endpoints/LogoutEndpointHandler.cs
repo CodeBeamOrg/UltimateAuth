@@ -24,8 +24,14 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
     private readonly IAuthRedirectResolver _redirectResolver;
     private readonly IRefreshTokenResolver _refreshTokenResolver;
     private readonly IPureJwtLogoutService _pureJwtLogout;
+    private readonly IUAuthCookiePolicyBuilder _cookiePolicy;
 
     public LogoutEndpointHandler(IAuthFlowContextAccessor authContext, IUAuthFlowService flow, IAccessContextFactory accessContextFactory, ISessionApplicationService sessionApplicationService, IUAuthCookieManager cookieManager, IAuthRedirectResolver redirectResolver, IRefreshTokenResolver refreshTokenResolver, IPureJwtLogoutService pureJwtLogout)
+        : this(authContext, flow, accessContextFactory, sessionApplicationService, cookieManager, redirectResolver, refreshTokenResolver, pureJwtLogout, new UAuthCookiePolicyBuilder())
+    {
+    }
+
+    public LogoutEndpointHandler(IAuthFlowContextAccessor authContext, IUAuthFlowService flow, IAccessContextFactory accessContextFactory, ISessionApplicationService sessionApplicationService, IUAuthCookieManager cookieManager, IAuthRedirectResolver redirectResolver, IRefreshTokenResolver refreshTokenResolver, IPureJwtLogoutService pureJwtLogout, IUAuthCookiePolicyBuilder cookiePolicy)
     {
         _authContext = authContext;
         _flow = flow;
@@ -35,6 +41,7 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
         _redirectResolver = redirectResolver;
         _refreshTokenResolver = refreshTokenResolver;
         _pureJwtLogout = pureJwtLogout;
+        _cookiePolicy = cookiePolicy;
     }
 
     public async Task<IResult> LogoutAsync(HttpContext ctx)
@@ -43,16 +50,26 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
 
         if (authFlow.EffectiveMode == UAuthMode.PureJwt)
         {
-            if (authFlow.IsAuthenticated)
+            var cookieDelivery = authFlow.Response.RefreshTokenDelivery.Mode == GrantDeliveryMode.Cookie;
+            var refreshToken = authFlow.IsAuthenticated || cookieDelivery
+                ? _refreshTokenResolver.Resolve(ctx)
+                : null;
+            if (!string.IsNullOrWhiteSpace(refreshToken))
             {
-                var refreshToken = _refreshTokenResolver.Resolve(ctx);
-
-                if (!string.IsNullOrWhiteSpace(refreshToken))
+                var accessDelivery = authFlow.Response.AccessTokenDelivery;
+                if (!authFlow.IsAuthenticated &&
+                    cookieDelivery &&
+                    accessDelivery.Mode == GrantDeliveryMode.Header &&
+                    accessDelivery.Name is { } accessHeader &&
+                    ctx.Request.Headers.ContainsKey(accessHeader))
                 {
-                    var revoked = await _pureJwtLogout.LogoutAsync(authFlow, refreshToken, ctx.RequestAborted);
+                    return Results.Unauthorized();
+                }
 
-                    if (!revoked)
-                        return Results.Unauthorized();
+                if (authFlow.IsAuthenticated &&
+                    !await _pureJwtLogout.LogoutAsync(authFlow, refreshToken, ctx.RequestAborted))
+                {
+                    return Results.Unauthorized();
                 }
             }
         }
@@ -67,7 +84,18 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
         }
 
         DeleteIfCookie(ctx, authFlow.Response.SessionIdDelivery);
-        DeleteIfCookie(ctx, authFlow.Response.RefreshTokenDelivery);
+        if (authFlow.EffectiveMode == UAuthMode.PureJwt &&
+            authFlow.Response.RefreshTokenDelivery.Mode == GrantDeliveryMode.Cookie)
+        {
+            var delivery = authFlow.Response.RefreshTokenDelivery;
+            var deletion = _cookiePolicy.Build(delivery, authFlow, GrantKind.RefreshToken);
+            deletion.MaxAge = null;
+            _cookieManager.Delete(ctx, delivery.Cookie!.Name, deletion);
+        }
+        else
+        {
+            DeleteIfCookie(ctx, authFlow.Response.RefreshTokenDelivery);
+        }
         DeleteIfCookie(ctx, authFlow.Response.AccessTokenDelivery);
 
         var decision = _redirectResolver.ResolveSuccess(authFlow, ctx);

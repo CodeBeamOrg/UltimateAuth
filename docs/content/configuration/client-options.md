@@ -1229,6 +1229,15 @@ The current client registration validates options when they are resolved, rather
 
 `AutoRefresh.Enabled` should be evaluated with the applicable platform and post-configuration behavior rather than inferred solely from its property initializer.
 
+## PureJwt browser tokens
+
+Set `UsePureJwtBrowserTokens = true` for the BlazorWasm application profile
+when the Hub uses PureJwt with a Bearer-formatted `uat` header and an HttpOnly
+refresh cookie. This enables startup restoration and bearer authentication for
+the configured HTTPS Resource API origin. The existing `AutoRefresh`
+coordinator setting applies to the other client flows. See the
+[Blazor WebAssembly example](/docs/client-sdk/authentication#blazor-webassembly-with-a-purejwt-hub).
+
 ## Next Steps
 
 - **Configuration Overview** — Understand the configuration architecture and source precedence.

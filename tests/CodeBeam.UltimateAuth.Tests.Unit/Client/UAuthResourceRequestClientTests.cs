@@ -1,5 +1,6 @@
 ﻿using AwesomeAssertions;
 using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Errors;
@@ -143,6 +144,23 @@ public class UAuthResourceRequestClientTests
         requestId.Should().NotBeNullOrWhiteSpace();
         Guid.TryParseExact(requestId, "N", out _)
             .Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PureJwt_without_a_usable_token_returns_unauthorized_without_a_request(bool expired)
+    {
+        var store = new InMemoryUAuthTokenStore();
+        if (expired)
+            store.Replace(new UAuthAccessToken("expired", DateTimeOffset.UtcNow.AddMinutes(-1)));
+
+        var options = Options.Create(new UAuthClientOptions { UsePureJwtBrowserTokens = true });
+        var transport = new UAuthResourceRequestClient(_js.Object, _bootstrapper.Object, options, store);
+        var response = await transport.SendAsync("GET", "/api/products", ct: TestContext.Current.CancellationToken);
+
+        response.Status.Should().Be(401);
+        _js.VerifyNoOtherCalls();
     }
 
     [Fact]

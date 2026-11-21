@@ -434,6 +434,12 @@ Use a cryptographically secure, independently generated key in production. Do no
 
 PureJwt does not create authentication sessions, but refresh-token persistence is still required.
 
+For Blazor WebAssembly startup restoration, configure a Bearer-formatted
+`uat` access header and an HttpOnly, Secure refresh cookie. The Hub's CORS
+policy exposes the access header and expiration metadata to allowed origins.
+Use a refresh cookie path that covers both refresh and logout.
+[Blazor WebAssembly configuration](/docs/client-sdk/authentication#blazor-webassembly-with-a-purejwt-hub)
+
 
 ### Configure Mode-Specific Behavior
 

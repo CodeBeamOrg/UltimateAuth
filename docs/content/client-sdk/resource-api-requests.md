@@ -446,6 +446,14 @@ The default is:
 options.Resource.Credentials = UAuthResourceCredentialsMode.Auto;
 ```
 
+### PureJwt bearer requests
+
+`UsePureJwtBrowserTokens` attaches the in-memory access token to the configured
+HTTPS Resource API origin and omits browser cookies. Requests without a usable
+access token return a local 401. Refresh is explicit after startup, so an API
+401 reaches the caller without an automatic retry.
+[Blazor WebAssembly configuration](/docs/client-sdk/authentication#blazor-webassembly-with-a-purejwt-hub)
+
 ### Same-Origin Resource API
 
 When the application and Resource API share an origin:

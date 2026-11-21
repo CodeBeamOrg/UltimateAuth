@@ -2,6 +2,8 @@
 using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
+using CodeBeam.UltimateAuth.Client.Errors;
+using System.Net;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
@@ -19,6 +21,8 @@ internal sealed class SessionCoordinator : ISessionCoordinator
     private readonly UAuthClientDiagnostics _diagnostics;
     private readonly IClock _clock;
 
+    private readonly object _restorationLock = new();
+    private Task? _restoration;
     private CancellationTokenSource? _cts;
     private DateTimeOffset _refreshNotBefore;
 
@@ -33,9 +37,29 @@ internal sealed class SessionCoordinator : ISessionCoordinator
         _clock = clock;
     }
 
+    public Task RestoreAsync()
+    {
+        if (!_options.UsePureJwtBrowserTokens)
+            return Task.CompletedTask;
+
+        lock (_restorationLock)
+            return _restoration ??= RestoreCoreAsync();
+    }
+
+    private async Task RestoreCoreAsync()
+    {
+        _diagnostics.MarkAutomaticRefresh();
+        var result = await _client.Flows.RefreshAsync(isAuto: true);
+        if (!result.IsSuccess && result.Outcome != RefreshOutcome.ReauthRequired)
+            throw new UAuthTransportException("Session restoration failed.", (HttpStatusCode)result.Status)
+            {
+                RetryAfter = result.RetryAfter
+            };
+    }
+
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        if (!_options.AutoRefresh.Enabled)
+        if (_options.UsePureJwtBrowserTokens || !_options.AutoRefresh.Enabled)
             return;
 
         if (_cts is not null)

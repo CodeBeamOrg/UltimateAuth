@@ -502,6 +502,13 @@ public static class ServiceCollectionExtensions
                         .AllowAnyMethod()
                         .AllowCredentials()
                         .WithExposedHeaders("X-UAuth-Refresh");
+
+                    var grants = serverOptions.GrantDelivery;
+                    if ((grants.RefreshToken.Mode ?? grants.Default) == GrantDeliveryMode.Cookie &&
+                        (grants.AccessToken.Mode ?? grants.Default ?? GrantDeliveryMode.Header) == GrantDeliveryMode.Header)
+                    {
+                        policy.WithExposedHeaders(grants.AccessToken.HeaderName ?? "uat", "X-UAuth-Access-Expires", "Retry-After");
+                    }
                 }
             });
         });

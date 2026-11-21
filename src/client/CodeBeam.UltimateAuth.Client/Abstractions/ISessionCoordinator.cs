@@ -12,6 +12,9 @@ public interface ISessionCoordinator : IAsyncDisposable
     /// </summary>
     Task StartAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Restores authentication once at application startup when supported.</summary>
+    Task RestoreAsync() => Task.CompletedTask;
+
     /// <summary>
     /// Stops coordination (optional).
     /// </summary>
