@@ -36,6 +36,7 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -96,23 +97,8 @@ public static class ServiceCollectionExtensions
 
         services.AddUltimateAuthResourceInternal();
 
-        var temp = new UAuthResourceApiOptions();
-        configure?.Invoke(temp);
-
-        if (temp.Cors.AllowedOrigins?.Count > 0)
-        {
-            services.AddCors(cors =>
-            {
-                cors.AddPolicy(temp.Cors.PolicyName, policy =>
-                {
-                    policy
-                        .WithOrigins(temp.Cors.AllowedOrigins.ToArray())
-                        .AllowAnyHeader()
-                        .AllowAnyMethod()
-                        .AllowCredentials();
-                });
-            });
-        }
+        services.AddCors();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CorsOptions>, UAuthResourceCorsOptionsSetup>());
 
         return services;
     }
