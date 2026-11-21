@@ -15,6 +15,9 @@ services:
       LabAdmin__Email: ${LAB_ADMIN_EMAIL:?Admin email is required}
       LabAdmin__Password: ${LAB_ADMIN_PASSWORD:?Admin password is required}
 
+      UltimateAuth__Cryptography__TokenHashingKey: ${ULTIMATEAUTH_TOKEN_HASHING_KEY:?Token hashing key is required}
+      UltimateAuth__Cryptography__JwtSigningKey: ${ULTIMATEAUTH_JWT_SIGNING_KEY:?JWT signing key is required}
+
       DataProtection__KeysPath: /app/keys
 
     volumes:
