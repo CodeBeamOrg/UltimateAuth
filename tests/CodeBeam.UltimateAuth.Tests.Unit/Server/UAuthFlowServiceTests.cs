@@ -64,7 +64,7 @@ public sealed class UAuthFlowServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_WithClientProfileOverride_RecreatesFlowBeforeLogin()
+    public async Task LoginAsync_WithApplicationProfileOverride_RecreatesFlowBeforeLogin()
     {
         var originalFlow = AuthFlowTestFactory.LoginSuccess();
         var recreatedFlow = AuthFlowTestFactory.LoginSuccess();
@@ -77,7 +77,7 @@ public sealed class UAuthFlowServiceTests
 
         var execution = new AuthExecutionContext
         {
-            EffectiveClientProfile = UAuthClientProfile.Api,
+            EffectiveApplicationProfile = UAuthApplicationProfile.Api,
             Device = null
         };
 
@@ -87,9 +87,9 @@ public sealed class UAuthFlowServiceTests
         var login = new Mock<ILoginOrchestrator>(MockBehavior.Strict);
 
         factory
-            .Setup(x => x.RecreateWithClientProfileAsync(
+            .Setup(x => x.RecreateWithApplicationProfileAsync(
                 originalFlow,
-                UAuthClientProfile.Api,
+                UAuthApplicationProfile.Api,
                 It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<AuthFlowContext>(recreatedFlow));
 
@@ -112,9 +112,9 @@ public sealed class UAuthFlowServiceTests
         result.Should().BeSameAs(expected);
 
         factory.Verify(
-            x => x.RecreateWithClientProfileAsync(
+            x => x.RecreateWithApplicationProfileAsync(
                 originalFlow,
-                UAuthClientProfile.Api,
+                UAuthApplicationProfile.Api,
                 It.IsAny<CancellationToken>()),
             Times.Once);
 
@@ -141,7 +141,7 @@ public sealed class UAuthFlowServiceTests
 
         var execution = new AuthExecutionContext
         {
-            EffectiveClientProfile = null,
+            EffectiveApplicationProfile = null,
             Device = device
         };
 
@@ -176,15 +176,15 @@ public sealed class UAuthFlowServiceTests
         result.Should().BeSameAs(expected);
 
         factory.Verify(
-            x => x.RecreateWithClientProfileAsync(
+            x => x.RecreateWithApplicationProfileAsync(
                 It.IsAny<AuthFlowContext>(),
-                It.IsAny<UAuthClientProfile>(),
+                It.IsAny<UAuthApplicationProfile>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
     [Fact]
-    public async Task LoginAsync_WithClientProfileAndDeviceOverride_AppliesOverridesInOrder()
+    public async Task LoginAsync_WithApplicationProfileAndDeviceOverride_AppliesOverridesInOrder()
     {
         var originalFlow = AuthFlowTestFactory.LoginSuccess();
         var profileFlow = AuthFlowTestFactory.LoginSuccess();
@@ -200,7 +200,7 @@ public sealed class UAuthFlowServiceTests
 
         var execution = new AuthExecutionContext
         {
-            EffectiveClientProfile = UAuthClientProfile.Api,
+            EffectiveApplicationProfile = UAuthApplicationProfile.Api,
             Device = device
         };
 
@@ -210,9 +210,9 @@ public sealed class UAuthFlowServiceTests
         var login = new Mock<ILoginOrchestrator>(MockBehavior.Strict);
 
         factory
-            .Setup(x => x.RecreateWithClientProfileAsync(
+            .Setup(x => x.RecreateWithApplicationProfileAsync(
                 originalFlow,
-                UAuthClientProfile.Api,
+                UAuthApplicationProfile.Api,
                 It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<AuthFlowContext>(profileFlow));
 
@@ -316,7 +316,7 @@ public sealed class UAuthFlowServiceTests
 
         var execution = new AuthExecutionContext
         {
-            EffectiveClientProfile = UAuthClientProfile.Api,
+            EffectiveApplicationProfile = UAuthApplicationProfile.Api,
             Device = device
         };
 
@@ -335,9 +335,9 @@ public sealed class UAuthFlowServiceTests
             new Mock<IInternalLoginOrchestrator>(MockBehavior.Strict);
 
         factory
-            .Setup(x => x.RecreateWithClientProfileAsync(
+            .Setup(x => x.RecreateWithApplicationProfileAsync(
                 originalFlow,
-                UAuthClientProfile.Api,
+                UAuthApplicationProfile.Api,
                 It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<AuthFlowContext>(profileFlow));
 
@@ -739,7 +739,7 @@ public sealed class UAuthFlowServiceTests
     {
         return new AuthFlowContext(
             flowType: AuthFlowType.Logout,
-            clientProfile: UAuthClientProfile.BlazorServer,
+            applicationProfile: UAuthApplicationProfile.BlazorServer,
             effectiveMode: UAuthMode.PureOpaque,
             device: TestDevice.Default(),
             tenantKey: TenantKey.Single,
@@ -749,14 +749,11 @@ public sealed class UAuthFlowServiceTests
             options: TestServerOptions.Default(),
             response: new EffectiveAuthResponse(
                 sessionIdDelivery:
-                    CredentialResponseOptions.Disabled(
-                        GrantKind.Session),
+                    EffectiveGrantDelivery.Disabled(GrantKind.Session),
                 accessTokenDelivery:
-                    CredentialResponseOptions.Disabled(
-                        GrantKind.AccessToken),
+                    EffectiveGrantDelivery.Disabled(GrantKind.AccessToken),
                 refreshTokenDelivery:
-                    CredentialResponseOptions.Disabled(
-                        GrantKind.RefreshToken),
+                    EffectiveGrantDelivery.Disabled(GrantKind.RefreshToken),
                 redirect:
                     EffectiveRedirectResponse.Disabled),
             primaryTokenKind: PrimaryTokenKind.Session,

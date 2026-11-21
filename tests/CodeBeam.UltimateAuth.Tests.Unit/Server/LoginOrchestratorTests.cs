@@ -9,6 +9,7 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Flows;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
@@ -380,7 +381,7 @@ public class LoginOrchestratorTests
 
         var execution = new AuthExecutionContext
         {
-            EffectiveClientProfile = UAuthClientProfile.BlazorWasm,
+            EffectiveApplicationProfile = UAuthApplicationProfile.BlazorWasm,
             Device = overriddenDevice
         };
 
@@ -452,13 +453,13 @@ public class LoginOrchestratorTests
 
         var executionA = new AuthExecutionContext
         {
-            EffectiveClientProfile = UAuthClientProfile.BlazorWasm,
+            EffectiveApplicationProfile = UAuthApplicationProfile.BlazorWasm,
             Device = TestDevice.Default()
         };
 
         var executionB = new AuthExecutionContext
         {
-            EffectiveClientProfile = UAuthClientProfile.BlazorWasm,
+            EffectiveApplicationProfile = UAuthApplicationProfile.BlazorWasm,
             Device = TestDevice.Alternative()
         };
 
@@ -564,16 +565,16 @@ public class LoginOrchestratorTests
 
         var executionA = new AuthExecutionContext
         {
-            EffectiveClientProfile =
-                UAuthClientProfile.BlazorWasm,
+            EffectiveApplicationProfile =
+                UAuthApplicationProfile.BlazorWasm,
 
             Device = device
         };
 
         var executionB = new AuthExecutionContext
         {
-            EffectiveClientProfile =
-                UAuthClientProfile.BlazorWasm,
+            EffectiveApplicationProfile =
+                UAuthApplicationProfile.BlazorWasm,
 
             Device = device
         };
@@ -796,6 +797,153 @@ public class LoginOrchestratorTests
         hasher.DummyCount.Should().Be(1);
     }
 
+    [Fact]
+    public async Task PureJwt_login_should_issue_jwt_and_refresh_token_without_session()
+    {
+        var runtime = new TestAuthRuntime<UserKey>();
+        var flow = await CreatePureJwtFlowAsync(runtime);
+        var orchestrator = runtime.GetLoginOrchestrator();
+
+        var result = await orchestrator.LoginAsync(
+            flow,
+            PureJwtRequest(),
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.Should().BeTrue();
+        result.SessionId.Should().BeNull();
+
+        result.AccessToken.Should().NotBeNull();
+        result.AccessToken!.Format.Should().Be(TokenFormat.Jwt);
+        result.AccessToken.Token.Should().NotBeNullOrWhiteSpace();
+        result.AccessToken.SessionId.Should().BeNull();
+
+        result.RefreshToken.Should().NotBeNull();
+        result.RefreshToken!.Token.Should().NotBeNullOrWhiteSpace();
+        result.RefreshToken.ExpiresAt.Should().BeAfter(DateTimeOffset.UtcNow);
+    }
+
+    [Fact]
+    public async Task PureJwt_login_should_not_use_session_infrastructure()
+    {
+        var sessionStoreFactory =
+            new Moq.Mock<ISessionStoreFactory>(Moq.MockBehavior.Strict);
+
+        var sessionOrchestrator =
+            new Moq.Mock<ISessionOrchestrator>(Moq.MockBehavior.Strict);
+
+        var runtime = new TestAuthRuntime<UserKey>(
+            configureServices: services =>
+            {
+                services.Replace(
+                    ServiceDescriptor.Singleton(
+                        sessionStoreFactory.Object));
+
+                services.Replace(
+                    ServiceDescriptor.Singleton(
+                        sessionOrchestrator.Object));
+            });
+
+        var flow = await CreatePureJwtFlowAsync(runtime);
+        var orchestrator = runtime.GetLoginOrchestrator();
+
+        var result = await orchestrator.LoginAsync(
+            flow,
+            PureJwtRequest(),
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.Should().BeTrue();
+        result.SessionId.Should().BeNull();
+
+        sessionStoreFactory.VerifyNoOtherCalls();
+        sessionOrchestrator.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task PureJwt_preview_should_not_issue_credentials()
+    {
+        var runtime = new TestAuthRuntime<UserKey>();
+        var flow = await CreatePureJwtFlowAsync(runtime);
+
+        var orchestrator = runtime.Services.GetRequiredService<IInternalLoginOrchestrator>();
+
+        var result = await orchestrator.LoginAsync(
+            flow,
+            PureJwtRequest(),
+            new LoginExecutionOptions
+            {
+                Mode = LoginExecutionMode.Preview
+            },
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.Should().BeTrue();
+        result.SessionId.Should().BeNull();
+        result.AccessToken.Should().BeNull();
+        result.RefreshToken.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task PureJwt_invalid_password_should_not_issue_credentials()
+    {
+        var runtime = new TestAuthRuntime<UserKey>();
+        var flow = await CreatePureJwtFlowAsync(runtime);
+        var orchestrator = runtime.GetLoginOrchestrator();
+
+        var result = await orchestrator.LoginAsync(
+            flow,
+            PureJwtRequest(secret: "incorrect-password"),
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.Should().BeFalse();
+        result.SessionId.Should().BeNull();
+        result.AccessToken.Should().BeNull();
+        result.RefreshToken.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task PureJwt_login_should_dispatch_event_without_session()
+    {
+        UserLoggedInContext? captured = null;
+
+        var runtime = new TestAuthRuntime<UserKey>(
+            configureServer: options =>
+            {
+                options.Events.OnUserLoggedIn = context =>
+                {
+                    captured = context;
+                    return Task.CompletedTask;
+                };
+            });
+
+        var flow = await CreatePureJwtFlowAsync(runtime);
+
+        var result = await runtime.GetLoginOrchestrator().LoginAsync(
+            flow,
+            PureJwtRequest(),
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.Should().BeTrue();
+
+        captured.Should().NotBeNull();
+        captured!.UserKey.Should().Be(TestUsers.User);
+        captured.SessionId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task PureJwt_commit_without_token_request_should_reject_early()
+    {
+        var runtime = new TestAuthRuntime<UserKey>();
+        var flow = await CreatePureJwtFlowAsync(runtime);
+        var orchestrator = runtime.GetLoginOrchestrator();
+
+        var act = () => orchestrator.LoginAsync(
+            flow,
+            PureJwtRequest(requestTokens: false),
+            TestContext.Current.CancellationToken);
+
+        var exception = await act.Should().ThrowAsync<UAuthValidationException>();
+        exception.Which.Code.Should().Be("pure_jwt_requires_token_delivery");
+    }
+
 
     private sealed class CountingPasswordHasher : IUAuthPasswordHasher
     {
@@ -841,9 +989,7 @@ public class LoginOrchestratorTests
         }
     }
 
-    private static TestAuthRuntime<UserKey> CreateCountingRuntime(
-    CountingPasswordHasher hasher,
-    Action<UAuthServerOptions>? configureServer = null)
+    private static TestAuthRuntime<UserKey> CreateCountingRuntime(CountingPasswordHasher hasher, Action<UAuthServerOptions>? configureServer = null)
     {
         var runtime = new TestAuthRuntime<UserKey>(
             configureServer: configureServer,
@@ -859,4 +1005,26 @@ public class LoginOrchestratorTests
 
         return runtime;
     }
+
+    private static async Task<AuthFlowContext> CreatePureJwtFlowAsync(TestAuthRuntime<UserKey> runtime)
+    {
+        var initial = await runtime.CreateLoginFlowAsync();
+
+        var factory = runtime.Services.GetRequiredService<IAuthFlowContextFactory>();
+
+        var flow = await factory.RecreateWithApplicationProfileAsync(initial, UAuthApplicationProfile.Api, TestContext.Current.CancellationToken);
+
+        flow.EffectiveMode.Should().Be(UAuthMode.PureJwt);
+
+        return flow;
+    }
+
+    private static LoginRequest PureJwtRequest(string secret = "user", bool requestTokens = true)
+        => new()
+        {
+            Identifier = "user",
+            Secret = secret,
+            CredentialType = CredentialType.Password,
+            RequestTokens = requestTokens
+        };
 }

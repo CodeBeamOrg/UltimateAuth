@@ -18,7 +18,7 @@ internal sealed class UAuthClientProductInfoProvider : IUAuthClientProductInfoPr
             Version = asm.GetName().Version?.ToString(3) ?? "unknown",
             InformationalVersion = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion,
             StartedAt = DateTimeOffset.UtcNow,
-            ClientProfile = opts.ClientProfile,
+            ApplicationProfile = opts.ApplicationProfile,
 
             AutoRefreshEnabled = opts.AutoRefresh.Enabled,
             RefreshInterval = opts.AutoRefresh.Interval,

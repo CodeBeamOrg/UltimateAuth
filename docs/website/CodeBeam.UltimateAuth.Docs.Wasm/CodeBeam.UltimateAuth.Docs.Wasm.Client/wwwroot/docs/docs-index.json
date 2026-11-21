@@ -56,8 +56,8 @@
     "GroupOrder": 2
   },
   {
-    "Title": "Client Profiles",
-    "Slug": "fundamentals/client-profiles",
+    "Title": "Application Profiles",
+    "Slug": "fundamentals/application-profiles",
     "Order": 5,
     "Group": "fundamentals",
     "GroupOrder": 2

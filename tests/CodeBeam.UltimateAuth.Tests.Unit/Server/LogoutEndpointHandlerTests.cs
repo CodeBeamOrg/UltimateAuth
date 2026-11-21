@@ -1,21 +1,22 @@
-﻿using System.Text;
-using System.Text.Json;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Endpoints;
+using CodeBeam.UltimateAuth.Server.Flows;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using CodeBeam.UltimateAuth.Users.Contracts;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Moq;
+using System.Text;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Server;
 
@@ -586,6 +587,146 @@ public sealed class LogoutEndpointHandlerTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task LogoutAsync_PureJwtWithoutSession_SucceedsWithoutRevocation()
+    {
+        var fixture = CreateFixture(CreatePureJwtFlow());
+
+        SetupNoRedirect(fixture);
+
+        var result = await fixture.Sut.LogoutAsync(
+            fixture.HttpContext);
+
+        var ok = result.Should()
+            .BeOfType<Ok<LogoutResponse>>()
+            .Subject;
+
+        ok.Value.Should().NotBeNull();
+        ok.Value!.IsSuccess.Should().BeTrue();
+
+        fixture.FlowService.Verify(
+            x => x.LogoutAsync(
+                It.IsAny<LogoutRequest>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        fixture.Sessions.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task LogoutAsync_PureJwtObservedLogout_ReturnsSuccessWithoutRedirect()
+    {
+        var fixture = CreateFixture(CreatePureJwtFlow());
+
+        fixture.HttpContext.Request.Headers["X-UAuth-Logout-Mode"] = "observe";
+
+        fixture.RedirectResolver
+            .Setup(x => x.ResolveSuccess(
+                fixture.Flow,
+                fixture.HttpContext))
+            .Returns(new RedirectDecision(
+                enabled: true,
+                targetUrl: "/after-logout"));
+
+        var result = await fixture.Sut.LogoutAsync(
+            fixture.HttpContext);
+
+        var response = Assert.IsAssignableFrom<IValueHttpResult>(result);
+
+        Assert.NotNull(response.Value);
+
+        var json = JsonSerializer.Serialize(response.Value);
+
+        using var document = JsonDocument.Parse(json);
+
+        Assert.True(
+            document.RootElement.GetProperty("IsSuccess").GetBoolean());
+
+        Assert.Equal(
+            "/after-logout",
+            document.RootElement.GetProperty("RedirectUrl").GetString());
+
+        fixture.FlowService.Verify(
+            x => x.LogoutAsync(
+                It.IsAny<LogoutRequest>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task LogoutAsync_ValidRefreshToken_RevokesRefreshChain()
+    {
+        var flow = CreatePureJwtFlow();
+        var refreshChainId = RefreshChainId.New();
+
+        var validator = new Mock<IRefreshTokenValidator>();
+        var storeFactory = new Mock<IRefreshTokenStoreFactory>();
+        var store = new Mock<IRefreshTokenStore>();
+        var clock = new Mock<IClock>();
+
+        var now = DateTimeOffset.UtcNow;
+
+        clock.SetupGet(x => x.UtcNow).Returns(now);
+
+        var token = RefreshToken.Create(
+            tokenId: TokenId.New(),
+            tokenHash: "hashed-refresh-token",
+            tenant: flow.Tenant,
+            userKey: flow.UserKey!.Value,
+            sessionId: null,
+            sessionChainId: null,
+            createdAt: now.AddMinutes(-5),
+            expiresAt: now.AddDays(1),
+            refreshChainId: refreshChainId,
+            deviceId: flow.Device.DeviceId);
+
+        validator
+            .Setup(x => x.ValidateAsync(
+                It.IsAny<RefreshTokenValidationContext>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                RefreshTokenValidationResult.Valid(
+                    token,
+                    token.TokenHash));
+
+        storeFactory
+            .Setup(x => x.Create(flow.Tenant))
+            .Returns(store.Object);
+
+        store
+            .Setup(x => x.ExecuteAsync(
+                It.IsAny<Func<CancellationToken, Task>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(
+                (Func<CancellationToken, Task> action,
+                 CancellationToken ct) => action(ct));
+
+        store
+            .Setup(x => x.RevokeByRefreshChainAsync(
+                refreshChainId,
+                now,
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var sut = new PureJwtLogoutService(
+            validator.Object,
+            storeFactory.Object,
+            clock.Object);
+
+        var result = await sut.LogoutAsync(
+            flow,
+            "raw-refresh-token", TestContext.Current.CancellationToken);
+
+        Assert.True(result);
+
+        store.Verify(x => x.RevokeByRefreshChainAsync(
+            refreshChainId,
+            now,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+
     // =====================================================================
     // Helpers
     // =====================================================================
@@ -616,9 +757,19 @@ public sealed class LogoutEndpointHandlerTests
         var redirectResolver =
             new Mock<IAuthRedirectResolver>(MockBehavior.Strict);
 
+        var refreshResolver =
+            new Mock<IRefreshTokenResolver>(MockBehavior.Strict);
+
+        var jwtLogoutService =
+            new Mock<IPureJwtLogoutService>(MockBehavior.Strict);
+
         authContext
             .SetupGet(x => x.Current)
             .Returns(flow);
+
+        refreshResolver
+            .Setup(x => x.Resolve(It.IsAny<HttpContext>()))
+            .Returns((string?)null);
 
         var httpContext = new DefaultHttpContext();
 
@@ -628,7 +779,9 @@ public sealed class LogoutEndpointHandlerTests
             accessFactory.Object,
             sessions.Object,
             cookieManager.Object,
-            redirectResolver.Object);
+            redirectResolver.Object,
+            refreshResolver.Object,
+            jwtLogoutService.Object);
 
         return new Fixture(
             sut,
@@ -648,7 +801,7 @@ public sealed class LogoutEndpointHandlerTests
 
         return new AuthFlowContext(
             flowType: source.FlowType,
-            clientProfile: source.ClientProfile,
+            applicationProfile: source.ApplicationProfile,
             effectiveMode: source.EffectiveMode,
             device: source.Device,
             tenantKey: source.Tenant,
@@ -668,7 +821,7 @@ public sealed class LogoutEndpointHandlerTests
 
         return new AuthFlowContext(
             flowType: source.FlowType,
-            clientProfile: source.ClientProfile,
+            applicationProfile: source.ApplicationProfile,
             effectiveMode: source.EffectiveMode,
             device: source.Device,
             tenantKey: source.Tenant,
@@ -703,6 +856,25 @@ public sealed class LogoutEndpointHandlerTests
         context.Request.ContentType = "application/json";
         context.Request.ContentLength = bytes.Length;
         context.Request.Body = new MemoryStream(bytes);
+    }
+
+    private static AuthFlowContext CreatePureJwtFlow()
+    {
+        var source = AuthFlowTestFactory.LoginSuccess();
+
+        return new AuthFlowContext(
+            flowType: source.FlowType,
+            applicationProfile: source.ApplicationProfile,
+            effectiveMode: UAuthMode.PureJwt,
+            device: source.Device,
+            tenantKey: source.Tenant,
+            isAuthenticated: true,
+            userKey: source.UserKey ?? UserKey.New(),
+            session: null,
+            options: source.Options,
+            response: source.Response,
+            primaryTokenKind: source.PrimaryTokenKind,
+            returnUrlInfo: source.ReturnUrlInfo);
     }
 
     private sealed record Fixture(

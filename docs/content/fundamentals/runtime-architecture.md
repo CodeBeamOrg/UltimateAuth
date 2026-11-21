@@ -143,11 +143,11 @@ A native MAUI application has access to platform-specific capabilities.
 
 A Blazor Server application executes application logic on the server while maintaining an interactive connection with the browser.
 
-UltimateAuth accounts for these differences through runtime-specific integrations and Client Profiles.
+UltimateAuth accounts for these differences through runtime-specific integrations and Application Profiles.
 
 The authentication model remains shared even when the implementation of credential transport or application state differs.
 
-See [Client Profiles](/docs/fundamentals/client-profiles).
+See [Application Profiles](/docs/fundamentals/application-profiles).
 
 ## UAuthHub: the authentication host
 

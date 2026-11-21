@@ -22,18 +22,38 @@ This distinction matters for both security and client behavior. A refresh reques
 
 ## Mode-dependent strategies
 
-UltimateAuth implements refresh through two building blocks: **session touch** and **refresh-token rotation**. A mode selects how they are combined.
+| Mode | Continuation mechanism | Required state |
+|---|---|---|
+| PureOpaque | Session touch | Valid server-side session |
+| Hybrid | Session-backed refresh-token rotation | Valid session and refresh token |
+| SemiHybrid | Planned | Not currently supported |
+| PureJwt | Refresh-token rotation | Valid refresh token and refresh chain |
 
-| Authentication mode | Required refresh input | Strategy | Result |
-| --- | --- | --- | --- |
-| `PureOpaque` | Session ID | Validate session; touch when policy requires | Continue the existing session; no new access or refresh token |
-| `Hybrid` | Session ID **and** refresh token | Validate and conditionally touch session; rotate refresh token | Continue session and issue replacement tokens |
-| `SemiHybrid` | Session ID **and** refresh token | Validate session; rotate refresh token | Issue replacement tokens without a session touch |
-| `PureJwt` | Refresh token | Validate and rotate refresh token | Issue replacement tokens; no session touch in the flow |
+### PureJwt: refresh without a session
 
-**Current support status:** `PureOpaque` and `Hybrid` are the supported modes for the initial release. The `SemiHybrid` and `PureJwt` branches are present in the refresh implementation but should not be presented as completed, generally supported configurations in v0.1.0.
+PureJwt uses a persisted refresh-token chain without requiring an authentication session.
 
-The mode is resolved from the effective authentication context on the server. Clients do not select a refresh algorithm independently.
+The refresh operation:
+
+1. Validates the refresh token, tenant, and device binding.
+2. Verifies that the token is associated with a valid refresh chain and is not session-bound.
+3. Resolves the authenticated user's current identity information and claims.
+4. Generates replacement access and refresh credentials.
+5. Atomically consumes the previous refresh token and persists its replacement.
+
+The new JWT access token can be validated independently by Resource APIs.
+
+### Concurrent requests and replay protection
+
+A consumed refresh token cannot be used for another successful rotation.
+
+The configured concurrent-request window distinguishes likely overlapping refresh requests from later reuse attempts.
+
+Reuse outside that window can revoke the associated refresh chain.
+
+For PureJwt, this revocation does not require a Session or SessionChain record.
+
+Previously issued JWT access tokens are not automatically invalidated by refresh-token rotation or refresh-chain revocation.
 
 ## Session touch
 
@@ -127,11 +147,11 @@ For refresh-token input, the resolver checks:
 
 The explicit header takes precedence. Header values may be supplied with a `Bearer ` prefix, which the resolver strips.
 
-On success, the endpoint chooses a **primary credential** according to the refresh response policy, rather than automatically writing every credential returned by the flow. The refresh token is written separately when permitted by the response policy and when a replacement exists. Actual cookie/header placement is determined by the effective response configuration and client profile.
+On success, the endpoint chooses a **primary credential** according to the refresh response policy, rather than automatically writing every credential returned by the flow. The refresh token is written separately when permitted by the response policy and when a replacement exists. Actual cookie/header placement is determined by the effective response configuration and application profile.
 
 The HTTP endpoint returns **`204 No Content`** on successful refresh and **`401 Unauthorized`** when continuation fails. Clients should obtain credentials from the configured response delivery mechanism rather than expecting a JSON token payload. When `Diagnostics.EnableRefreshDetails` is enabled, the endpoint also writes the refresh outcome through its diagnostic response writer.
 
-> Response delivery customization is not fully independent in v0.1.0: mode templates and client-profile adaptation constrain the effective behavior. Do not assume every configured credential-delivery override is honored.
+> Response delivery customization is not fully independent in v0.1.0: mode templates and application-profile adaptation constrain the effective behavior. Do not assume every configured credential-delivery override is honored.
 
 ## Outcomes and client expectations
 

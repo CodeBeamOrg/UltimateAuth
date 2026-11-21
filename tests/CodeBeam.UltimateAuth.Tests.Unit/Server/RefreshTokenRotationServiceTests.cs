@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
@@ -10,7 +11,8 @@ using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
-using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Users;
+using CodeBeam.UltimateAuth.Users.Contracts;
 using Moq;
 using System.Text.Json;
 
@@ -18,529 +20,467 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Server;
 
 public sealed class RefreshTokenRotationServiceTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 9, 20, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Now = new(2026, 11, 18, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset AuthenticatedAt = Now.AddHours(-3);
 
-    [Fact]
-    public async Task RotateAsync_WhenValidationIsInvalid_ReturnsFailedWithoutCreatingStoreOrIssuingTokens()
+    [Theory]
+    [InlineData(UAuthMode.Hybrid)]
+    [InlineData(UAuthMode.SemiHybrid)]
+    [InlineData(UAuthMode.PureJwt)]
+    public async Task RotateAsync_ValidToken_RotatesAndPreservesLineage(UAuthMode mode)
     {
-        var validator = new Mock<IRefreshTokenValidator>();
-        var storeFactory = new Mock<IRefreshTokenStoreFactory>();
-        var issuer = new Mock<ITokenIssuer>();
-        var claimsProvider = new Mock<IUserClaimsProvider>();
-        var clock = new TestClock(Now);
+        var test = new Fixture(mode);
+        var original = test.CreateToken();
+        test.Validate(original);
+        test.IssueSuccessfully();
+        test.ConsumeSuccessfully();
 
-        validator
-            .Setup(x => x.ValidateAsync(It.IsAny<RefreshTokenValidationContext>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(RefreshTokenValidationResult.Invalid());
+        var result = await test.RotateAsync(original.SessionId);
 
-        var sut = new RefreshTokenRotationService(validator.Object, storeFactory.Object, issuer.Object, claimsProvider.Object);
+        result.Result.IsSuccess.Should().BeTrue();
+        result.Result.ReauthRequired.Should().BeFalse();
+        result.Result.AccessToken.Should().BeSameAs(test.AccessToken);
+        result.Result.RefreshToken.Should().NotBeNull();
+        result.Result.RefreshToken!.Token.Should().Be(test.RefreshIssuance.Token);
+        result.Result.RefreshToken.ExpiresAt.Should().Be(test.RefreshIssuance.ExpiresAt);
+        result.Tenant.Should().Be(original.Tenant);
+        result.UserKey.Should().Be(original.UserKey);
+        result.SessionId.Should().Be(original.SessionId);
+        result.SessionChainId.Should().Be(original.SessionChainId);
 
-        var result = await sut.RotateAsync(CreateFlow(), CreateContext(), ct: TestContext.Current.CancellationToken);
+        test.Store.Verify(x => x.TryConsumeAsync(
+            original.TokenHash, Now, test.RefreshIssuance.TokenHash,
+            It.IsAny<CancellationToken>()), Times.Once);
 
-        result.Result.IsSuccess.Should().BeFalse();
-        result.Result.ReauthRequired.Should().BeTrue();
+        test.Store.Verify(x => x.StoreAsync(
+            It.Is<RefreshToken>(replacement =>
+                replacement.TokenHash == test.RefreshIssuance.TokenHash &&
+                replacement.Tenant == original.Tenant &&
+                replacement.UserKey == original.UserKey &&
+                replacement.SessionId == original.SessionId &&
+                replacement.SessionChainId == original.SessionChainId &&
+                replacement.RefreshChainId == original.RefreshChainId &&
+                replacement.DeviceId == original.DeviceId &&
+                replacement.AuthenticatedAt == AuthenticatedAt &&
+                replacement.CreatedAt == Now &&
+                replacement.ExpiresAt == test.RefreshIssuance.ExpiresAt),
+            It.IsAny<CancellationToken>()), Times.Once);
 
-        storeFactory.Verify(x => x.Create(It.IsAny<TenantKey>()), Times.Never);
-        issuer.Verify(x => x.IssueAccessTokenAsync(
+        test.Issuer.Verify(x => x.IssueRefreshTokenAsync(
             It.IsAny<AuthFlowContext>(),
-            It.IsAny<TokenIssuanceContext>(),
-            It.IsAny<CancellationToken>()), Times.Never);
-        issuer.Verify(x => x.IssueRefreshTokenAsync(
+            It.Is<TokenIssuanceContext>(c =>
+                c.RefreshChainId == original.RefreshChainId &&
+                c.SessionId == original.SessionId &&
+                c.SessionChainId == original.SessionChainId &&
+                c.DeviceId == original.DeviceId &&
+                c.AuthenticatedAt == AuthenticatedAt),
+            RefreshTokenPersistence.DoNotPersist,
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        test.Issuer.Verify(x => x.IssueAccessTokenAsync(
             It.IsAny<AuthFlowContext>(),
-            It.IsAny<TokenIssuanceContext>(),
-            It.IsAny<RefreshTokenPersistence>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+            It.Is<TokenIssuanceContext>(c =>
+                c.UserKey == original.UserKey &&
+                c.RefreshChainId == original.RefreshChainId &&
+                c.SessionId == original.SessionId &&
+                c.SessionChainId == original.SessionChainId &&
+                c.DeviceId == original.DeviceId &&
+                c.AuthenticatedAt == AuthenticatedAt),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task RotateAsync_WhenTokenIsNotFound_ReturnsFailedWithoutCreatingStoreOrIssuingTokens()
+    public async Task RotateAsync_PureJwt_UsesUpdatedProfileAndOriginalAuthenticatedAt()
     {
-        var validator = CreateValidator(
-            RefreshTokenValidationResult.NotFound());
+        var test = new Fixture(UAuthMode.PureJwt);
+        var original = test.CreateToken();
+        test.Validate(original);
+        test.IssueSuccessfully();
+        test.ConsumeSuccessfully();
+        test.SetProfile("updated-admin", "Updated Administrator", "Europe/Istanbul");
 
-        var storeFactory =
-            new Mock<IRefreshTokenStoreFactory>();
+        TokenIssuanceContext? refreshContext = null;
+        TokenIssuanceContext? accessContext = null;
+        test.Issuer.Setup(x => x.IssueRefreshTokenAsync(
+                It.IsAny<AuthFlowContext>(), It.IsAny<TokenIssuanceContext>(),
+                RefreshTokenPersistence.DoNotPersist, It.IsAny<CancellationToken>()))
+            .Callback<AuthFlowContext, TokenIssuanceContext, RefreshTokenPersistence, CancellationToken>(
+                (_, context, _, _) => refreshContext = context)
+            .ReturnsAsync(test.RefreshIssuance);
+        test.Issuer.Setup(x => x.IssueAccessTokenAsync(
+                It.IsAny<AuthFlowContext>(), It.IsAny<TokenIssuanceContext>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<AuthFlowContext, TokenIssuanceContext, CancellationToken>(
+                (_, context, _) => accessContext = context)
+            .ReturnsAsync(test.AccessToken);
 
-        var issuer =
-            new Mock<ITokenIssuer>();
-        var claimsProvider = new Mock<IUserClaimsProvider>();
+        var result = await test.RotateAsync();
 
-        var sut = new RefreshTokenRotationService(
-            validator.Object,
-            storeFactory.Object,
-            issuer.Object,
-            claimsProvider.Object);
+        result.Result.IsSuccess.Should().BeTrue();
+        accessContext.Should().NotBeNull();
+        refreshContext.Should().NotBeNull();
+        accessContext.Should().BeSameAs(refreshContext);
+        accessContext!.PrimaryUserName.Should().Be("updated-admin");
+        accessContext.DisplayName.Should().Be("Updated Administrator");
+        accessContext.TimeZone.Should().Be("Europe/Istanbul");
+        accessContext.AuthenticatedAt.Should().Be(AuthenticatedAt);
+        accessContext.SessionId.Should().BeNull();
+        accessContext.SessionChainId.Should().BeNull();
+        accessContext.DeviceId.Should().Be(original.DeviceId);
 
-        var result = await sut.RotateAsync(
-            CreateFlow(),
-            CreateContext(), ct: TestContext.Current.CancellationToken);
-
-        result.Result.IsSuccess.Should().BeFalse();
-        result.Result.ReauthRequired.Should().BeTrue();
-
-        storeFactory.Verify(
-            x => x.Create(It.IsAny<TenantKey>()),
-            Times.Never);
-
-        issuer.Verify(
-            x => x.IssueRefreshTokenAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<TokenIssuanceContext>(),
-                It.IsAny<RefreshTokenPersistence>(),
-                It.IsAny<CancellationToken>()),
-            Times.Never);
-
-        issuer.Verify(
-            x => x.IssueAccessTokenAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<TokenIssuanceContext>(),
-                It.IsAny<CancellationToken>()),
-            Times.Never);
+        test.Identifiers.Verify(x => x.GetAsync(test.Tenant, test.User,
+            It.IsAny<CancellationToken>()), Times.Once);
+        test.Profiles.Verify(x => x.GetAsync(test.Tenant, test.User,
+            ProfileKey.Default, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task RotateAsync_WhenTokenIsExpired_ReturnsFailedWithoutMutatingStore()
+    public async Task RotateAsync_PureJwt_SecondRotationPreservesOriginalAuthenticatedAt()
     {
-        var tenant = TenantKey.FromExternal("tenant-a");
+        var test = new Fixture(UAuthMode.PureJwt);
+        var original = test.CreateToken();
+        test.Validate(original);
+        test.IssueSuccessfully();
+        test.ConsumeSuccessfully();
 
-        var token = RefreshToken.Create(
-            tokenId: TokenId.New(),
-            tokenHash: "expired-refresh-token-hash",
-            tenant: tenant,
-            userKey: UserKey.New(),
-            sessionId: TestIds.Session("expired-session"),
-            chainId: SessionChainId.New(),
-            createdAt: Now.AddDays(-8),
-            expiresAt: Now.AddMinutes(-1));
-
-        var validator = CreateValidator(
-            RefreshTokenValidationResult.Expired(token));
-
-        var storeFactory =
-            new Mock<IRefreshTokenStoreFactory>();
-
-        var issuer =
-            new Mock<ITokenIssuer>();
-        var claimsProvider = new Mock<IUserClaimsProvider>();
-
-        var sut = new RefreshTokenRotationService(
-            validator.Object,
-            storeFactory.Object,
-            issuer.Object,
-            claimsProvider.Object);
-
-        var result = await sut.RotateAsync(
-            CreateFlow(tenant, multiTenant: true),
-            CreateContext(token.SessionId), ct: TestContext.Current.CancellationToken);
-
-        result.Result.IsSuccess.Should().BeFalse();
-
-        storeFactory.Verify(
-            x => x.Create(It.IsAny<TenantKey>()),
-            Times.Never);
-
-        issuer.Verify(
-            x => x.IssueRefreshTokenAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<TokenIssuanceContext>(),
-                It.IsAny<RefreshTokenPersistence>(),
-                It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task RotateAsync_WhenTokenIsAlreadyConsumed_ShouldRevokeCompromisedChainWithoutIssuingTokens()
-    {
-        var tenant =
-            TenantKey.FromExternal("tenant-a");
-
-        var chainId =
-            SessionChainId.New();
-
-        var sessionId =
-            TestIds.Session("session-consumed");
-
-        var token = RefreshToken.Create(
-            tokenId: TokenId.New(),
-            tokenHash: "old-refresh-token-hash",
-            tenant: tenant,
-            userKey: UserKey.New(),
-            sessionId: sessionId,
-            chainId: chainId,
-            createdAt: Now.AddDays(-1),
-            expiresAt: Now.AddDays(6))
-            .Revoke(
-                Now.AddMinutes(-1),
-                "replacement-refresh-token-hash");
-
-        var validator =
-            new Mock<IRefreshTokenValidator>();
-
-        var store =
-            new Mock<IRefreshTokenStore>();
-
-        var storeFactory =
-            new Mock<IRefreshTokenStoreFactory>();
-
-        var issuer =
-            new Mock<ITokenIssuer>();
-        var claimsProvider = new Mock<IUserClaimsProvider>();
-
-        validator
-            .Setup(x => x.ValidateAsync(
-                It.IsAny<RefreshTokenValidationContext>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-                RefreshTokenValidationResult.Consumed(token));
-
-        storeFactory
-            .Setup(x => x.Create(tenant))
-            .Returns(store.Object);
-
-        store
-            .Setup(x => x.ExecuteAsync(
-                It.IsAny<Func<CancellationToken, Task>>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(
-                (Func<CancellationToken, Task> action,
-                 CancellationToken ct) =>
-                    action(ct));
-
-        store
-            .Setup(x => x.RevokeByChainAsync(
-                chainId,
-                It.IsAny<DateTimeOffset>(),
-                It.IsAny<CancellationToken>()))
+        var replacements = new List<RefreshToken>();
+        test.Store.Setup(x => x.StoreAsync(It.IsAny<RefreshToken>(), It.IsAny<CancellationToken>()))
+            .Callback<RefreshToken, CancellationToken>((token, _) => replacements.Add(token))
             .Returns(Task.CompletedTask);
 
-        var sut =
-            new RefreshTokenRotationService(
-                validator.Object,
-                storeFactory.Object,
-                issuer.Object,
-                claimsProvider.Object);
+        (await test.RotateAsync()).Result.IsSuccess.Should().BeTrue();
+        replacements.Should().HaveCount(1);
+        var firstReplacement = replacements[0];
+        firstReplacement.AuthenticatedAt.Should().Be(AuthenticatedAt);
 
-        var result =
-            await sut.RotateAsync(
-                CreateFlow(
-                    tenant,
-                    multiTenant: true),
-                CreateContext(sessionId), ct: TestContext.Current.CancellationToken);
+        test.Validate(firstReplacement);
+        test.IssueSuccessfully("third-raw-token", "third-hash");
+        (await test.RotateAsync()).Result.IsSuccess.Should().BeTrue();
 
-        result.Result.IsSuccess.Should()
-            .BeFalse();
+        replacements.Should().HaveCount(2);
+        var secondReplacement = replacements[1];
+        secondReplacement.AuthenticatedAt.Should().Be(AuthenticatedAt);
+        secondReplacement.RefreshChainId.Should().Be(original.RefreshChainId);
+        secondReplacement.DeviceId.Should().Be(original.DeviceId);
+        secondReplacement.SessionId.Should().BeNull();
+        secondReplacement.SessionChainId.Should().BeNull();
+        secondReplacement.TokenHash.Should().Be("third-hash");
+    }
 
-        result.Result.ReauthRequired.Should()
-            .BeTrue();
+    [Theory]
+    [InlineData(UAuthMode.Hybrid)]
+    [InlineData(UAuthMode.PureJwt)]
+    public async Task RotateAsync_InvalidOrNotFound_ReturnsFailedWithoutMutation(UAuthMode mode)
+    {
+        foreach (var validation in new[]
+        {
+            RefreshTokenValidationResult.Invalid(),
+            RefreshTokenValidationResult.NotFound()
+        })
+        {
+            var test = new Fixture(mode);
+            test.SetValidation(validation);
 
-        storeFactory.Verify(
-            x => x.Create(tenant),
-            Times.Once);
+            var result = await test.RotateAsync();
 
-        store.Verify(
-            x => x.RevokeByChainAsync(
-                chainId,
-                Now,
-                It.IsAny<CancellationToken>()),
-            Times.Once);
+            AssertFailed(result);
+            test.StoreFactory.Verify(x => x.Create(It.IsAny<TenantKey>()), Times.Never);
+            test.Issuer.VerifyNoOtherCalls();
+            test.Claims.VerifyNoOtherCalls();
+            test.Identifiers.VerifyNoOtherCalls();
+            test.Profiles.VerifyNoOtherCalls();
+        }
+    }
 
-        issuer.Verify(
-            x => x.IssueRefreshTokenAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<TokenIssuanceContext>(),
-                It.IsAny<RefreshTokenPersistence>(),
-                It.IsAny<CancellationToken>()),
-            Times.Never);
+    [Theory]
+    [InlineData(UAuthMode.Hybrid)]
+    [InlineData(UAuthMode.PureJwt)]
+    public async Task RotateAsync_ExpiredToken_ReturnsFailedWithoutMutation(UAuthMode mode)
+    {
+        var test = new Fixture(mode);
+        var expired = test.CreateToken() with { ExpiresAt = Now.AddSeconds(-1) };
+        test.SetValidation(RefreshTokenValidationResult.Expired(expired));
 
-        issuer.Verify(
-            x => x.IssueAccessTokenAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<TokenIssuanceContext>(),
-                It.IsAny<CancellationToken>()),
-            Times.Never);
+        AssertFailed(await test.RotateAsync(expired.SessionId));
+        test.StoreFactory.Verify(x => x.Create(It.IsAny<TenantKey>()), Times.Never);
+        test.Issuer.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData(UAuthMode.Hybrid)]
+    [InlineData(UAuthMode.SemiHybrid)]
+    [InlineData(UAuthMode.PureJwt)]
+    public async Task RotateAsync_ConsumedOutsideConcurrencyWindow_RevokesExpectedChain(UAuthMode mode)
+    {
+        var test = new Fixture(mode);
+        var consumed = test.CreateToken().Revoke(Now.AddMinutes(-5), "replacement-hash");
+        test.SetValidation(RefreshTokenValidationResult.Consumed(consumed));
+        test.Flow.Options.Token.RefreshTokenConcurrentRequestWindow = TimeSpan.FromSeconds(30);
+
+        AssertFailed(await test.RotateAsync(consumed.SessionId));
+
+        if (mode == UAuthMode.PureJwt)
+        {
+            test.Store.Verify(x => x.RevokeByRefreshChainAsync(
+                consumed.RefreshChainId, Now, It.IsAny<CancellationToken>()), Times.Once);
+            test.Store.Verify(x => x.RevokeBySessionChainAsync(
+                It.IsAny<SessionChainId>(), It.IsAny<DateTimeOffset>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+        }
+        else
+        {
+            test.Store.Verify(x => x.RevokeBySessionChainAsync(
+                consumed.SessionChainId!.Value, Now, It.IsAny<CancellationToken>()), Times.Once);
+            test.Store.Verify(x => x.RevokeByRefreshChainAsync(
+                It.IsAny<RefreshChainId>(), It.IsAny<DateTimeOffset>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        test.Issuer.VerifyNoOtherCalls();
     }
 
     [Fact]
-    public async Task RotateAsync_WhenRefreshTokenCannotBeIssued_ReturnsFailedWithoutConsumingOldToken()
+    public async Task RotateAsync_SessionWithoutChain_ReplayRevokesSession()
     {
-        var tenant = TenantKey.FromExternal("tenant-a");
-        var validation = CreateValidValidation(tenant);
+        var test = new Fixture(UAuthMode.Hybrid);
+        var consumed = (test.CreateToken() with { SessionChainId = null })
+            .Revoke(Now.AddMinutes(-5), "replacement-hash");
+        test.SetValidation(RefreshTokenValidationResult.Consumed(consumed));
+        test.Flow.Options.Token.RefreshTokenConcurrentRequestWindow = TimeSpan.FromSeconds(30);
 
-        var validator = CreateValidator(validation);
-        var store = CreateExecutableStore();
-        var storeFactory = CreateStoreFactory(tenant, store);
-        var issuer = new Mock<ITokenIssuer>();
-        var claimsProvider = new Mock<IUserClaimsProvider>();
+        AssertFailed(await test.RotateAsync(consumed.SessionId));
 
-        issuer
-            .Setup(x => x.IssueRefreshTokenAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<TokenIssuanceContext>(),
-                RefreshTokenPersistence.DoNotPersist,
-                It.IsAny<CancellationToken>()))
+        test.Store.Verify(x => x.RevokeBySessionAsync(
+            consumed.SessionId!.Value, Now, It.IsAny<CancellationToken>()), Times.Once);
+        test.Store.Verify(x => x.RevokeBySessionChainAsync(
+            It.IsAny<SessionChainId>(), It.IsAny<DateTimeOffset>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(UAuthMode.Hybrid)]
+    [InlineData(UAuthMode.PureJwt)]
+    public async Task RotateAsync_ConsumedWithinConcurrencyWindow_FailsWithoutRevocation(UAuthMode mode)
+    {
+        var test = new Fixture(mode);
+        var consumed = test.CreateToken().Revoke(Now.AddSeconds(-1), "replacement-hash");
+        test.SetValidation(RefreshTokenValidationResult.Consumed(consumed));
+        test.Flow.Options.Token.RefreshTokenConcurrentRequestWindow = TimeSpan.FromSeconds(30);
+
+        AssertFailed(await test.RotateAsync(consumed.SessionId));
+
+        test.StoreFactory.Verify(x => x.Create(It.IsAny<TenantKey>()), Times.Never);
+        test.Issuer.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task RotateAsync_ConsumedWithoutReplacementHash_DoesNotUseConcurrencyGrace()
+    {
+        var test = new Fixture(UAuthMode.PureJwt);
+        var consumed = test.CreateToken().Revoke(Now.AddSeconds(-1));
+        test.SetValidation(RefreshTokenValidationResult.Consumed(consumed));
+        test.Flow.Options.Token.RefreshTokenConcurrentRequestWindow = TimeSpan.FromSeconds(30);
+
+        AssertFailed(await test.RotateAsync());
+
+        test.Store.Verify(x => x.RevokeByRefreshChainAsync(
+            consumed.RefreshChainId, Now, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(UAuthMode.Hybrid)]
+    [InlineData(UAuthMode.SemiHybrid)]
+    public async Task RotateAsync_SessionBasedModeRejectsSessionFreeToken(UAuthMode mode)
+    {
+        var test = new Fixture(mode);
+        test.Validate(test.CreateToken(sessionFree: true));
+
+        AssertFailed(await test.RotateAsync());
+        test.StoreFactory.Verify(x => x.Create(It.IsAny<TenantKey>()), Times.Never);
+        test.Issuer.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task RotateAsync_PureJwtRejectsSessionBoundToken()
+    {
+        var test = new Fixture(UAuthMode.PureJwt);
+        test.Validate(test.CreateToken(sessionFree: false));
+
+        AssertFailed(await test.RotateAsync());
+        test.StoreFactory.Verify(x => x.Create(It.IsAny<TenantKey>()), Times.Never);
+        test.Issuer.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task RotateAsync_PureJwtRejectsTokenWithoutDeviceId()
+    {
+        var test = new Fixture(UAuthMode.PureJwt);
+        test.Validate(test.CreateToken() with { DeviceId = null });
+
+        AssertFailed(await test.RotateAsync());
+        test.StoreFactory.Verify(x => x.Create(It.IsAny<TenantKey>()), Times.Never);
+        test.Issuer.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task RotateAsync_EmptyRefreshChainId_FailsBeforeIssuance()
+    {
+        var test = new Fixture(UAuthMode.PureJwt);
+        test.Validate(test.CreateToken() with { RefreshChainId = default });
+
+        AssertFailed(await test.RotateAsync());
+        test.StoreFactory.Verify(x => x.Create(It.IsAny<TenantKey>()), Times.Never);
+        test.Issuer.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData(UAuthMode.Hybrid)]
+    [InlineData(UAuthMode.PureJwt)]
+    public async Task RotateAsync_RefreshIssuanceReturnsNull_DoesNotConsumeOldToken(UAuthMode mode)
+    {
+        var test = new Fixture(mode);
+        var original = test.CreateToken();
+        test.Validate(original);
+        test.Issuer.Setup(x => x.IssueRefreshTokenAsync(
+                It.IsAny<AuthFlowContext>(), It.IsAny<TokenIssuanceContext>(),
+                RefreshTokenPersistence.DoNotPersist, It.IsAny<CancellationToken>()))
             .ReturnsAsync((RefreshTokenIssuanceResult?)null);
 
-        var sut = new RefreshTokenRotationService(
-            validator.Object,
-            storeFactory.Object,
-            issuer.Object,
-            claimsProvider.Object);
+        AssertFailed(await test.RotateAsync(original.SessionId));
+        test.AssertNoMutation();
+        test.Issuer.Verify(x => x.IssueAccessTokenAsync(
+            It.IsAny<AuthFlowContext>(), It.IsAny<TokenIssuanceContext>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
 
-        var result = await sut.RotateAsync(
-            CreateFlow(tenant, multiTenant: true),
-            CreateContext(validation.SessionId), ct: TestContext.Current.CancellationToken);
+    [Theory]
+    [InlineData(UAuthMode.Hybrid)]
+    [InlineData(UAuthMode.PureJwt)]
+    public async Task RotateAsync_AccessIssuanceThrows_DoesNotConsumeOldToken(UAuthMode mode)
+    {
+        var test = new Fixture(mode);
+        var original = test.CreateToken();
+        test.Validate(original);
+        test.IssueSuccessfully();
+        test.Issuer.Setup(x => x.IssueAccessTokenAsync(
+                It.IsAny<AuthFlowContext>(), It.IsAny<TokenIssuanceContext>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("AT issuance failed"));
 
-        result.Result.IsSuccess.Should().BeFalse();
-        result.Result.ReauthRequired.Should().BeTrue();
+        var act = () => test.RotateAsync(original.SessionId);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("AT issuance failed");
+        test.AssertNoMutation();
+    }
 
-        store.Verify(x => x.TryConsumeAsync(
-            It.IsAny<string>(),
-            It.IsAny<DateTimeOffset>(),
-            It.IsAny<string>(),
-            It.IsAny<CancellationToken>()),
-            Times.Never);
+    [Theory]
+    [InlineData(UAuthMode.Hybrid)]
+    [InlineData(UAuthMode.PureJwt)]
+    public async Task RotateAsync_ConsumeLosesRace_DoesNotStoreReplacement(UAuthMode mode)
+    {
+        var test = new Fixture(mode);
+        var original = test.CreateToken();
+        test.Validate(original);
+        test.IssueSuccessfully();
+        // Unconfigured TryConsumeAsync returns false.
 
-        store.Verify(x => x.StoreAsync(
-            It.IsAny<RefreshToken>(),
-            It.IsAny<CancellationToken>()),
-            Times.Never);
+        AssertFailed(await test.RotateAsync(original.SessionId));
 
-        issuer.Verify(x => x.IssueAccessTokenAsync(
-            It.IsAny<AuthFlowContext>(),
-            It.IsAny<TokenIssuanceContext>(),
-            It.IsAny<CancellationToken>()),
-            Times.Never);
+        test.Store.Verify(x => x.TryConsumeAsync(
+            original.TokenHash, Now, test.RefreshIssuance.TokenHash,
+            It.IsAny<CancellationToken>()), Times.Once);
+        test.Store.Verify(x => x.StoreAsync(
+            It.IsAny<RefreshToken>(), It.IsAny<CancellationToken>()), Times.Never);
+        test.Issuer.Verify(x => x.IssueAccessTokenAsync(
+            It.IsAny<AuthFlowContext>(), It.IsAny<TokenIssuanceContext>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task RotateAsync_WhenValid_AtomicallyRotatesRefreshToken()
+    public async Task RotateAsync_StoreReplacementThrows_PropagatesFailure()
     {
-        var tenant = TenantKey.FromExternal("tenant-a");
-        var validation = CreateValidValidation(tenant);
+        var test = new Fixture(UAuthMode.PureJwt);
+        test.Validate(test.CreateToken());
+        test.IssueSuccessfully();
+        test.ConsumeSuccessfully();
+        test.Store.Setup(x => x.StoreAsync(It.IsAny<RefreshToken>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("storage failed"));
 
-        var validator = CreateValidator(validation);
-        var store = CreateSuccessfulRotationStore();
-        var storeFactory = CreateStoreFactory(tenant, store);
-        var claimsProvider = new Mock<IUserClaimsProvider>();
+        var act = () => test.RotateAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("storage failed");
 
-        var issuer = new Mock<ITokenIssuer>();
-
-        var accessToken = CreateAccessToken();
-        var refreshToken = CreateRefreshTokenIssuanceResult();
-
-        issuer
-            .Setup(x => x.IssueAccessTokenAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<TokenIssuanceContext>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(accessToken);
-
-        issuer
-            .Setup(x => x.IssueRefreshTokenAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<TokenIssuanceContext>(),
-                RefreshTokenPersistence.DoNotPersist,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(refreshToken);
-
-        var sut = new RefreshTokenRotationService(validator.Object, storeFactory.Object, issuer.Object, claimsProvider.Object);
-
-        var result = await sut.RotateAsync(CreateFlow(tenant, multiTenant: true), CreateContext(validation.SessionId), ct: TestContext.Current.CancellationToken);
-
-        result.Result.IsSuccess.Should().BeTrue();
-        result.Result.AccessToken.Should().BeSameAs(accessToken);
-        result.Result.RefreshToken.Should().NotBeNull();
-        result.Result.RefreshToken!.Token.Should().Be(refreshToken.Token);
-        result.Result.RefreshToken.ExpiresAt.Should().Be(refreshToken.ExpiresAt);
-        typeof(RefreshTokenInfo).GetProperty(nameof(RefreshTokenIssuanceResult.TokenHash)).Should().BeNull();
-
-        result.Tenant.Should().Be(tenant);
-        result.UserKey.Should().Be(validation.UserKey);
-        result.SessionId.Should().Be(validation.SessionId);
-        result.ChainId.Should().Be(validation.ChainId);
-
-        store.Verify(x => x.TryConsumeAsync(
-            validation.TokenHash!,
-            Now,
-            refreshToken.TokenHash,
-            It.IsAny<CancellationToken>()),
-            Times.Once);
-
-        store.Verify(x => x.StoreAsync(
-            It.Is<RefreshToken>(token =>
-                token.TokenHash == refreshToken.TokenHash &&
-                token.Tenant == tenant &&
-                token.UserKey == validation.UserKey &&
-                token.SessionId == validation.SessionId &&
-                token.ChainId == validation.ChainId &&
-                token.CreatedAt == Now &&
-                token.ExpiresAt == refreshToken.ExpiresAt),
-            It.IsAny<CancellationToken>()),
-            Times.Once);
-
-        issuer.Verify(x => x.IssueAccessTokenAsync(
-            It.IsAny<AuthFlowContext>(),
-            It.Is<TokenIssuanceContext>(ctx =>
-                ctx.UserKey == validation.UserKey &&
-                ctx.SessionId == validation.SessionId &&
-                ctx.ChainId == validation.ChainId),
-            It.IsAny<CancellationToken>()),
-            Times.Once);
+        test.Store.Verify(x => x.TryConsumeAsync(
+            It.IsAny<string>(), It.IsAny<DateTimeOffset>(),
+            It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        // An EF Core integration test must separately prove transaction rollback.
     }
 
     [Fact]
-    public async Task RotateAsync_WhenMultiTenantEnabled_UsesValidatedTenantForTokenIssuance()
+    public async Task RotateAsync_MultiTenant_UsesValidatedTenantForIssuance()
     {
         var tenant = TenantKey.FromExternal("tenant-a");
-
-        var validation =
-            CreateValidValidation(tenant);
-
-        var issuer =
-            new Mock<ITokenIssuer>();
-        var claimsProvider = new Mock<IUserClaimsProvider>();
+        var test = new Fixture(UAuthMode.PureJwt, tenant, multiTenant: true);
+        test.Validate(test.CreateToken());
+        test.IssueSuccessfully();
+        test.ConsumeSuccessfully();
 
         TokenIssuanceContext? captured = null;
+        test.Issuer.Setup(x => x.IssueAccessTokenAsync(
+                It.IsAny<AuthFlowContext>(), It.IsAny<TokenIssuanceContext>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<AuthFlowContext, TokenIssuanceContext, CancellationToken>(
+                (_, context, _) => captured = context)
+            .ReturnsAsync(test.AccessToken);
 
-        SetupSuccessfulIssuer(
-            issuer,
-            ctx => captured = ctx);
-
-        var store =
-            CreateSuccessfulRotationStore();
-
-        var sut =
-            new RefreshTokenRotationService(
-                CreateValidator(validation).Object,
-                CreateStoreFactory(tenant, store).Object,
-                issuer.Object,
-                claimsProvider.Object);
-
-        var result = await sut.RotateAsync(
-            CreateFlow(
-                tenant,
-                multiTenant: true),
-            CreateContext(validation.SessionId), ct: TestContext.Current.CancellationToken);
-
-        result.Result.IsSuccess.Should().BeTrue();
-
+        (await test.RotateAsync()).Result.IsSuccess.Should().BeTrue();
         captured.Should().NotBeNull();
-
-        captured!.Tenant.Should()
-            .Be(tenant);
+        captured!.Tenant.Should().Be(tenant);
+        test.StoreFactory.Verify(x => x.Create(tenant), Times.Once);
     }
 
     [Fact]
-    public async Task RotateAsync_WhenMultiTenantDisabled_UsesSingleTenantForTokenIssuance()
+    public async Task RotateAsync_SingleTenant_UsesSingleTenantForIssuance()
     {
-        var validation =
-            CreateValidValidation(TenantKey.Single);
-
-        var issuer =
-            new Mock<ITokenIssuer>();
-        var claimsProvider = new Mock<IUserClaimsProvider>();
+        var test = new Fixture(UAuthMode.PureJwt);
+        test.Validate(test.CreateToken());
+        test.IssueSuccessfully();
+        test.ConsumeSuccessfully();
 
         TokenIssuanceContext? captured = null;
+        test.Issuer.Setup(x => x.IssueAccessTokenAsync(
+                It.IsAny<AuthFlowContext>(), It.IsAny<TokenIssuanceContext>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<AuthFlowContext, TokenIssuanceContext, CancellationToken>(
+                (_, context, _) => captured = context)
+            .ReturnsAsync(test.AccessToken);
 
-        SetupSuccessfulIssuer(
-            issuer,
-            ctx => captured = ctx);
-
-        var store =
-            CreateSuccessfulRotationStore();
-
-        var sut =
-            new RefreshTokenRotationService(
-                CreateValidator(validation).Object,
-                CreateStoreFactory(
-                    TenantKey.Single,
-                    store).Object,
-                issuer.Object,
-                claimsProvider.Object);
-
-        var result = await sut.RotateAsync(
-            CreateFlow(
-                TenantKey.Single,
-                multiTenant: false),
-            CreateContext(validation.SessionId), ct: TestContext.Current.CancellationToken);
-
-        result.Result.IsSuccess.Should().BeTrue();
-
+        (await test.RotateAsync()).Result.IsSuccess.Should().BeTrue();
         captured.Should().NotBeNull();
-
-        captured!.Tenant.Should()
-            .Be(TenantKey.Single);
+        captured!.Tenant.Should().Be(TenantKey.Single);
     }
 
     [Fact]
-    public async Task RotateAsync_WhenAtomicConsumeLosesRace_ReturnsFailedWithoutStoringReplacement()
+    public async Task RotateAsync_RefreshDisabled_SkipsValidationAndStore()
     {
-        var tenant = TenantKey.FromExternal("tenant-a");
-        var validation = CreateValidValidation(tenant);
+        var test = new Fixture(UAuthMode.PureJwt);
+        test.Flow.Options.Token.IssueRefresh = false;
 
-        var validator = CreateValidator(validation);
-        var store = CreateExecutableStore();
-        var storeFactory = CreateStoreFactory(tenant, store);
-        var claimsProvider = new Mock<IUserClaimsProvider>();
+        AssertFailed(await test.RotateAsync());
+        test.Validator.VerifyNoOtherCalls();
+        test.StoreFactory.VerifyNoOtherCalls();
+        test.Issuer.VerifyNoOtherCalls();
+    }
 
-        var issuer = new Mock<ITokenIssuer>();
+    [Fact]
+    public async Task RotateAsync_PureOpaque_SkipsValidationAndStore()
+    {
+        var test = new Fixture(UAuthMode.PureOpaque);
 
-        var accessToken = CreateAccessToken();
-        var refreshToken = CreateRefreshTokenIssuanceResult();
-
-        issuer
-            .Setup(x => x.IssueAccessTokenAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<TokenIssuanceContext>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(accessToken);
-
-        issuer
-            .Setup(x => x.IssueRefreshTokenAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<TokenIssuanceContext>(),
-                RefreshTokenPersistence.DoNotPersist,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(refreshToken);
-
-        store
-            .Setup(x => x.TryConsumeAsync(
-                validation.TokenHash!,
-                Now,
-                refreshToken.TokenHash,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-
-        var sut = new RefreshTokenRotationService(
-            validator.Object,
-            storeFactory.Object,
-            issuer.Object,
-            claimsProvider.Object);
-
-        var result = await sut.RotateAsync(
-            CreateFlow(tenant, multiTenant: true),
-            CreateContext(validation.SessionId), ct: TestContext.Current.CancellationToken);
-
-        result.Result.IsSuccess.Should().BeFalse();
-        result.Result.ReauthRequired.Should().BeTrue();
-
-        store.Verify(x => x.TryConsumeAsync(
-            validation.TokenHash!,
-            Now,
-            refreshToken.TokenHash,
-            It.IsAny<CancellationToken>()),
-            Times.Once);
-
-        store.Verify(x => x.StoreAsync(
-            It.IsAny<RefreshToken>(),
-            It.IsAny<CancellationToken>()),
-            Times.Never);
-
-        issuer.Verify(x => x.IssueAccessTokenAsync(
-            It.IsAny<AuthFlowContext>(),
-            It.IsAny<TokenIssuanceContext>(),
-            It.IsAny<CancellationToken>()),
-            Times.Once);
+        AssertFailed(await test.RotateAsync());
+        test.Validator.VerifyNoOtherCalls();
+        test.StoreFactory.VerifyNoOtherCalls();
+        test.Issuer.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -549,265 +489,199 @@ public sealed class RefreshTokenRotationServiceTests
         var info = new RefreshTokenInfo
         {
             Token = "raw-refresh-token",
-            ExpiresAt = DateTimeOffset.UtcNow.AddDays(7)
+            ExpiresAt = Now.AddDays(7)
         };
 
         var json = JsonSerializer.Serialize(info);
-
         json.Should().Contain("raw-refresh-token");
         json.Should().NotContain("TokenHash");
         typeof(RefreshTokenInfo).GetProperty("TokenHash").Should().BeNull();
     }
 
-    [Fact]
-    public async Task RotateAsync_WhenAccessTokenIssuanceThrows_DoesNotConsumeRefreshToken()
+    private static void AssertFailed(RefreshTokenRotationExecution result)
     {
-        var tenant = TenantKey.FromExternal("tenant-a");
-        var validation = CreateValidValidation(tenant);
-
-        var validator = CreateValidator(validation);
-        var store = CreateExecutableStore();
-        var storeFactory = CreateStoreFactory(tenant, store);
-        var claimsProvider = new Mock<IUserClaimsProvider>();
-        var issuer = new Mock<ITokenIssuer>();
-
-        var refreshToken = CreateRefreshTokenIssuanceResult();
-
-        issuer
-            .Setup(x => x.IssueRefreshTokenAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<TokenIssuanceContext>(),
-                RefreshTokenPersistence.DoNotPersist,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(refreshToken);
-
-        issuer
-            .Setup(x => x.IssueAccessTokenAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<TokenIssuanceContext>(),
-                It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("AT issuance failed"));
-
-        var sut = new RefreshTokenRotationService(
-            validator.Object,
-            storeFactory.Object,
-            issuer.Object,
-            claimsProvider.Object);
-
-        var act = () => sut.RotateAsync(
-            CreateFlow(tenant, multiTenant: true),
-            CreateContext(validation.SessionId));
-
-        await act.Should()
-            .ThrowAsync<InvalidOperationException>()
-            .WithMessage("AT issuance failed");
-
-        store.Verify(x => x.TryConsumeAsync(
-            It.IsAny<string>(),
-            It.IsAny<DateTimeOffset>(),
-            It.IsAny<string>(),
-            It.IsAny<CancellationToken>()),
-            Times.Never);
-
-        store.Verify(x => x.StoreAsync(
-            It.IsAny<RefreshToken>(),
-            It.IsAny<CancellationToken>()),
-            Times.Never);
-
-        store.Verify(x => x.ExecuteAsync(
-            It.IsAny<Func<CancellationToken, Task<bool>>>(),
-            It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task RotateAsync_WhenIssueRefreshDisabled_ShouldFailWithoutValidationOrMutation()
-    {
-        var validator = new Mock<IRefreshTokenValidator>();
-        var storeFactory = new Mock<IRefreshTokenStoreFactory>();
-        var issuer = new Mock<ITokenIssuer>();
-        var claimsProvider = new Mock<IUserClaimsProvider>();
-
-        var flow = CreateFlow();
-        flow.Options.Token.IssueRefresh = false;
-
-        var sut = new RefreshTokenRotationService(
-            validator.Object,
-            storeFactory.Object,
-            issuer.Object,
-            claimsProvider.Object);
-
-        var result = await sut.RotateAsync(
-            flow,
-            CreateContext(), ct: TestContext.Current.CancellationToken);
-
         result.Result.IsSuccess.Should().BeFalse();
         result.Result.ReauthRequired.Should().BeTrue();
-
-        validator.Verify(
-            x => x.ValidateAsync(
-                It.IsAny<RefreshTokenValidationContext>(),
-                It.IsAny<CancellationToken>()),
-            Times.Never);
-
-        storeFactory.Verify(
-            x => x.Create(It.IsAny<TenantKey>()),
-            Times.Never);
-
-        issuer.Verify(
-            x => x.IssueRefreshTokenAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<TokenIssuanceContext>(),
-                It.IsAny<RefreshTokenPersistence>(),
-                It.IsAny<CancellationToken>()),
-            Times.Never);
-
-        issuer.Verify(
-            x => x.IssueAccessTokenAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<TokenIssuanceContext>(),
-                It.IsAny<CancellationToken>()),
-            Times.Never);
+        result.Result.AccessToken.Should().BeNull();
+        result.Result.RefreshToken.Should().BeNull();
     }
 
-
-    private static Mock<IRefreshTokenValidator> CreateValidator(RefreshTokenValidationResult result)
+    private sealed class Fixture
     {
-        var validator = new Mock<IRefreshTokenValidator>();
-        validator
-            .Setup(x => x.ValidateAsync(It.IsAny<RefreshTokenValidationContext>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(result);
-        return validator;
-    }
-
-    private static Mock<IRefreshTokenStoreFactory> CreateStoreFactory(
-        TenantKey tenant,
-        Mock<IRefreshTokenStore> store)
-    {
-        var factory = new Mock<IRefreshTokenStoreFactory>();
-        factory.Setup(x => x.Create(tenant)).Returns(store.Object);
-        return factory;
-    }
-
-    private static Mock<IRefreshTokenStore> CreateExecutableStore()
-    {
-        var store = new Mock<IRefreshTokenStore>();
-
-        store
-            .Setup(x => x.ExecuteAsync(
-                It.IsAny<Func<CancellationToken, Task>>(),
-                It.IsAny<CancellationToken>()))
-            .Returns<Func<CancellationToken, Task>, CancellationToken>(
-                (action, ct) => action(ct));
-
-        store
-            .Setup(x => x.ExecuteAsync(
-                It.IsAny<Func<CancellationToken, Task<bool>>>(),
-                It.IsAny<CancellationToken>()))
-            .Returns<Func<CancellationToken, Task<bool>>, CancellationToken>(
-                (action, ct) => action(ct));
-
-        return store;
-    }
-
-    private static Mock<IRefreshTokenStore> CreateSuccessfulRotationStore()
-    {
-        var store = CreateExecutableStore();
-
-        store
-            .Setup(x => x.TryConsumeAsync(
-                It.IsAny<string>(),
-                It.IsAny<DateTimeOffset>(),
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        return store;
-    }
-
-    private static RefreshTokenValidationResult CreateValidValidation(TenantKey tenant)
-    {
-        var token = RefreshToken.Create(
-            tokenId: TokenId.New(),
-            tokenHash: "old-refresh-token-hash",
-            tenant: tenant,
-            userKey: UserKey.New(),
-            sessionId: TestIds.Session("rotation-session"),
-            chainId: SessionChainId.New(),
-            createdAt: Now.AddDays(-1),
-            expiresAt: Now.AddDays(7));
-
-        return RefreshTokenValidationResult.Valid(token, token.TokenHash);
-    }
-
-    private static RefreshTokenRotationContext CreateContext(AuthSessionId? expectedSessionId = null)
-        => new()
-        {
-            RefreshToken = "old-refresh-token",
-            Now = Now,
-            Device = TestDevice.Default(),
-            ExpectedSessionId = expectedSessionId
-        };
-
-    private static AccessToken CreateAccessToken()
-        => new()
+        public TenantKey Tenant { get; }
+        public UserKey User { get; } = UserKey.New();
+        public AuthFlowContext Flow { get; }
+        public Mock<IRefreshTokenValidator> Validator { get; } = new();
+        public Mock<IRefreshTokenStore> Store { get; } = new();
+        public Mock<IRefreshTokenStoreFactory> StoreFactory { get; } = new();
+        public Mock<ITokenIssuer> Issuer { get; } = new();
+        public Mock<IUserClaimsProvider> Claims { get; } = new();
+        public Mock<IPrimaryUserIdentifierProvider> Identifiers { get; } = new();
+        public Mock<IUserProfileSnapshotProvider> Profiles { get; } = new();
+        public AccessToken AccessToken { get; } = new()
         {
             Token = "access-token",
             Format = TokenFormat.Jwt,
             ExpiresAt = Now.AddMinutes(15)
         };
-
-    private static RefreshTokenIssuanceResult CreateRefreshTokenIssuanceResult()
-        => new()
+        public RefreshTokenIssuanceResult RefreshIssuance { get; private set; } = new()
         {
-            Token = "new-refresh-token",
-            TokenHash = "new-refresh-token-hash",
+            Token = "replacement-raw",
+            TokenHash = "replacement-hash",
             ExpiresAt = Now.AddDays(7)
         };
 
-    private static void SetupSuccessfulIssuer(
-        Mock<ITokenIssuer> issuer,
-        Action<TokenIssuanceContext>? capture = null)
-    {
-        issuer
-            .Setup(x => x.IssueAccessTokenAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<TokenIssuanceContext>(),
-                It.IsAny<CancellationToken>()))
-            .Callback<AuthFlowContext, TokenIssuanceContext, CancellationToken>((_, ctx, _) => capture?.Invoke(ctx))
-            .ReturnsAsync(CreateAccessToken());
+        public Fixture(UAuthMode mode, TenantKey? tenant = null, bool multiTenant = false)
+        {
+            Tenant = tenant ?? TenantKey.Single;
+            var options = TestServerOptions.Default();
+            options.MultiTenant.Enabled = multiTenant;
+            options.Token.IssueRefresh = true;
 
-        issuer
-            .Setup(x => x.IssueRefreshTokenAsync(
-                It.IsAny<AuthFlowContext>(),
-                It.IsAny<TokenIssuanceContext>(),
-                RefreshTokenPersistence.DoNotPersist,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateRefreshTokenIssuanceResult());
-    }
+            Flow = new AuthFlowContext(
+                flowType: AuthFlowType.RefreshSession,
+                applicationProfile: UAuthApplicationProfile.Api,
+                effectiveMode: mode,
+                device: TestDevice.Default(),
+                tenantKey: Tenant,
+                isAuthenticated: true,
+                userKey: User,
+                session: null,
+                options: options,
+                response: new EffectiveAuthResponse(
+                    sessionIdDelivery: EffectiveGrantDelivery.Disabled(GrantKind.Session),
+                    accessTokenDelivery: EffectiveGrantDelivery.Disabled(GrantKind.AccessToken),
+                    refreshTokenDelivery: EffectiveGrantDelivery.Disabled(GrantKind.RefreshToken),
+                    redirect: EffectiveRedirectResponse.Disabled),
+                primaryTokenKind: PrimaryTokenKind.AccessToken,
+                returnUrlInfo: ReturnUrlInfo.None());
 
-    private static AuthFlowContext CreateFlow(TenantKey? tenant = null, bool multiTenant = false)
-    {
-        var resolvedTenant = tenant ?? TenantKey.Single;
-        var options = TestServerOptions.Default();
-        options.MultiTenant.Enabled = multiTenant;
+            StoreFactory.Setup(x => x.Create(Tenant)).Returns(Store.Object);
+            Store.Setup(x => x.ExecuteAsync(
+                    It.IsAny<Func<CancellationToken, Task>>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns<Func<CancellationToken, Task>, CancellationToken>((action, ct) => action(ct));
+            Store.Setup(x => x.ExecuteAsync(
+                    It.IsAny<Func<CancellationToken, Task<bool>>>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns<Func<CancellationToken, Task<bool>>, CancellationToken>((action, ct) => action(ct));
+            Store.Setup(x => x.StoreAsync(It.IsAny<RefreshToken>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            Store.Setup(x => x.RevokeBySessionChainAsync(
+                    It.IsAny<SessionChainId>(), It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            Store.Setup(x => x.RevokeBySessionAsync(
+                    It.IsAny<AuthSessionId>(), It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            Store.Setup(x => x.RevokeByRefreshChainAsync(
+                    It.IsAny<RefreshChainId>(), It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
 
-        return new AuthFlowContext(
-            flowType: AuthFlowType.RefreshSession,
-            clientProfile: UAuthClientProfile.Api,
-            effectiveMode: UAuthMode.Hybrid,
-            device: TestDevice.Default(),
-            tenantKey: resolvedTenant,
-            isAuthenticated: true,
-            userKey: UserKey.New(),
-            session: null,
-            options: options,
-            response: new EffectiveAuthResponse(
-                sessionIdDelivery: CredentialResponseOptions.Disabled(GrantKind.Session),
-                accessTokenDelivery: CredentialResponseOptions.Disabled(GrantKind.AccessToken),
-                refreshTokenDelivery: CredentialResponseOptions.Disabled(GrantKind.RefreshToken),
-                redirect: EffectiveRedirectResponse.Disabled),
-            primaryTokenKind: PrimaryTokenKind.AccessToken,
-            returnUrlInfo: ReturnUrlInfo.None());
+            SetProfile("admin", "Administrator", "UTC");
+        }
+
+        public RefreshToken CreateToken(bool? sessionFree = null)
+        {
+            var noSession = sessionFree ?? Flow.EffectiveMode == UAuthMode.PureJwt;
+            return RefreshToken.Create(
+                tokenId: TokenId.New(),
+                tokenHash: "old-refresh-hash",
+                tenant: Tenant,
+                userKey: User,
+                sessionId: noSession ? null : TestIds.Session("rotation-session"),
+                sessionChainId: noSession ? null : SessionChainId.New(),
+                createdAt: AuthenticatedAt,
+                expiresAt: Now.AddDays(7),
+                refreshChainId: RefreshChainId.New(),
+                deviceId: noSession ? TestDevice.Default().DeviceId : null,
+                authenticatedAt: AuthenticatedAt);
+        }
+
+        public void Validate(RefreshToken token)
+            => SetValidation(RefreshTokenValidationResult.Valid(token, token.TokenHash));
+
+        public void SetValidation(RefreshTokenValidationResult validation)
+        {
+            Validator.Setup(x => x.ValidateAsync(
+                    It.IsAny<RefreshTokenValidationContext>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(validation);
+        }
+
+        public void SetProfile(string username, string displayName, string timeZone)
+        {
+            Identifiers.Setup(x => x.GetAsync(Tenant, User, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new PrimaryUserIdentifiers { UserName = username });
+            Profiles.Setup(x => x.GetAsync(
+                    Tenant, User, ProfileKey.Default, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new UserProfileSnapshot
+                {
+                    DisplayName = displayName,
+                    TimeZone = timeZone
+                });
+        }
+
+        public void IssueSuccessfully(string refreshRaw = "replacement-raw", string refreshHash = "replacement-hash")
+        {
+            RefreshIssuance = new RefreshTokenIssuanceResult
+            {
+                Token = refreshRaw,
+                TokenHash = refreshHash,
+                ExpiresAt = Now.AddDays(7)
+            };
+
+            Issuer.Setup(x => x.IssueRefreshTokenAsync(
+                    It.IsAny<AuthFlowContext>(), It.IsAny<TokenIssuanceContext>(),
+                    RefreshTokenPersistence.DoNotPersist, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(RefreshIssuance);
+            Issuer.Setup(x => x.IssueAccessTokenAsync(
+                    It.IsAny<AuthFlowContext>(), It.IsAny<TokenIssuanceContext>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(AccessToken);
+        }
+
+        public void ConsumeSuccessfully()
+        {
+            Store.Setup(x => x.TryConsumeAsync(
+                    It.IsAny<string>(), It.IsAny<DateTimeOffset>(),
+                    It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+        }
+
+        public Task<RefreshTokenRotationExecution> RotateAsync(AuthSessionId? expectedSessionId = null)
+        {
+            var service = new RefreshTokenRotationService(
+                Validator.Object,
+                StoreFactory.Object,
+                Issuer.Object,
+                Claims.Object,
+                Identifiers.Object,
+                Profiles.Object);
+
+            return service.RotateAsync(
+                Flow,
+                new RefreshTokenRotationContext
+                {
+                    RefreshToken = "old-raw",
+                    Now = Now,
+                    Device = TestDevice.Default(),
+                    ExpectedSessionId = expectedSessionId
+                },
+                TestContext.Current.CancellationToken);
+        }
+
+        public void AssertNoMutation()
+        {
+            Store.Verify(x => x.TryConsumeAsync(
+                It.IsAny<string>(), It.IsAny<DateTimeOffset>(),
+                It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            Store.Verify(x => x.StoreAsync(
+                It.IsAny<RefreshToken>(), It.IsAny<CancellationToken>()), Times.Never);
+            Store.Verify(x => x.ExecuteAsync(
+                It.IsAny<Func<CancellationToken, Task<bool>>>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+        }
     }
 }

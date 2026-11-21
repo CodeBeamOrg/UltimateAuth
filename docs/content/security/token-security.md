@@ -200,6 +200,44 @@ The existence of a refresh store does not make JWT access validation session-aut
 
 For more detail, see [Authentication Modes](/docs/fundamentals/auth-modes).
 
+## PureJwt Validation Requirements
+
+PureJwt Resource APIs validate JWT access tokens locally using trusted verification keys and explicit validation policies.
+
+A valid signature alone is insufficient.
+
+The current validation pipeline enforces the expected token type, issuer, audience, lifetime, allowed algorithm, key ID, tenant, subject, and device binding requirements.
+
+### Trusted verification keys
+
+Verification keys must come from trusted application configuration or an explicitly registered verification-key provider.
+
+The Resource API does not accept signing keys supplied by an untrusted JWT header or automatically retrieve keys from token-provided URLs.
+
+The built-in configured verification-key provider supports Base64-encoded symmetric keys.
+
+For the built-in HS256 signing implementation, use at least 32 bytes of cryptographically secure random key material.
+
+### Device binding
+
+PureJwt access tokens contain a device identifier.
+
+By default, Resource API validation rejects requests when the required device identifier is missing or does not match the token.
+
+`DeviceMismatchBehavior.Allow` permits a mismatch when explicitly configured, but weakens device-binding enforcement.
+
+`AllowAndRebind` is not supported in PureJwt.
+
+A matching device identifier is an additional binding check, not cryptographic proof that the requesting device has exclusive possession of the token.
+
+### Stateless authorization freshness
+
+PureJwt Resource APIs do not require a live user-state lookup during normal JWT validation.
+
+As a result, an otherwise valid JWT can remain accepted after account deletion, suspension, permission changes, or refresh-chain revocation.
+
+Applications requiring immediate enforcement of such changes must implement an additional authoritative validation mechanism or use an appropriate session-backed authentication strategy.
+
 ## Access Token Lifetime
 
 Access credentials should have lifetimes appropriate to their authentication mode and security requirements.

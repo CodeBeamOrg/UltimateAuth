@@ -197,7 +197,7 @@ public sealed class UserApplicationServiceTests
                 context.ResourceTenant,
                 It.IsAny<UserKey>(),
                 request,
-                clientProfile: UAuthClientProfile.NotSpecified,
+                applicationProfile: UAuthApplicationProfile.NotSpecified,
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -207,7 +207,7 @@ public sealed class UserApplicationServiceTests
             context.ResourceTenant,
             It.IsAny<UserKey>(),
             request,
-            clientProfile: UAuthClientProfile.NotSpecified,
+            applicationProfile: UAuthApplicationProfile.NotSpecified,
             It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -2558,7 +2558,7 @@ public sealed class UserApplicationServiceTests
             targetUserKey: targetUserKey ?? actorUserKey,
             resourceTenant: TenantKey.Single,
             action: action,
-            clientProfile: UAuthClientProfile.NotSpecified,
+            applicationProfile: UAuthApplicationProfile.NotSpecified,
             attributes: EmptyAttributes.Instance);
     }
 

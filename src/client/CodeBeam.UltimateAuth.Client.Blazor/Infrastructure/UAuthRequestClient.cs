@@ -35,7 +35,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
             url = endpoint,
             mode = "navigate",
             data = form,
-            clientProfile = _options.ClientProfile.ToString(),
+            applicationProfile = _options.ApplicationProfile.ToString(),
             trustedOrigin = ResolveTrustedOrigin()
         });
     }
@@ -51,7 +51,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
             url = endpoint,
             mode = "fetch",
             data = form,
-            clientProfile = _options.ClientProfile.ToString(),
+            applicationProfile = _options.ApplicationProfile.ToString(),
             trustedOrigin = ResolveTrustedOrigin()
         });
 
@@ -79,7 +79,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
                 url = endpoint,
                 mode = navigateOnSuccess ? "logout" : "logout-observe",
                 data = form,
-                clientProfile = _options.ClientProfile.ToString(),
+                applicationProfile = _options.ApplicationProfile.ToString(),
                 trustedOrigin = ResolveTrustedOrigin()
             });
 
@@ -102,7 +102,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
         {
             url = endpoint,
             payload = payload,
-            clientProfile = _options.ClientProfile.ToString(),
+            applicationProfile = _options.ApplicationProfile.ToString(),
             trustedOrigin = ResolveTrustedOrigin()
         });
 
@@ -129,7 +129,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
                 tryUrl = tryEndpoint,
                 commitUrl = commitEndpoint,
                 data = request,
-                clientProfile = _options.ClientProfile.ToString(),
+                applicationProfile = _options.ApplicationProfile.ToString(),
                 trustedOrigin = ResolveTrustedOrigin()
             });
 

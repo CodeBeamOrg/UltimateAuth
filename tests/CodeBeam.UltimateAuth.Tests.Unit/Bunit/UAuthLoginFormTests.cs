@@ -95,7 +95,7 @@ public sealed class UAuthLoginFormContextTests : BunitContext
     {
         var cut = Render<UAuthLoginForm>(p => p.Add(x => x.ReturnUrl, "/dashboard"));
 
-        cut.FindAll($"input[name='{UAuthConstants.Form.ClientProfile}']").Should().ContainSingle();
+        cut.FindAll($"input[name='{UAuthConstants.Form.ApplicationProfile}']").Should().ContainSingle();
         cut.FindAll($"input[name='{UAuthConstants.Form.Device}']").Should().ContainSingle();
         cut.Find($"input[name='{UAuthConstants.Form.ReturnUrl}']")
             .GetAttribute("value").Should().Be("/dashboard");

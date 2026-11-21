@@ -1,29 +1,27 @@
 ﻿using CodeBeam.UltimateAuth.Core;
-using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Options;
 
-internal class ConfigureDefaults
+internal static class ConfigureDefaults
 {
-    internal static void ApplyModeDefaults(UAuthMode effectiveMode, UAuthServerOptions o)
+    internal static void ApplyModeDefaults(UAuthMode effectiveMode, UAuthServerOptions options)
     {
         switch (effectiveMode)
         {
             case UAuthMode.PureOpaque:
-                ApplyPureOpaqueDefaults(o);
+                ApplyPureOpaqueDefaults(options);
                 break;
 
             case UAuthMode.Hybrid:
-                ApplyHybridDefaults(o);
+                ApplyHybridDefaults(options);
                 break;
 
             case UAuthMode.SemiHybrid:
-                ApplySemiHybridDefaults(o);
+                ApplySemiHybridDefaults(options);
                 break;
 
             case UAuthMode.PureJwt:
-                ApplyPureJwtDefaults(o);
+                ApplyPureJwtDefaults(options);
                 break;
 
             default:
@@ -31,108 +29,83 @@ internal class ConfigureDefaults
         }
     }
 
-    private static void ApplyPureOpaqueDefaults(UAuthServerOptions o)
+    private static void ApplyPureOpaqueDefaults(UAuthServerOptions options)
     {
-        var s = o.Session;
-        var t = o.Token;
-        var c = o.Cookie;
-        var r = o.AuthResponse;
+        var session = options.Session;
+        var token = options.Token;
+        var cookie = options.Cookie;
 
-        //s.SlidingExpiration = true; // Default value.
+        session.IdleTimeout ??= TimeSpan.FromDays(7);
+        session.TouchInterval ??= TimeSpan.FromDays(1);
 
-        // Default: long-lived idle session (UX friendly)
-        s.IdleTimeout ??= TimeSpan.FromDays(7);
+        session.MaxLifetime ??= null;
 
-        s.TouchInterval ??= TimeSpan.FromDays(1);
+        token.IssueJwt = false;
+        token.IssueOpaque = false;
+        token.IssueRefresh = false;
 
-        // Hard re-auth boundary is an advanced security feature
-        // Do NOT enable by default
-        s.MaxLifetime ??= null;
-
-        // SessionId is the primary opaque token, carried via cookie
-        t.IssueJwt = false;
-
-        // No separate opaque access token is issued outside the session cookie
-        t.IssueOpaque = false;
-
-        // Refresh token does not exist in PureOpaque
-        t.IssueRefresh = false;
-
-        c.Session.Lifetime.IdleBuffer = TimeSpan.FromDays(2);
-
-        r.RefreshTokenDelivery = new CredentialResponseOptions
-        {
-            Mode = TokenResponseMode.None,
-            TokenFormat = TokenFormat.Opaque
-        };
+        cookie.Session.Lifetime.IdleBuffer = TimeSpan.FromDays(2);
     }
 
-    private static void ApplyHybridDefaults(UAuthServerOptions o)
+    private static void ApplyHybridDefaults(UAuthServerOptions options)
     {
-        var s = o.Session;
-        var t = o.Token;
-        var c = o.Cookie;
-        var r = o.AuthResponse;
+        var session = options.Session;
+        var token = options.Token;
+        var cookie = options.Cookie;
 
-        //s.SlidingExpiration = true; // Default value.
-        s.TouchInterval = null;
+        session.TouchInterval = null;
 
-        t.IssueJwt = true;
-        t.IssueOpaque = true;
-        t.AccessTokenLifetime = TimeSpan.FromMinutes(10);
-        t.RefreshTokenLifetime = TimeSpan.FromDays(7);
+        token.IssueJwt = true;
+        token.IssueOpaque = true;
+        token.AccessTokenLifetime = TimeSpan.FromMinutes(10);
+        token.RefreshTokenLifetime = TimeSpan.FromDays(7);
 
-        c.Session.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
-        c.RefreshToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
+        cookie.Session.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
 
-        r.RefreshTokenDelivery = new CredentialResponseOptions
-        {
-            Mode = TokenResponseMode.Cookie,
-            TokenFormat = TokenFormat.Opaque
-        };
+        cookie.RefreshToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
     }
 
-    private static void ApplySemiHybridDefaults(UAuthServerOptions o)
+    private static void ApplySemiHybridDefaults(UAuthServerOptions options)
     {
-        var s = o.Session;
-        var t = o.Token;
-        var p = o.Pkce;
-        var c = o.Cookie;
+        var session = options.Session;
+        var token = options.Token;
+        var cookie = options.Cookie;
 
-        s.SlidingExpiration = false;
-        s.TouchInterval = null;
+        session.SlidingExpiration = false;
+        session.TouchInterval = null;
 
-        t.IssueJwt = true;
-        t.IssueOpaque = true;
-        t.AccessTokenLifetime = TimeSpan.FromMinutes(10);
-        t.RefreshTokenLifetime = TimeSpan.FromDays(7);
-        t.AddJwtIdClaim = true;
+        token.IssueJwt = true;
+        token.IssueOpaque = true;
+        token.AccessTokenLifetime = TimeSpan.FromMinutes(10);
+        token.RefreshTokenLifetime = TimeSpan.FromDays(7);
+        token.AddJwtIdClaim = true;
 
-        c.AccessToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
-        c.RefreshToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
+        cookie.AccessToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
+
+        cookie.RefreshToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
     }
 
-    private static void ApplyPureJwtDefaults(UAuthServerOptions o)
+    private static void ApplyPureJwtDefaults(UAuthServerOptions options)
     {
-        var s = o.Session;
-        var t = o.Token;
-        var p = o.Pkce;
-        var c = o.Cookie;
+        var session = options.Session;
+        var token = options.Token;
+        var cookie = options.Cookie;
 
-        s.TouchInterval = null;
+        // PureJwt does not use server-side sessions.
+        session.SlidingExpiration = false;
+        session.TouchInterval = null;
+        session.IdleTimeout = null;
+        session.MaxLifetime = null;
 
-        o.Session.SlidingExpiration = false;
-        o.Session.IdleTimeout = null;
-        o.Session.MaxLifetime = null;
+        token.IssueJwt = true;
+        token.IssueOpaque = false;
+        token.IssueRefresh = true;
+        token.AccessTokenLifetime = TimeSpan.FromMinutes(10);
+        token.RefreshTokenLifetime = TimeSpan.FromDays(7);
+        token.AddJwtIdClaim = true;
 
-        t.IssueJwt = true;
-        t.IssueOpaque = false;
-        t.AccessTokenLifetime = TimeSpan.FromMinutes(10);
-        t.RefreshTokenLifetime = TimeSpan.FromDays(7);
-        t.AddJwtIdClaim = true;
+        cookie.AccessToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
 
-        c.AccessToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
-        c.RefreshToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
+        cookie.RefreshToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
     }
-
 }

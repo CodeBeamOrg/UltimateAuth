@@ -365,7 +365,7 @@ The server's PKCE configuration is separate from the client's PKCE flow settings
 
 ## 7. Authentication Modes
 
-UltimateAuth supports authentication mode resolution based on the client profile.
+UltimateAuth supports authentication mode resolution based on the application profile.
 
 The server exposes:
 
@@ -392,23 +392,48 @@ builder.Services.AddUltimateAuthServer(options =>
 
 The effective mode is resolved by `IEffectiveAuthModeResolver`.
 
+
 ### Default Mode Resolution
 
-| Client profile | Default resolved mode |
+UltimateAuth resolves the effective authentication mode using the application profile unless the server explicitly configures `AuthMode` or `ApplicationProfileModes`.
+
+| Application Profile | Default Mode |
 |---|---|
-| `BlazorServer` | `PureOpaque` |
-| `WebServer` | `Hybrid` |
-| `BlazorWasm` | `Hybrid` |
-| `Maui` | `Hybrid` |
-| `Api` | `PureJwt` |
+| BlazorServer | PureOpaque |
+| WebServer | Hybrid |
+| BlazorWasm | Hybrid |
+| Maui | Hybrid |
+| Api | PureJwt |
+| ResourceApi | PureJwt |
 
-The current implementation has mode templates for `PureOpaque`, `Hybrid`, `SemiHybrid`, and `PureJwt`.
+The server controls the effective authentication mode. Application profile metadata is not an authorization boundary.
 
-However, `SemiHybrid` and `PureJwt` are not yet accepted as enabled modes by the current server options validator.
+`AuthMode` forces a single mode for the server, while `ApplicationProfileModes` provides explicit profile-specific mappings. These configuration mechanisms cannot be combined.
 
-**Do not enable an unsupported mode merely because it exists in the enum or has a mode-default template.**
+`AllowedModes` restricts permitted modes but does not select a mode.
 
-The default `Api` profile mapping to `PureJwt` is a current compatibility limitation to consider when deploying API-profile authentication flows.
+PureJwt is implemented. SemiHybrid remains unavailable.
+
+### Explicit PureJwt Configuration
+
+```csharp
+builder.Services.AddUltimateAuthServer(options =>
+{
+    options.AuthMode = UAuthMode.PureJwt;
+
+    options.Token.Issuer = "https://auth.example.com";
+    options.Token.Audience = "products-api";
+
+    options.Cryptography.JwtSigningKey = builder.Configuration["UltimateAuth:JwtSigningKey"];
+});
+```
+
+The JWT signing key must be a Base64-encoded cryptographic key containing at least 32 bytes of key material.
+
+Use a cryptographically secure, independently generated key in production. Do not reuse the JWT signing key as the token-hashing key.
+
+PureJwt does not create authentication sessions, but refresh-token persistence is still required.
+
 
 ### Configure Mode-Specific Behavior
 

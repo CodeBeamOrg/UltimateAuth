@@ -10,7 +10,7 @@ namespace CodeBeam.UltimateAuth.Sample.ResourceApi;
 public class ProductsController : ControllerBase
 {
     [HttpGet]
-    [Authorize(Roles = "Admin")]
+    [Authorize()]
     //[Authorize(Policy = UAuthActions.Authorization.Roles.GetAdmin)] // You can use UAuthActions as permission in ASP.NET Core policy.
     public IActionResult GetAll()
     {
@@ -18,7 +18,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize()]
     //[Authorize(Policy = UAuthActions.Authorization.Roles.GetAdmin)]
     public IActionResult Get(int id)
     {

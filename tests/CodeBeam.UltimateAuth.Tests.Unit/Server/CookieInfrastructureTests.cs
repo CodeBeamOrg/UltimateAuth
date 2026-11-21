@@ -1,10 +1,12 @@
-﻿using CodeBeam.UltimateAuth.Core;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Server;
@@ -23,17 +25,19 @@ public sealed class CookieInfrastructureTests
     {
         var context = AuthFlowTestFactory.New();
 
-        var response = CredentialResponseOptions.Disabled(
-            GrantKind.Session);
+        var delivery = new EffectiveGrantDelivery(
+            kind: GrantKind.Session,
+            tokenFormat: TokenFormat.Opaque,
+            mode: GrantDeliveryMode.Cookie);
 
         var act = () => _builder.Build(
-            response,
+            delivery,
             context,
             GrantKind.Session);
 
         act.Should()
             .Throw<InvalidOperationException>()
-            .WithMessage("*Cookie options are null*");
+            .WithMessage("*Cookie options missing*");
     }
 
     // ---------------------------------------------------------
@@ -602,6 +606,47 @@ public sealed class CookieInfrastructureTests
         other.Should().Be("value");
     }
 
+    [Fact]
+    public void Build_should_reject_non_cookie_delivery()
+    {
+        var context = AuthFlowTestFactory.New();
+
+        var delivery = new EffectiveGrantDelivery(
+            kind: GrantKind.Session,
+            tokenFormat: TokenFormat.Opaque,
+            mode: GrantDeliveryMode.Header);
+
+        var act = () => _builder.Build(
+            delivery,
+            context,
+            GrantKind.Session);
+
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("*non-cookie grant*");
+    }
+
+    [Fact]
+    public void Build_should_reject_mismatched_grant_kind()
+    {
+        var context = AuthFlowTestFactory.New();
+
+        var delivery = new EffectiveGrantDelivery(
+            kind: GrantKind.RefreshToken,
+            tokenFormat: TokenFormat.Opaque,
+            mode: GrantDeliveryMode.Cookie,
+            cookie: CreateCookie());
+
+        var act = () => _builder.Build(
+            delivery,
+            context,
+            GrantKind.Session);
+
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("*Cookie grant kind mismatch*");
+    }
+
     // ---------------------------------------------------------
     // HELPERS
     // ---------------------------------------------------------
@@ -636,14 +681,12 @@ public sealed class CookieInfrastructureTests
         };
     }
 
-    private static CredentialResponseOptions CreateResponse(
-        GrantKind kind,
-        UAuthCookieOptions cookie)
+    private static EffectiveGrantDelivery CreateResponse(GrantKind kind, UAuthCookieOptions cookie)
     {
-        return new CredentialResponseOptions
-        {
-            Kind = kind,
-            Mode = TokenResponseMode.Cookie
-        }.WithCookie(cookie);
+        return new EffectiveGrantDelivery(
+            kind: kind,
+            tokenFormat: TokenFormat.Opaque,
+            mode: GrantDeliveryMode.Cookie,
+            cookie: cookie);
     }
 }

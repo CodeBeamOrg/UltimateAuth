@@ -5,5 +5,5 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 public interface IUAuthBodyPolicyBuilder
 {
-    object BuildBodyValue(string rawValue, CredentialResponseOptions response, AuthFlowContext context);
+    object BuildBodyValue(string rawValue, EffectiveGrantDelivery delivery, AuthFlowContext context);
 }

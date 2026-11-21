@@ -882,7 +882,7 @@ public sealed class SessionApplicationServiceTests
             targetUserKey: user,
             resourceTenant: TenantKey.Single,
             action: "session.manage",
-            clientProfile: UAuthClientProfile.NotSpecified,
+            applicationProfile: UAuthApplicationProfile.NotSpecified,
             attributes: EmptyAttributes.Instance);
     }
 

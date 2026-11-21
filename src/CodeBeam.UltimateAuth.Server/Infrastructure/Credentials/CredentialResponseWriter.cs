@@ -3,7 +3,6 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
-using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -41,44 +40,80 @@ internal sealed class CredentialResponseWriter : ICredentialResponseWriter
         var auth = _authContext.Current;
         var delivery = ResolveDelivery(auth.Response, kind);
 
-
-        if (delivery.Mode == TokenResponseMode.None)
-            return;
+        if (delivery.Kind != kind)
+        {
+            throw new InvalidOperationException(
+                $"Resolved grant kind '{delivery.Kind}' does not match '{kind}'.");
+        }
 
         switch (delivery.Mode)
         {
-            case TokenResponseMode.Cookie:
+            case GrantDeliveryMode.None:
+                return;
+
+            case GrantDeliveryMode.Cookie:
                 WriteCookie(context, kind, value, delivery, auth);
-                break;
+                return;
 
-            case TokenResponseMode.Header:
+            case GrantDeliveryMode.Header:
                 WriteHeader(context, value, delivery, auth);
-                break;
+                return;
 
-            case TokenResponseMode.Body:
-                // TODO: Implement body writing if needed
-                throw new NotSupportedException("Body token delivery is not supported.");
+            case GrantDeliveryMode.Body:
+                throw new NotSupportedException(
+                    $"Body grant delivery is not supported for '{kind}'.");
+
+            default:
+                throw new InvalidOperationException(
+                    $"Unsupported grant delivery mode '{delivery.Mode}'.");
         }
     }
 
-    private void WriteCookie(HttpContext context, GrantKind kind, string value, CredentialResponseOptions options, AuthFlowContext auth)
+    private void WriteCookie(
+        HttpContext context,
+        GrantKind kind,
+        string value,
+        EffectiveGrantDelivery delivery,
+        AuthFlowContext auth)
     {
-        if (options.Cookie is null)
-            throw new InvalidOperationException($"Cookie options missing for credential '{kind}'.");
+        var cookie = delivery.Cookie
+            ?? throw new InvalidOperationException(
+                $"Cookie options missing for grant '{kind}'.");
 
-        var cookieOptions = _cookiePolicy.Build(options, auth, kind);
-        _cookieManager.Write(context, options.Cookie.Name, value, cookieOptions);
+        var cookieOptions = _cookiePolicy.Build(delivery, auth, kind);
+
+        _cookieManager.Write(
+            context,
+            cookie.Name,
+            value,
+            cookieOptions);
     }
 
-    private void WriteHeader(HttpContext context, string value, CredentialResponseOptions response, AuthFlowContext auth)
+    private void WriteHeader(
+        HttpContext context,
+        string value,
+        EffectiveGrantDelivery delivery,
+        AuthFlowContext auth)
     {
-        var headerName = response.Name ?? "Authorization";
-        var formatted = _headerPolicy.BuildHeaderValue(value, response, auth);
+        var headerName = delivery.Name;
+
+        if (string.IsNullOrWhiteSpace(headerName))
+        {
+            throw new InvalidOperationException(
+                $"Header name missing for grant '{delivery.Kind}'.");
+        }
+
+        var formatted = _headerPolicy.BuildHeaderValue(
+            value,
+            delivery,
+            auth);
 
         context.Response.Headers[headerName] = formatted;
     }
 
-    private static CredentialResponseOptions ResolveDelivery(EffectiveAuthResponse response, GrantKind kind)
+    private static EffectiveGrantDelivery ResolveDelivery(
+        EffectiveAuthResponse response,
+        GrantKind kind)
         => kind switch
         {
             GrantKind.Session => response.SessionIdDelivery,

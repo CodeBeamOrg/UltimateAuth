@@ -5,7 +5,6 @@ using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using CodeBeam.UltimateAuth.Server.Options;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 
@@ -30,7 +29,7 @@ internal static class AuthFlowTestFactory
     {
         return new AuthFlowContext(
             flowType: AuthFlowType.Login,
-            clientProfile: UAuthClientProfile.BlazorServer,
+            applicationProfile: UAuthApplicationProfile.BlazorServer,
             effectiveMode: mode,
             device: TestDevice.Default(),
             tenantKey: tenant ?? TenantKey.Single,
@@ -40,11 +39,11 @@ internal static class AuthFlowTestFactory
             options: TestServerOptions.Default(),
             response: response ?? new EffectiveAuthResponse(
                 sessionIdDelivery:
-                    CredentialResponseOptions.Disabled(GrantKind.Session),
+                    EffectiveGrantDelivery.Disabled(GrantKind.Session),
                 accessTokenDelivery:
-                    CredentialResponseOptions.Disabled(GrantKind.AccessToken),
+                    EffectiveGrantDelivery.Disabled(GrantKind.AccessToken),
                 refreshTokenDelivery:
-                    CredentialResponseOptions.Disabled(GrantKind.RefreshToken),
+                    EffectiveGrantDelivery.Disabled(GrantKind.RefreshToken),
                 redirect:
                     redirect ?? EffectiveRedirectResponse.Disabled
             ),

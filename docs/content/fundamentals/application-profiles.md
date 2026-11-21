@@ -1,10 +1,10 @@
 ---
-title: Client Profiles
+title: Application Profiles
 order: 5
 group: fundamentals
 ---
 
-# Client Profiles
+# Application Profiles
 
 UltimateAuth is designed to support different application environments through a unified authentication architecture.
 
@@ -12,13 +12,13 @@ A Blazor Server application, a browser-based WebAssembly application, a native m
 
 They may differ in how credentials are stored, how requests are sent, whether browser cookies are available, and how authentication results are delivered.
 
-**Client Profiles allow UltimateAuth to account for these runtime differences without requiring separate authentication architectures for each client type.**
+**Application Profiles allow UltimateAuth to account for these runtime differences without requiring separate authentication architectures for each application type.**
 
-A Client Profile describes the environment in which a client operates. It helps the framework resolve suitable authentication behavior and defaults, while the server remains responsible for enforcing the effective security policy.
+An Application Profile describes the environment in which an application operates. It helps the framework resolve suitable authentication behavior and defaults, while the server remains responsible for enforcing the effective security policy.
 
-## What is a Client Profile?
+## What is an Application Profile?
 
-A Client Profile identifies a supported client environment and its relevant runtime characteristics.
+An Application Profile identifies a supported application environment and its relevant runtime characteristics.
 
 It can influence how UltimateAuth resolves:
 
@@ -36,9 +36,9 @@ Likewise, a client declaring itself to be a server-side application must not aut
 
 The distinction is fundamental:
 
-**Client Profile describes the environment. Authentication Mode defines the authentication strategy. Server policy determines what is permitted.**
+**Application Profile describes the environment. Authentication Mode defines the authentication strategy. Server policy determines what is permitted.**
 
-## Why Client Profiles exist
+## Why Application Profiles exist
 
 Consider an application that includes a browser frontend, a native mobile application, and a server-rendered administrative interface.
 
@@ -52,13 +52,13 @@ Without a client abstraction, these differences tend to spread throughout applic
 
 Developers may need separate configuration paths, credential-handling logic, and authentication integration code for every runtime.
 
-Client Profiles provide a consistent way to describe those differences.
+Application Profiles provide a consistent way to describe those differences.
 
 They allow UltimateAuth to select appropriate integration behavior while preserving the same underlying authentication and authorization architecture.
 
-## Built-in Client Profiles
+## Built-in Application Profiles
 
-UltimateAuth defines profiles for its supported client environments.
+UltimateAuth defines profiles for its supported application environments.
 
 | Profile | Environment | Typical characteristics |
 |---|---|---|
@@ -88,11 +88,11 @@ Resource authentication must follow the applicable server-side configuration and
 
 ## Automatic profile detection
 
-UltimateAuth supports automatic Client Profile detection in compatible client integrations.
+UltimateAuth supports automatic Application Profile detection in compatible application integrations.
 
 Detection is intended to reduce configuration requirements for common application environments.
 
-Depending on the client implementation, the runtime can provide information such as:
+Depending on the application implementation, the runtime can provide information such as:
 
 - The current execution environment.
 - Available framework capabilities.
@@ -101,7 +101,7 @@ Depending on the client implementation, the runtime can provide information such
 
 For example, a Blazor WebAssembly client can identify that it is executing in a browser environment, while a native MAUI client can identify its native application context.
 
-This resolution occurs within the supported client integration.
+This resolution occurs within the supported application integration.
 
 It should not be confused with a server independently discovering the true identity or trust level of a remote application.
 
@@ -113,7 +113,7 @@ It is not an authentication proof.
 
 A malicious HTTP client can imitate headers, request parameters, and other client-provided metadata.
 
-Consequently, the server must not grant additional authentication privileges solely because a request claims a particular Client Profile.
+Consequently, the server must not grant additional authentication privileges solely because a request claims a particular Application Profile.
 
 The server remains responsible for validating the profile against its own configuration and security requirements.
 
@@ -127,7 +127,7 @@ The transport may depend on the integration and operation, including request met
 Client Runtime
       |
       v
-Client Profile Detection
+Application Profile Detection
       |
       v
 Profile Metadata
@@ -152,9 +152,9 @@ The server must not treat arbitrary client-provided profile values as authority 
 
 ### Missing profile information
 
-Some requests may not provide an explicit Client Profile.
+Some requests may not provide an explicit Application Profile.
 
-In those cases, UltimateAuth can represent the unresolved client profile as `NotSpecified` and apply the relevant server-side resolution or fallback behavior.
+In those cases, UltimateAuth can represent the unresolved application profile as `NotSpecified` and apply the relevant server-side resolution or fallback behavior.
 
 A missing profile must not automatically imply a privileged or less restrictive environment.
 
@@ -162,7 +162,7 @@ If the server cannot establish a permitted configuration for the operation, it s
 
 ## Automatic and explicit configuration
 
-Client Profile resolution can be automatic or explicitly configured, depending on the supported client integration.
+Application Profile resolution can be automatic or explicitly configured, depending on the supported application integration.
 
 ### Automatic configuration
 
@@ -183,8 +183,8 @@ Applications can also configure the profile directly when their integration supp
 ```csharp
 builder.Services.AddUltimateAuthClientBlazor(options =>
 {
-    options.ClientProfile = UAuthClientProfile.BlazorWasm;
-    options.AutoDetectClientProfile = false;
+    options.ApplicationProfile = UAuthApplicationProfile.BlazorWasm;
+    options.AutoDetectApplicationProfile = false;
 });
 ```
 
@@ -192,20 +192,20 @@ Explicit configuration may be useful when:
 
 - An application uses a custom hosting environment.
 - Runtime detection is ambiguous.
-- A shared integration requires a specific client profile.
+- A shared integration requires a specific application profile.
 - The application needs predictable profile selection across environments.
 
-Explicitly configuring a client profile does not override the server's authentication policies.
+Explicitly configuring an application profile does not override the server's authentication policies.
 
 It only determines what profile the client integration declares or uses locally.
 
 The server must still resolve and enforce the effective authentication context.
 
-## Client Profiles and Authentication Modes
+## Application Profiles and Authentication Modes
 
-Client Profiles and Authentication Modes are related but independent concepts.
+Application Profiles and Authentication Modes are related but independent concepts.
 
-A Client Profile describes the execution environment and its integration requirements.
+An Application Profile describes the execution environment and its integration requirements.
 
 An Authentication Mode defines how authentication credentials are issued, validated, continued, and revoked.
 
@@ -217,7 +217,7 @@ These are architectural recommendations, not inherent limitations of the runtime
 
 ### Recommended defaults
 
-| Client environment | Recommended mode | Reason |
+| Application environment | Recommended mode | Reason |
 |---|---|---|
 | Blazor Server | PureOpaque | Simple session-based authentication without separate token rotation |
 | Blazor WebAssembly with API | Hybrid | Access/refresh credentials with authoritative session control |
@@ -270,13 +270,13 @@ MAUI Client                   |
 
 The server resolves the effective authentication context for each applicable operation.
 
-This can include the Client Profile, authentication mode, tenant, security options, and credential delivery requirements.
+This can include the Application Profile, authentication mode, tenant, security options, and credential delivery requirements.
 
-Different clients can therefore operate under different authentication strategies without requiring separate authentication architectures.
+Different applications can therefore operate under different authentication strategies without requiring separate authentication architectures.
 
 ### Per-request resolution does not mean arbitrary mode switching
 
-The effective profile and mode may differ between requests from different clients.
+The effective profile and mode may differ between requests from different applications.
 
 However, they must remain consistent throughout an individual authentication operation.
 
@@ -292,9 +292,9 @@ See [Flow-Based Authentication](/docs/fundamentals/flow-based-auth) for the conc
 
 ## Credential delivery and runtime capabilities
 
-Different clients have different capabilities for receiving and storing authentication credentials.
+Different applications have different capabilities for receiving and storing authentication credentials.
 
-Client Profiles help the framework account for those differences.
+Application Profiles help the framework account for those differences.
 
 ### Browser environments
 
@@ -312,7 +312,7 @@ Native applications generally communicate through HTTP clients and can use platf
 
 Their credential transport and storage requirements differ from those of a browser.
 
-A native Client Profile can help select appropriate integration behavior, but secure storage remains an application and platform responsibility.
+A native Application Profile can help select appropriate integration behavior, but secure storage remains an application and platform responsibility.
 
 ### Server-hosted applications
 
@@ -328,15 +328,15 @@ Resource APIs validate the credentials presented by callers.
 
 Their authentication requirements must be enforced by trusted server configuration.
 
-A caller's declared Client Profile must not determine whether token signatures, session validity, tenant boundaries, or authorization requirements can be bypassed.
+A caller's declared Application Profile must not determine whether token signatures, session validity, tenant boundaries, or authorization requirements can be bypassed.
 
 ## Security and trust boundaries
 
-Client Profiles must preserve a clear separation between runtime adaptation and security authority.
+Application Profiles must preserve a clear separation between runtime adaptation and security authority.
 
 ### Profile declarations are not trusted identity
 
-A Client Profile does not prove that the caller is a particular application, device, or user.
+An Application Profile does not prove that the caller is a particular application, device, or user.
 
 Additional authentication mechanisms are required when an application needs to establish client identity.
 
@@ -370,7 +370,7 @@ Not every application fits a predefined runtime category.
 
 A custom host, embedded client, hybrid application, or specialized integration may need explicit profile configuration or additional integration behavior.
 
-The purpose of Client Profiles is to keep these differences at a defined architectural boundary.
+The purpose of Application Profiles is to keep these differences at a defined architectural boundary.
 
 New integrations should reuse the existing authentication model and flow infrastructure wherever possible, rather than introducing independent authentication implementations.
 
@@ -378,13 +378,13 @@ Custom profile resolution and integration behavior must continue to respect serv
 
 ## Summary
 
-Client Profiles allow UltimateAuth to adapt authentication integration to different application environments.
+Application Profiles allow UltimateAuth to adapt authentication integration to different application environments.
 
 They provide a consistent way to describe runtime characteristics and influence suitable defaults without turning client-provided metadata into a security authority.
 
 The fundamental distinctions are:
 
-**Client Profile** describes the runtime environment and integration requirements.
+**Application Profile** describes the runtime environment and integration requirements.
 
 **Authentication Mode** defines credential validation, session dependencies, and authentication lifecycle guarantees.
 
@@ -392,7 +392,7 @@ The fundamental distinctions are:
 
 **Server policy** determines which behavior is permitted.
 
-Together, these concepts allow different clients to share the same UltimateAuth infrastructure while preserving explicit authentication boundaries.
+Together, these concepts allow different applications to share the same UltimateAuth infrastructure while preserving explicit authentication boundaries.
 
 ## Next step
 

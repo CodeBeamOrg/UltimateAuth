@@ -1,8 +1,9 @@
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Credentials;
-using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Components;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Infrastructure;
@@ -10,15 +11,11 @@ using CodeBeam.UltimateAuth.Sample.Seed.Extensions;
 using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 using CodeBeam.UltimateAuth.Sample.Shared.ResourceApi;
 using CodeBeam.UltimateAuth.Server.Extensions;
-using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Infrastructure;
-using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.Extensions.Options;
 using MudBlazor.Services;
 using MudExtensions.Services;
 using Scalar.AspNetCore;
+using System.Security.Cryptography;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,6 +45,7 @@ builder.Services.AddScoped<DarkModeManager>();
 
 builder.Services.AddUltimateAuthServer(o =>
 {
+    o.AuthMode = UAuthMode.PureJwt;
     o.Diagnostics.EnableRefreshDetails = true;
     o.Login.MaxFailedAttempts = 2;
     o.Login.LockoutDuration = TimeSpan.FromSeconds(10);
@@ -70,11 +68,29 @@ builder.Services.AddUltimateAuthServer(o =>
     //o.Session.Lifetime = TimeSpan.FromSeconds(20);
     //o.Session.TouchInterval = TimeSpan.FromSeconds(9);
     //o.Session.IdleTimeout = TimeSpan.FromSeconds(10);
+
+    o.GrantDelivery.Default = GrantDeliveryMode.Cookie;
+    // PureJwt access token cookie
+    o.Cookie.AccessToken.Name = "uat";
+    o.Cookie.AccessToken.HttpOnly = true;
+    o.Cookie.AccessToken.SecurePolicy = CookieSecurePolicy.Always;
+    o.Cookie.AccessToken.SameSite = SameSiteMode.Lax;
+    o.Cookie.AccessToken.Path = "/";
+
+    // PureJwt refresh token cookie
+    o.Cookie.RefreshToken.Name = "uar";
+    o.Cookie.RefreshToken.HttpOnly = true;
+    o.Cookie.RefreshToken.SecurePolicy = CookieSecurePolicy.Always;
+    o.Cookie.RefreshToken.SameSite = SameSiteMode.Lax;
+    o.Cookie.RefreshToken.Path = "/";
 })
     .AddUltimateAuthInMemory();
 
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {
+    o.ApplicationProfile = UAuthApplicationProfile.BlazorServer;
+    o.AutoDetectApplicationProfile = false;
+    o.Login.AllowCredentialPost = true;
     //o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
     o.Resource.BaseAddress = "https://localhost:6120";

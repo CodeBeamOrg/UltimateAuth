@@ -13,7 +13,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit;
 
 public sealed class CompositeSessionIdResolverTests
 {
-    private const UAuthClientProfile Profile = UAuthClientProfile.BlazorServer;
+    private const UAuthApplicationProfile Profile = UAuthApplicationProfile.BlazorServer;
 
     [Fact]
     public async Task ResolveAsync_ShouldUseFirstSuccessfulResolverAccordingToConfiguredOrder()
@@ -189,7 +189,7 @@ public sealed class CompositeSessionIdResolverTests
     }
 
     [Fact]
-    public async Task ResolveAsync_ShouldReadClientProfileAndUseItsEffectiveOptions()
+    public async Task ResolveAsync_ShouldReadApplicationProfileAndUseItsEffectiveOptions()
     {
         var expected = CreateSessionId("cookie-session-000000000000000000000002");
 
@@ -197,7 +197,7 @@ public sealed class CompositeSessionIdResolverTests
 
         var options = CreateOptions("Cookie");
 
-        var profileReader = new Mock<IClientProfileReader>();
+        var profileReader = new Mock<IApplicationProfileReader>();
         var effectiveProvider = new Mock<IEffectiveServerOptionsProvider>();
 
         var context = new DefaultHttpContext();
@@ -256,7 +256,7 @@ public sealed class CompositeSessionIdResolverTests
     {
         var context = new DefaultHttpContext();
 
-        var profileReader = new Mock<IClientProfileReader>();
+        var profileReader = new Mock<IApplicationProfileReader>();
         profileReader
             .Setup(x => x.ReadAsync(context))
             .ReturnsAsync(Profile);

@@ -10,9 +10,8 @@ using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
-using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Users;
-using Microsoft.Extensions.Options;
+using CodeBeam.UltimateAuth.Users.Contracts;
 
 // TODO: Identifier-based throttling, Exponential lockout
 
@@ -31,6 +30,8 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
     private readonly IAuthenticationSecurityManager _authenticationSecurityManager; // runtime risk
     private readonly UAuthEventDispatcher _events;
     private readonly LoginPasswordVerification _passwordVerification;
+    private readonly IPrimaryUserIdentifierProvider _primaryIdentifiers;
+    private readonly IUserProfileSnapshotProvider _userProfiles;
     private readonly IClock _clock;
 
     public LoginOrchestrator(
@@ -45,6 +46,8 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         IAuthenticationSecurityManager authenticationSecurityManager,
         UAuthEventDispatcher events,
         LoginPasswordVerification passwordVerification,
+        IPrimaryUserIdentifierProvider primaryIdentifiers,
+        IUserProfileSnapshotProvider userProfiles,
         IClock clock)
     {
         _identifierResolver = identifierResolver;
@@ -58,6 +61,8 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         _authenticationSecurityManager = authenticationSecurityManager;
         _events = events;
         _passwordVerification = passwordVerification;
+        _primaryIdentifiers = primaryIdentifiers;
+        _userProfiles = userProfiles;
         _clock = clock;
     }
 
@@ -73,6 +78,11 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
 
         if (request.CredentialType != CredentialType.Password)
             throw new UAuthValidationException("unsupported_credential_type");
+
+        if (flow.EffectiveMode == UAuthMode.PureJwt && loginExecution.Mode == LoginExecutionMode.Commit && !request.RequestTokens)
+        {
+            throw new UAuthValidationException("pure_jwt_requires_token_delivery");
+        }
 
         var now = _clock.UtcNow;
         var resolution = await _identifierResolver.ResolveAsync(flow.Tenant, request.Identifier, ct);
@@ -137,21 +147,16 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
         }
 
         // TODO: Add create-time uniqueness guard for chain id for concurrency
-        var sessionStore = _storeFactory.Create(flow.Tenant);
         SessionChainId? chainId = null;
 
-        if (userKey is not null)
+        if (flow.EffectiveMode != UAuthMode.PureJwt && userKey is not null)
         {
+            var sessionStore = _storeFactory.Create(flow.Tenant);
             var chain = await sessionStore.GetChainByDeviceAsync(userKey.Value, deviceId, ct);
 
-            if (chain is not null)
+            if (chain is not null && chain.GetState(now, flow.Options.Session.IdleTimeout) == SessionState.Active)
             {
-                var chainState = chain.GetState(now, flow.Options.Session.IdleTimeout);
-
-                if (chainState == SessionState.Active)
-                {
-                    chainId = chain.ChainId;
-                }
+                chainId = chain.ChainId;
             }
         }
 
@@ -248,6 +253,53 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
 
         var claims = await _claimsProvider.GetClaimsAsync(flow.Tenant, userKey.Value, ct);
 
+        if (flow.EffectiveMode == UAuthMode.PureJwt)
+        {
+            var identifiers = await _primaryIdentifiers.GetAsync(flow.Tenant, userKey.Value, ct);
+
+            var profile = await _userProfiles.GetAsync(flow.Tenant, userKey.Value, ProfileKey.Default, ct);
+
+            var tokenContext = new TokenIssuanceContext
+            {
+                Tenant = flow.Tenant,
+                UserKey = userKey.Value,
+                Claims = claims,
+                SessionId = null,
+                SessionChainId = null,
+                DeviceId = deviceId,
+
+                PrimaryUserName = identifiers?.UserName,
+                DisplayName = profile?.DisplayName,
+                TimeZone = profile?.TimeZone,
+                AuthenticatedAt = now
+            };
+
+            var accessToken = await _tokens.IssueAccessTokenAsync(flow, tokenContext, ct);
+
+            if (accessToken.Format != TokenFormat.Jwt)
+            {
+                throw new InvalidOperationException("PureJwt must issue a JWT access token.");
+            }
+
+            var refreshIssuance = await _tokens.IssueRefreshTokenAsync(flow, tokenContext, RefreshTokenPersistence.Persist, ct);
+
+            var authTokens = new AuthTokens
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshIssuance is null
+                    ? null
+                    : new RefreshTokenInfo
+                    {
+                        Token = refreshIssuance.Token,
+                        ExpiresAt = refreshIssuance.ExpiresAt
+                    }
+            };
+
+            await _events.DispatchAsync(new UserLoggedInContext(flow.Tenant, userKey.Value, now, flow.Device, sessionId: null));
+
+            return LoginResult.Success(authTokens);
+        }
+
         var sessionContext = new SessionIssuanceContext
         {
             Tenant = flow.Tenant,
@@ -284,7 +336,7 @@ internal sealed class LoginOrchestrator : ILoginOrchestrator, IInternalLoginOrch
                 Tenant = flow.Tenant,
                 UserKey = userKey.Value,
                 SessionId = issuedSession.Session.SessionId,
-                ChainId = issuedSession.Session.ChainId,
+                SessionChainId = issuedSession.Session.ChainId,
                 Claims = claims
             };
 

@@ -46,7 +46,7 @@ UltimateAuth
 │
 └── Client
     └── UAuthClientOptions
-        ├── Client profile
+        ├── Application profile
         ├── Login and PKCE flows
         ├── Endpoint configuration
         ├── Auto-refresh
@@ -204,7 +204,7 @@ UltimateAuth clients have their own configuration model.
 ```csharp
 builder.Services.AddUltimateAuthClient(options =>
 {
-    options.AutoDetectClientProfile = true;
+    options.AutoDetectApplicationProfile = true;
     options.DefaultReturnUrl = "/";
 });
 ```
@@ -235,8 +235,8 @@ Those are server-side responsibilities.
 
 | Property | Responsibility |
 |---|---|
-| `ClientProfile` | Explicit client profile |
-| `AutoDetectClientProfile` | Automatic client profile detection |
+| `ApplicationProfile` | Explicit application profile |
+| `AutoDetectApplicationProfile` | Automatic application profile detection |
 | `DefaultReturnUrl` | Default post-authentication navigation |
 | `Login` | Client login flow behavior |
 | `Pkce` | Client PKCE flow behavior |
@@ -264,7 +264,7 @@ builder.Services.AddUltimateAuthServer(options =>
 
 builder.Services.AddUltimateAuthClient(options =>
 {
-    options.AutoDetectClientProfile = true;
+    options.AutoDetectApplicationProfile = true;
     options.DefaultReturnUrl = "/";
 });
 ```
@@ -277,7 +277,7 @@ These registrations configure different components.
 | Token lifetime | Controls | Does not control |
 | Credential reset policy | Controls | Does not control |
 | Allowed authentication modes | Controls | Does not control |
-| Client profile | Does not control | Controls |
+| Application profile | Does not control | Controls |
 | Client auto-refresh | Does not control | Controls |
 | Client navigation | Does not control | Controls |
 | Server endpoint exposure | Controls | Uses configured routes |
@@ -341,7 +341,7 @@ For example:
 {
   "UltimateAuth": {
     "Client": {
-      "AutoDetectClientProfile": true,
+      "AutoDetectApplicationProfile": true,
       "DefaultReturnUrl": "/dashboard",
       "AutoRefresh": {
         "Enabled": true
@@ -470,25 +470,15 @@ The effective authentication mode is resolved by the server's authentication mod
 
 Setting `AllowedModes` does not directly choose which mode every client will use.
 
-### Unsupported Modes
+### Supported Authentication Modes
 
-In the current implementation, `SemiHybrid` and `PureJwt` are not yet accepted as enabled server modes.
+UltimateAuth currently implements PureOpaque, Hybrid, and PureJwt.
 
-The server options validator rejects them when explicitly included in `AllowedModes`.
+SemiHybrid remains unavailable.
 
-For example, this configuration is invalid:
+The effective authentication mode is resolved from server-controlled configuration and application profile defaults.
 
-```csharp
-builder.Services.AddUltimateAuthServer(options =>
-{
-    options.AllowedModes =
-    [
-        UAuthMode.PureJwt
-    ];
-});
-```
-
-Do not enable an unsupported mode merely because it exists in the enum.
+Resource API mode resolution is independent from UAuthHub mode resolution. A Resource API does not automatically discover or adopt the mode selected for a particular client by UAuthHub.
 
 For supported modes and their behavior, see [Authentication Modes](/docs/fundamentals/auth-modes).
 
@@ -646,6 +636,41 @@ A Resource API does not become a full UltimateAuth authentication server merely 
 
 Its role is to protect application resources using the configured UltimateAuth authentication infrastructure.
 
+### PureJwt Resource API
+
+A PureJwt Resource API validates access tokens locally and does not require a connection to UAuthHub for each authenticated request.
+
+```csharp
+builder.Services.AddUltimateAuthResourceApi(options =>
+{
+    options.Auth.Mode = UAuthMode.PureJwt;
+
+    options.Auth.Jwt = new UAuthJwtValidationOptions
+    {
+        Issuer = "https://auth.example.com",
+        Audience = "products-api",
+        ValidAlgorithms = [SecurityAlgorithms.HmacSha256]
+    };
+
+    options.Cryptography.JwtVerificationKeys.Add(
+        new UAuthJwtVerificationKeyOptions
+        {
+            KeyId = "uauth-hs256-v1",
+            Key = builder.Configuration["UltimateAuth:JwtVerificationKey"]!
+        });
+
+    options.Auth.AccessToken.DeliveryMode = GrantDeliveryMode.Header;
+});
+```
+
+The Resource API must trust the signing key used by UAuthHub and must configure matching issuer, audience, algorithm, and key ID values.
+
+The example uses a symmetric key. Production deployments must protect shared signing material and distribute it only through trusted configuration or secret-management systems.
+
+For PureJwt, `Hub.BaseUrl` is optional because access-token validation does not require remote session validation.
+
+For session-based Resource API validation, `Hub.BaseUrl` is required.
+
 ### Important: Resource API CORS Configuration
 
 The current Resource API registration constructs its CORS policy using the values supplied to the registration delegate.
@@ -798,7 +823,7 @@ Configure authentication modes, token lifetimes, session lifetimes, credential p
 
 ### Keep Client Behavior in Client Options
 
-Configure client profiles, navigation, auto-refresh, reauthentication, and endpoint usage through `UAuthClientOptions`.
+Configure application profiles, navigation, auto-refresh, reauthentication, and endpoint usage through `UAuthClientOptions`.
 
 ### Use Configuration Files for Environment Differences
 
@@ -837,5 +862,5 @@ The Core-only registration exists for infrastructure scenarios that explicitly c
 
 - [Configuration Overview](/docs/configuration/configuration-overview) — Understand the overall configuration model.
 - [Server Options](/docs/configuration/server-options) — Configure authentication and security behavior.
-- [Client Options](/docs/configuration/client-options) — Configure client profiles, flows, and SDK behavior.
+- [Client Options](/docs/configuration/client-options) — Configure application profiles, flows, and SDK behavior.
 - [Advanced Configuration](/docs/configuration/advanced-configuration) — Customize integration, multi-tenancy, and runtime extension points.

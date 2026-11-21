@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Auth;
 
-public interface IClientProfileReader
+public interface IApplicationProfileReader
 {
-    Task<UAuthClientProfile> ReadAsync(HttpContext context);
+    Task<UAuthApplicationProfile> ReadAsync(HttpContext context);
 }

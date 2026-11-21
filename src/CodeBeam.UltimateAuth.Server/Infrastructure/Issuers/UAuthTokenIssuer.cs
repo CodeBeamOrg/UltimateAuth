@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
@@ -38,25 +39,46 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
 
         return flow.EffectiveMode switch
         {
-            // TODO: Discuss, Hybrid token may be JWT.
             UAuthMode.PureOpaque or UAuthMode.Hybrid =>
                 Task.FromResult(IssueOpaqueAccessToken(expires, context.SessionId)),
 
-            UAuthMode.SemiHybrid or
-            UAuthMode.PureJwt =>
+            UAuthMode.SemiHybrid =>
                 Task.FromResult(IssueJwtAccessToken(context, tokens, expires)),
 
-            _ => throw new InvalidOperationException($"Unsupported auth mode: {flow.EffectiveMode}")
+            UAuthMode.PureJwt
+                when context.SessionId is null &&
+                     context.SessionChainId is null &&
+                     context.DeviceId is not null =>
+                Task.FromResult(IssueJwtAccessToken(context, tokens, expires)),
+
+            UAuthMode.PureJwt =>
+                throw new InvalidOperationException("PureJwt requires a device ID and must not be bound to a session or chain."),
+
+            _
+                => throw new InvalidOperationException($"Unsupported auth mode: {flow.EffectiveMode}")
         };
     }
 
     public async Task<RefreshTokenIssuanceResult?> IssueRefreshTokenAsync(AuthFlowContext flow, TokenIssuanceContext context, RefreshTokenPersistence persistence, CancellationToken ct = default)
     {
         if (flow.EffectiveMode == UAuthMode.PureOpaque || !flow.Options.Token.IssueRefresh)
+        {
             return null;
+        }
 
-        if (context.SessionId is not AuthSessionId sessionId)
+        if (flow.EffectiveMode == UAuthMode.PureJwt)
+        {
+            if (context.SessionId is not null ||
+                context.SessionChainId is not null ||
+                context.DeviceId is null)
+            {
+                throw new InvalidOperationException("PureJwt refresh requires a device ID and must not be session-bound.");
+            }
+        }
+        else if (context.SessionId is null)
+        {
             return null;
+        }
 
         var now = _clock.UtcNow;
         var expires = now.Add(flow.Options.Token.RefreshTokenLifetime);
@@ -69,19 +91,24 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
             tokenHash: hash,
             tenant: flow.Tenant,
             userKey: context.UserKey,
-            sessionId: sessionId,
-            chainId: context.ChainId,
+            sessionId: context.SessionId,
+            sessionChainId: context.SessionChainId,
             createdAt: now,
-            expiresAt: expires);
+            authenticatedAt: context.AuthenticatedAt,
+            expiresAt: expires,
+            refreshChainId: context.RefreshChainId,
+            deviceId: context.DeviceId);
 
         if (persistence == RefreshTokenPersistence.Persist)
         {
             var store = _storeFactory.Create(flow.Tenant);
 
-            await store.ExecuteAsync(async transactionCt =>
-            {
-                await store.StoreAsync(stored, transactionCt);
-            }, ct);
+            await store.ExecuteAsync(
+                async transactionCt =>
+                {
+                    await store.StoreAsync(stored, transactionCt);
+                },
+                ct);
         }
 
         return new RefreshTokenIssuanceResult
@@ -118,9 +145,14 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
 
             // Framework - owned claims cannot be supplied by applications.
             if (type is
+                UAuthJwtProfileClaims.PrimaryUserName or
+                UAuthJwtProfileClaims.DisplayName or
+                UAuthJwtProfileClaims.TimeZone or
+                UAuthJwtProfileClaims.AuthenticatedAt or
                 "sub" or
                 "tenant" or
                 "sid" or
+                "device_id" or
                 "jti" or
                 "iss" or
                 "aud" or
@@ -139,6 +171,35 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
         claims["sub"] = context.UserKey.Value;
         claims["tenant"] = context.Tenant.Value;
 
+        if (!string.IsNullOrWhiteSpace(context.PrimaryUserName))
+        {
+            claims[UAuthJwtProfileClaims.PrimaryUserName] = context.PrimaryUserName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(context.DisplayName))
+        {
+            claims[UAuthJwtProfileClaims.DisplayName] = context.DisplayName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(context.TimeZone))
+        {
+            claims[UAuthJwtProfileClaims.TimeZone] = context.TimeZone;
+        }
+
+        if (context.AuthenticatedAt is DateTimeOffset authenticatedAt)
+        {
+            claims[UAuthJwtProfileClaims.AuthenticatedAt] = authenticatedAt.ToUniversalTime().ToString("O");
+        }
+
+        if (context.DeviceId is DeviceId deviceId)
+        {
+            claims["device_id"] = deviceId.Value;
+        }
+        else if (context.SessionId is null)
+        {
+            throw new InvalidOperationException("Session-free JWT issuance requires a device ID.");
+        }
+
         if (context.SessionId is AuthSessionId sessionId)
             claims["sid"] = sessionId.Value;
         else
@@ -155,6 +216,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
             IssuedAt = _clock.UtcNow,
             ExpiresAt = expires,
             Tenant = context.Tenant,
+            DeviceId = context.DeviceId,
             Claims = claims,
             KeyId = tokens.KeyId
         };

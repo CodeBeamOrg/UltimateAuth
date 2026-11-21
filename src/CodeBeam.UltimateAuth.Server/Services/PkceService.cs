@@ -54,7 +54,7 @@ internal sealed class PkceService : IPkceService
         }
 
         var snapshot = new PkceContextSnapshot(
-            clientProfile: command.ClientProfile,
+            applicationProfile: command.ApplicationProfile,
             tenant: command.Tenant,
             redirectUri: command.RedirectUri,
             device: device
@@ -94,7 +94,7 @@ internal sealed class PkceService : IPkceService
         }
 
         var completionContext = new PkceContextSnapshot(
-            clientProfile: auth.ClientProfile,
+            applicationProfile: auth.ApplicationProfile,
             tenant: auth.Tenant,
             redirectUri: request.ReturnUrl,
             device: auth.Device);
@@ -121,7 +121,7 @@ internal sealed class PkceService : IPkceService
 
         var execution = new AuthExecutionContext
         {
-            EffectiveClientProfile = artifact.Context.ClientProfile,
+            EffectiveApplicationProfile = artifact.Context.ApplicationProfile,
             Device = artifact.Context.Device
         };
 
@@ -148,7 +148,7 @@ internal sealed class PkceService : IPkceService
         var authorizationCode = AuthArtifactKey.New();
 
         var snapshot = new PkceContextSnapshot(
-            clientProfile: hub.ClientProfile,
+            applicationProfile: hub.ApplicationProfile,
             tenant: hub.Tenant,
             redirectUri: hub.ReturnUrl,
             device: device

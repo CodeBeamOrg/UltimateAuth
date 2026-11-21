@@ -2,10 +2,11 @@
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
-using CodeBeam.UltimateAuth.Core.Errors;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Users;
+using CodeBeam.UltimateAuth.Users.Contracts;
 
 namespace CodeBeam.UltimateAuth.Server.Services;
 
@@ -15,14 +16,18 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
     private readonly IRefreshTokenStoreFactory _storeFactory;
     private readonly ITokenIssuer _tokenIssuer;
     private readonly IUserClaimsProvider _claimsProvider;
+    private readonly IPrimaryUserIdentifierProvider _primaryIdentifiers;
+    private readonly IUserProfileSnapshotProvider _userProfiles;
 
 
-    public RefreshTokenRotationService(IRefreshTokenValidator validator, IRefreshTokenStoreFactory storeFactory, ITokenIssuer tokenIssuer, IUserClaimsProvider claimsProvider)
+    public RefreshTokenRotationService(IRefreshTokenValidator validator, IRefreshTokenStoreFactory storeFactory, ITokenIssuer tokenIssuer, IUserClaimsProvider claimsProvider, IPrimaryUserIdentifierProvider primaryIdentifiers, IUserProfileSnapshotProvider userProfiles)
     {
         _validator = validator;
         _storeFactory = storeFactory;
         _tokenIssuer = tokenIssuer;
         _claimsProvider = claimsProvider;
+        _primaryIdentifiers = primaryIdentifiers;
+        _userProfiles = userProfiles;
     }
 
     // TODO: Handle reuse detection and make flow knows situation, but don't make security branch.
@@ -30,10 +35,7 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
     {
         if (flow.EffectiveMode == UAuthMode.PureOpaque || !flow.Options.Token.IssueRefresh)
         {
-            return new RefreshTokenRotationExecution
-            {
-                Result = RefreshTokenRotationResult.Failed()
-            };
+            return Failed();
         }
 
         var validation = await _validator.ValidateAsync(
@@ -49,41 +51,50 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
 
         if (validation.State == RefreshTokenValidationState.Consumed)
         {
-            var concurrencyWindow = flow.Options.Token.RefreshTokenConcurrentRequestWindow;
+            var window = flow.Options.Token.RefreshTokenConcurrentRequestWindow;
 
-            if (IsLikelyConcurrentRequest(validation, context.Now, concurrencyWindow))
+            if (!IsLikelyConcurrentRequest(validation, context.Now, window))
             {
-                return new RefreshTokenRotationExecution
-                {
-                    Result = RefreshTokenRotationResult.Failed()
-                };
+                await HandleReplayAsync(validation, context.Now, ct);
             }
 
-            await HandleReplayAsync(validation, context.Now, ct);
-
-            return new RefreshTokenRotationExecution
-            {
-                Result = RefreshTokenRotationResult.Failed()
-            };
+            return Failed();
         }
 
-        if (!validation.IsValid)
+        if (!validation.IsValid ||
+            validation.UserKey is not UserKey userKey ||
+            string.IsNullOrWhiteSpace(validation.TokenHash))
         {
-            return new RefreshTokenRotationExecution { Result = RefreshTokenRotationResult.Failed() };
+            return Failed();
         }
 
-        if (validation.UserKey is not UserKey userKey)
-            throw new UAuthValidationException("Validated refresh token does not contain a UserKey.");
+        var isPureJwt = flow.EffectiveMode == UAuthMode.PureJwt;
 
-        if (validation.SessionId is not AuthSessionId sessionId)
-            throw new UAuthValidationException("Validated refresh token does not contain a SessionId.");
+        // Enforce mode-specific refresh token structure.
+        if (isPureJwt)
+        {
+            if (validation.SessionId is not null ||
+                validation.SessionChainId is not null ||
+                validation.DeviceId is null)
+            {
+                return Failed();
+            }
+        }
+        else if (validation.SessionId is null)
+        {
+            return Failed();
+        }
 
-        if (validation.TokenHash is null)
-            throw new UAuthValidationException("Validated refresh token does not contain a hashed token.");
+        if (validation.RefreshChainId is not { } refreshChainId || refreshChainId.Value == Guid.Empty)
+            return Failed();
 
         var store = _storeFactory.Create(validation.Tenant);
 
         var claims = await _claimsProvider.GetClaimsAsync(validation.Tenant, userKey, ct);
+
+        var identifiers = await _primaryIdentifiers.GetAsync(validation.Tenant, userKey, ct);
+
+        var profile = await _userProfiles.GetAsync(validation.Tenant, userKey, ProfileKey.Default, ct);
 
         var tokenContext = new TokenIssuanceContext
         {
@@ -92,87 +103,102 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
                 : TenantKey.Single,
 
             UserKey = userKey,
-            SessionId = sessionId,
-            ChainId = validation.ChainId,
-            Claims = claims
+            SessionId = validation.SessionId,
+            SessionChainId = validation.SessionChainId,
+            RefreshChainId = validation.RefreshChainId,
+            DeviceId = validation.DeviceId,
+            Claims = claims,
+
+            PrimaryUserName = identifiers?.UserName,
+            DisplayName = profile?.DisplayName,
+            TimeZone = profile?.TimeZone,
+            AuthenticatedAt = validation.AuthenticatedAt
         };
 
-        // Generate candidate replacement refresh token.
-        // Do not persist it yet.
+        // Generate a replacement candidate without persisting it.
         var refreshToken = await _tokenIssuer.IssueRefreshTokenAsync(flow, tokenContext, RefreshTokenPersistence.DoNotPersist, ct);
 
         if (refreshToken is null)
-        {
-            return new RefreshTokenRotationExecution { Result = RefreshTokenRotationResult.Failed() };
-        }
+            return Failed();
 
         var accessToken = await _tokenIssuer.IssueAccessTokenAsync(flow, tokenContext, ct);
 
-        // Only one concurrent request is allowed to consume
-        // the current refresh token.
+        // Consume the old token and persist its replacement
+        // within the same store execution scope.
         var consumed = await store.ExecuteAsync(
-            async ct2 =>
+            async transactionCt =>
             {
-                var acquired = await store.TryConsumeAsync(validation.TokenHash, context.Now, refreshToken.TokenHash, ct2);
+                var acquired = await store.TryConsumeAsync(validation.TokenHash, context.Now, refreshToken.TokenHash, transactionCt);
 
                 if (!acquired)
                     return false;
 
-                var stored = RefreshToken.Create(
+                var replacement = RefreshToken.Create(
                     tokenId: TokenId.New(),
                     tokenHash: refreshToken.TokenHash,
                     tenant: validation.Tenant,
                     userKey: userKey,
-                    sessionId: sessionId,
-                    chainId: validation.ChainId,
+                    sessionId: validation.SessionId,
+                    sessionChainId: validation.SessionChainId,
                     createdAt: context.Now,
-                    expiresAt: refreshToken.ExpiresAt);
+                    authenticatedAt: validation.AuthenticatedAt,
+                    expiresAt: refreshToken.ExpiresAt,
+                    refreshChainId: validation.RefreshChainId,
+                    deviceId: validation.DeviceId);
 
-                await store.StoreAsync(stored, ct2);
+                await store.StoreAsync(replacement, transactionCt);
 
                 return true;
             },
             ct);
 
-        // Another concurrent request consumed this token first.
         if (!consumed)
-        {
-            return new RefreshTokenRotationExecution { Result = RefreshTokenRotationResult.Failed() };
-        }
-
-        var refreshTokenInfo = new RefreshTokenInfo
-        {
-            Token = refreshToken.Token,
-            ExpiresAt = refreshToken.ExpiresAt
-        };
+            return Failed();
 
         return new RefreshTokenRotationExecution
         {
             Tenant = validation.Tenant,
             UserKey = userKey,
-            SessionId = sessionId,
-            ChainId = validation.ChainId,
-            Result = RefreshTokenRotationResult.Success(accessToken, refreshTokenInfo)
+            SessionId = validation.SessionId,
+            SessionChainId = validation.SessionChainId,
+
+            Result = RefreshTokenRotationResult.Success(
+                accessToken,
+                new RefreshTokenInfo
+                {
+                    Token = refreshToken.Token,
+                    ExpiresAt = refreshToken.ExpiresAt
+                })
         };
     }
+
+    private static RefreshTokenRotationExecution Failed()
+        => new() { Result = RefreshTokenRotationResult.Failed() };
 
     private async Task HandleReplayAsync(RefreshTokenValidationResult validation, DateTimeOffset now, CancellationToken ct)
     {
         var store = _storeFactory.Create(validation.Tenant);
 
         await store.ExecuteAsync(
-            async ct2 =>
+            async transactionCt =>
             {
-                if (validation.ChainId is SessionChainId chainId)
+                if (validation.SessionChainId is SessionChainId sessionChainId)
                 {
-                    await store.RevokeByChainAsync(chainId, now, ct2);
+                    await store.RevokeBySessionChainAsync(sessionChainId, now, transactionCt);
 
                     return;
                 }
 
                 if (validation.SessionId is AuthSessionId sessionId)
                 {
-                    await store.RevokeBySessionAsync(sessionId, now, ct2);
+                    await store.RevokeBySessionAsync(sessionId, now, transactionCt);
+
+                    return;
+                }
+
+                if (validation.RefreshChainId is { } refreshChainId && refreshChainId.Value != Guid.Empty)
+                {
+                    await store.RevokeByRefreshChainAsync(refreshChainId, now, transactionCt);
                 }
             },
             ct);
@@ -191,7 +217,6 @@ public sealed class RefreshTokenRotationService : IRefreshTokenRotationService
 
         var elapsed = now - consumedAt;
 
-        return elapsed >= TimeSpan.Zero &&
-               elapsed <= window;
+        return elapsed >= TimeSpan.Zero && elapsed <= window;
     }
 }

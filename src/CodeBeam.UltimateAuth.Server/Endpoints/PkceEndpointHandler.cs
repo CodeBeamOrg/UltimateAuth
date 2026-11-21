@@ -66,7 +66,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
                 ChallengeMethod = request.ChallengeMethod,
                 Device = request.Device,
                 RedirectUri = request.RedirectUri,
-                ClientProfile = auth.ClientProfile,
+                ApplicationProfile = auth.ApplicationProfile,
                 Tenant = auth.Tenant
             },
             ctx.RequestAborted);
@@ -105,7 +105,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
         }
 
         var completionContext = new PkceContextSnapshot(
-            clientProfile: authContext.ClientProfile,
+            applicationProfile: authContext.ApplicationProfile,
             tenant: authContext.Tenant,
             redirectUri: request.ReturnUrl,
             device: authContext.Device);
@@ -130,7 +130,7 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
 
         var execution = new AuthExecutionContext
         {
-            EffectiveClientProfile = artifact.Context.ClientProfile,
+            EffectiveApplicationProfile = artifact.Context.ApplicationProfile,
             Device = artifact.Context.Device
         };
 

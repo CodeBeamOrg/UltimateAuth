@@ -26,7 +26,7 @@ A complete authentication operation may need to determine:
 
 - Which tenant the operation belongs to.
 - Which authentication mode is permitted.
-- Which client profile and runtime characteristics apply.
+- Which application profile and runtime characteristics apply.
 - What authentication proof is required.
 - Whether an existing authentication context can continue.
 - Which security policies must be enforced.
@@ -118,7 +118,7 @@ It brings together the information required to apply consistent authentication b
 - The intended authentication flow.
 - The effective authentication mode.
 - The resolved tenant context.
-- The applicable client profile.
+- The applicable application profile.
 - Effective server options and security policies.
 - Relevant device and session context, when applicable.
 - Credential delivery and response behavior.
@@ -127,7 +127,7 @@ The context is established through framework-controlled boundaries.
 
 Once established, it must remain stable throughout the operation. Individual services and endpoints must not independently replace it or reconstruct it using different assumptions.
 
-This matters particularly in applications serving multiple tenants, client runtimes, and authentication modes.
+This matters particularly in applications serving multiple tenants, application runtimes, and authentication modes.
 
 A flow must not begin under one security policy and complete under another merely because different components interpreted the request differently.
 
@@ -208,7 +208,7 @@ The components participating in an authentication operation have distinct respon
 
 **Request and context resolution**
 
-Establish the trusted execution environment, including tenant, mode, client profile, and effective policies.
+Establish the trusted execution environment, including tenant, mode, application profile, and effective policies.
 
 **Authentication validation**
 
@@ -253,9 +253,9 @@ These differences affect client integration and credential transport.
 
 They do not require independent implementations of the fundamental authentication model.
 
-Client Profiles provide runtime-appropriate behavior and defaults, while authentication modes define the validation and lifecycle strategy.
+Application Profiles provide runtime-appropriate behavior and defaults, while authentication modes define the validation and lifecycle strategy.
 
-See [Client Profiles](/docs/fundamentals/client-profiles) for how runtime characteristics influence authentication configuration.
+See [Application Profiles](/docs/fundamentals/application-profiles) for how runtime characteristics influence authentication configuration.
 
 ## Predictable outcomes
 
@@ -328,7 +328,7 @@ A flow:
 
 The architecture does not require every mode to use the same credentials, persistence model, or validation strategy.
 
-**Flows define the operation. Modes define its authentication behavior. Client Profiles adapt its integration with the runtime.**
+**Flows define the operation. Modes define its authentication behavior. Application Profiles adapt its integration with the runtime.**
 
 ## Next step
 

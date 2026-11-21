@@ -1,7 +1,8 @@
-using System.Net;
-using System.Threading.RateLimiting;
 using CodeBeam.UltimateAuth.InMemory;
+using CodeBeam.UltimateAuth.Server.Abstractions;
+using CodeBeam.UltimateAuth.Server.Contracts;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.RateLimiting;
 using Microsoft.AspNetCore.Builder;
@@ -11,6 +12,10 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
+using System.Net;
+using System.Security.Cryptography;
+using System.Threading.RateLimiting;
 
 namespace CodeBeam.UltimateAuth.Tests.Integration;
 
@@ -352,10 +357,43 @@ public class RateLimitingTests
             bool aspNet = true, bool? enabled = null, bool repeat = false,
             Action<RateLimiterOptions>? native = null, bool applicationPolicy = false, bool trustedProxy = false, bool disableNative = false, RateLimiterOptions? middlewareOptions = null)
         {
-            var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Production" });
+            var builder = WebApplication.CreateBuilder(
+            new WebApplicationOptions
+            {
+                EnvironmentName = "Production"
+            });
+
             builder.WebHost.UseTestServer();
-            builder.Services.AddUltimateAuthServer(configure).AddUltimateAuthInMemory();
-            if (native is not null) builder.Services.AddRateLimiter(native);
+
+            var key = new SymmetricSecurityKey(
+                RandomNumberGenerator.GetBytes(32))
+            {
+                KeyId = "integration-test-key"
+            };
+
+            var hashingKey = Convert.ToBase64String(
+                RandomNumberGenerator.GetBytes(32));
+
+            // Custom providers must be registered before UltimateAuth.
+            builder.Services.AddSingleton<IJwtSigningKeyProvider>(
+                new TestJwtSigningKeyProvider(key));
+
+            builder.Services.AddSingleton<IJwtVerificationKeyProvider>(
+                new StaticJwtVerificationKeyProvider([key]));
+
+            builder.Services.AddUltimateAuthServer(options =>
+            {
+                // Preserve the caller's configuration.
+                configure?.Invoke(options);
+
+                // Production-safe test hashing key.
+                options.Cryptography.TokenHashingKey = hashingKey;
+            })
+            .AddUltimateAuthInMemory();
+
+            if (native is not null)
+                builder.Services.AddRateLimiter(native);
+
             var app = builder.Build();
             app.Use((context, next) =>
             {
@@ -363,6 +401,7 @@ public class RateLimitingTests
                 context.Connection.RemoteIpAddress = IPAddress.Parse(context.Request.Headers["Test-Connection-IP"].ToString());
                 return next(context);
             });
+
             if (trustedProxy)
             {
                 var forwarding = new Microsoft.AspNetCore.Builder.ForwardedHeadersOptions
@@ -370,6 +409,7 @@ public class RateLimitingTests
                 forwarding.KnownProxies.Add(IPAddress.Parse("192.0.2.1"));
                 app.UseForwardedHeaders(forwarding);
             }
+
             app.UseRouting();
             if (middlewareOptions is not null) app.UseRateLimiter(middlewareOptions);
             if (aspNet)
@@ -379,7 +419,12 @@ public class RateLimitingTests
                 else app.UseUltimateAuthWithAspNetCore(enableCors: null, useRateLimiting: enabled.Value);
                 if (repeat) app.UseUltimateAuthWithAspNetCore();
             }
-            else app.UseUltimateAuth(useRateLimiting: enabled ?? false);
+            else
+            {
+                app.UseUltimateAuth(useRateLimiting: enabled ?? false);
+                app.UseAuthentication();
+            }
+
             var group = app.MapGroup("");
             if (applicationPolicy) group.RequireRateLimiting("Sensitive");
             if (disableNative) group.DisableRateLimiting();
@@ -391,5 +436,23 @@ public class RateLimitingTests
             return new Host(app);
         }
         public async ValueTask DisposeAsync() { _client.Dispose(); await app.DisposeAsync(); }
+    }
+
+    private sealed class TestJwtSigningKeyProvider(SymmetricSecurityKey key) : IJwtSigningKeyProvider
+    {
+        public JwtSigningKey Resolve(string? keyId)
+        {
+            if (keyId is not null && !string.Equals(keyId, key.KeyId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException($"Unknown JWT signing key ID: '{keyId}'.");
+            }
+
+            return new JwtSigningKey
+            {
+                KeyId = key.KeyId!,
+                Algorithm = SecurityAlgorithms.HmacSha256,
+                Key = key
+            };
+        }
     }
 }

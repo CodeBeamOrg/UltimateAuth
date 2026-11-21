@@ -36,7 +36,7 @@
 //                Tenant = default!,
 //                Operation = AuthOperation.ResourceAccess,
 //                Mode = UAuthMode.PureOpaque,
-//                ClientProfile = UAuthClientProfile.Api,
+//                ApplicationProfile = UAuthApplicationProfile.ResourceApi,
 //                Device = device,
 //                At = at ?? _clock.UtcNow,
 //                Session = null
@@ -48,7 +48,7 @@
 //            Tenant = result.Tenant,
 //            Operation = AuthOperation.ResourceAccess,
 //            Mode = UAuthMode.PureOpaque, // TODO: Think about resolver.
-//            ClientProfile = UAuthClientProfile.Api,
+//            ApplicationProfile = UAuthApplicationProfile.ResourceApi,
 //            Device = device,
 //            At = at ?? _clock.UtcNow,
 

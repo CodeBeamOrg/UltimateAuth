@@ -62,7 +62,7 @@ Prefer the most specific supported mechanism rather than replacing an entire aut
 
 The server does not necessarily use the original `UAuthServerOptions` instance unchanged for every authentication flow.
 
-Instead, UltimateAuth can resolve an effective configuration based on the client profile and authentication mode.
+Instead, UltimateAuth can resolve an effective configuration based on the application profile and authentication mode.
 
 The relevant types are:
 
@@ -134,7 +134,7 @@ In simplified form:
 ```csharp
 var original = baseOptions.Value;
 
-var mode = modeResolver.Resolve(clientProfile);
+var mode = modeResolver.Resolve(applicationProfile);
 
 var options = original.Clone();
 
@@ -162,13 +162,13 @@ Explicit mode overrides are applied last.
 
 ### What Changes Between Requests?
 
-Different client profiles can resolve to different authentication modes.
+Different application profiles can resolve to different authentication modes.
 
-The provider therefore can produce different effective configurations for different client profiles.
+The provider therefore can produce different effective configurations for different application profiles.
 
 However, this does not mean every setting is independently recalculated from arbitrary request data.
 
-In the current implementation, mode selection is based on the supplied `UAuthClientProfile`.
+In the current implementation, mode selection is based on the supplied `UAuthApplicationProfile`.
 
 The provider also accepts tenant context, but the default effective-options construction does not apply an additional tenant-specific configuration override.
 
@@ -176,14 +176,15 @@ Applications should not assume that per-tenant options customization exists auto
 
 ## 4. Default Authentication Mode Resolution
 
-The default `EffectiveAuthModeResolver` maps client profiles to authentication modes.
+The default `EffectiveAuthModeResolver` maps application profiles to authentication modes.
 
-| Client profile | Resolved mode |
+| Application profile | Resolved mode |
 |---|---|
 | `BlazorServer` | `PureOpaque` |
 | `WebServer` | `Hybrid` |
 | `BlazorWasm` | `Hybrid` |
 | `Maui` | `Hybrid` |
+| `ResourceApi` | `PureJwt` |
 | `Api` | `PureJwt` |
 | Other / unknown | `Hybrid` |
 
@@ -193,7 +194,7 @@ They do not imply that every resolved mode is fully supported in the current rel
 
 In particular, the current server options validator rejects explicit activation of `SemiHybrid` and `PureJwt` through `AllowedModes`.
 
-Applications should verify that their client profiles resolve to a supported authentication mode before deploying.
+Applications should verify that their application profiles resolve to a supported authentication mode before deploying.
 
 ### AllowedModes Is Not a Mode Selector
 
@@ -362,8 +363,8 @@ The interface exposes:
 public interface IEffectiveServerOptionsProvider
 {
     UAuthServerOptions GetOriginal(HttpContext context);
-    EffectiveUAuthServerOptions GetEffective(HttpContext context, UAuthClientProfile clientProfile);
-    EffectiveUAuthServerOptions GetEffective(TenantKey tenant, UAuthClientProfile clientProfile);
+    EffectiveUAuthServerOptions GetEffective(HttpContext context, UAuthApplicationProfile applicationProfile);
+    EffectiveUAuthServerOptions GetEffective(TenantKey tenant, UAuthApplicationProfile applicationProfile);
 }
 ```
 
@@ -377,7 +378,7 @@ var configuredLifetime = original.Token.AccessTokenLifetime;
 ### Inspect the Effective Configuration
 
 ```csharp
-var effective = provider.GetEffective(httpContext, UAuthClientProfile.BlazorWasm);
+var effective = provider.GetEffective(httpContext, UAuthApplicationProfile.BlazorWasm);
 var mode = effective.Mode;
 var lifetime = effective.Options.Token.AccessTokenLifetime;
 ```
@@ -407,11 +408,11 @@ The interface contains:
 ```csharp
 public interface IEffectiveAuthModeResolver
 {
-    UAuthMode Resolve(UAuthClientProfile clientProfile);
+    UAuthMode Resolve(UAuthApplicationProfile applicationProfile);
 }
 ```
 
-The default implementation selects the mode using the client profile.
+The default implementation selects the mode using the application profile.
 
 An application can provide its own resolver when the default mapping does not meet its requirements.
 
@@ -420,13 +421,13 @@ An application can provide its own resolver when the default mapping does not me
 ```csharp
 public sealed class ApplicationAuthModeResolver : IEffectiveAuthModeResolver
 {
-    public UAuthMode Resolve(UAuthClientProfile clientProfile)
+    public UAuthMode Resolve(UAuthApplicationProfile applicationProfile)
     {
-        return clientProfile switch
+        return applicationProfile switch
         {
-            UAuthClientProfile.BlazorServer => UAuthMode.PureOpaque,
-            UAuthClientProfile.BlazorWasm => UAuthMode.Hybrid,
-            UAuthClientProfile.Maui => UAuthMode.Hybrid,
+            UAuthApplicationProfile.BlazorServer => UAuthMode.PureOpaque,
+            UAuthApplicationProfile.BlazorWasm => UAuthMode.Hybrid,
+            UAuthApplicationProfile.Maui => UAuthMode.Hybrid,
 
             _ => UAuthMode.Hybrid
         };
@@ -449,7 +450,7 @@ The custom resolver must return a mode compatible with the server's supported mo
 
 Do not choose authentication modes based solely on untrusted client-provided values without appropriate validation.
 
-Also note that the current resolver interface receives a client profile, not an arbitrary HTTP request context.
+Also note that the current resolver interface receives an application profile, not an arbitrary HTTP request context.
 
 For more complex context-dependent selection, additional application integration may be necessary.
 
@@ -1128,7 +1129,7 @@ Validate their results through tests and appropriate application safeguards.
 | Mode customization | `ConfigureMode()` | Apply mode-specific overrides |
 | Effective configuration | `IEffectiveServerOptionsProvider` | Resolve effective server settings |
 | Effective result | `EffectiveUAuthServerOptions` | Resolved mode and options |
-| Mode selection | `IEffectiveAuthModeResolver` | Resolve mode from client profile |
+| Mode selection | `IEffectiveAuthModeResolver` | Resolve mode from application profile |
 | Login decisions | `ILoginAuthority` | Evaluate login decisions |
 | Authentication authority | `IAuthAuthority` | Authentication security decisions |
 | Access authority | `IAccessAuthority` | Access decisions |

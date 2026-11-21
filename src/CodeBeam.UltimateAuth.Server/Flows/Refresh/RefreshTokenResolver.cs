@@ -2,7 +2,6 @@
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Primitives;
 
 namespace CodeBeam.UltimateAuth.Server.Flows;
 
@@ -29,7 +28,7 @@ internal sealed class RefreshTokenResolver : IRefreshTokenResolver
 
         var delivery = flow.Response.RefreshTokenDelivery;
 
-        if (delivery.Mode == TokenResponseMode.Cookie)
+        if (delivery.Mode == GrantDeliveryMode.Cookie)
         {
             var cookieName = delivery.Cookie?.Name;
 
@@ -42,7 +41,7 @@ internal sealed class RefreshTokenResolver : IRefreshTokenResolver
         }
 
         // Explicitly configured refresh-token response header.
-        if (delivery.Mode == TokenResponseMode.Header && !string.IsNullOrWhiteSpace(delivery.Name))
+        if (delivery.Mode == GrantDeliveryMode.Header && !string.IsNullOrWhiteSpace(delivery.Name))
         {
             return ReadHeader(context, delivery.Name);
         }

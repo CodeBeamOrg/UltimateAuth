@@ -82,7 +82,7 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
                     CredentialType.Password,
                     deviceId.Value,
                     request.Identifier,
-                    authFlow.ClientProfile,
+                    authFlow.ApplicationProfile,
                     fingerprint))
                 {
                     var resolution = await _loginIdentifierResolver.ResolveAsync(authFlow.Tenant, request.Identifier, ctx.RequestAborted);
@@ -99,7 +99,7 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
                                 CredentialType.Password,
                                 deviceId.Value,
                                 request.Identifier,
-                                authFlow.ClientProfile,
+                                authFlow.ApplicationProfile,
                                 fingerprint);
                     }
                 }
@@ -220,7 +220,7 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
                     request.CredentialType,
                     deviceId.Value,
                     request.Identifier,
-                    authFlow.ClientProfile,
+                    authFlow.ApplicationProfile,
                     fingerprint,
                     _clock.UtcNow.Add(_options.Login.TryLoginDuration));
 

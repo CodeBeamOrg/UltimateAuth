@@ -37,7 +37,7 @@ public class PkceTests
     //    var (artifact, verifier) = TestPkceFactory.Create();
 
     //    var wrongContext = new PkceContextSnapshot(
-    //        artifact.Context.ClientProfile,
+    //        artifact.Context.ApplicationProfile,
     //        artifact.Context.Tenant,
     //        artifact.Context.RedirectUri,
     //        device: TestDevice.Alternative()

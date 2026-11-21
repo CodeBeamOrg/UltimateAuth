@@ -93,7 +93,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<UAuthClientOptions>, UAuthClientEndpointOptionsValidator>();
         services.AddSingleton<IValidateOptions<UAuthClientOptions>, UAuthClientResourceOptionsValidator>();
 
-        services.AddSingleton<IClientProfileDetector, UAuthClientProfileDetector>();
+        services.AddSingleton<IApplicationProfileDetector, UAuthApplicationProfileDetector>();
         services.AddSingleton<IPostConfigureOptions<UAuthClientOptions>, UAuthClientOptionsPostConfigure>();
         services.TryAddSingleton<IClock, ClientClock>();
         services.AddSingleton<IUAuthClientEvents, UAuthClientEvents>();

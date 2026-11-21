@@ -6,10 +6,10 @@ namespace CodeBeam.UltimateAuth.Client.Infrastructure;
 
 internal sealed class UAuthClientOptionsPostConfigure : IPostConfigureOptions<UAuthClientOptions>
 {
-    private readonly IClientProfileDetector _detector;
+    private readonly IApplicationProfileDetector _detector;
     private readonly IServiceProvider _services;
 
-    public UAuthClientOptionsPostConfigure(IClientProfileDetector detector, IServiceProvider services)
+    public UAuthClientOptionsPostConfigure(IApplicationProfileDetector detector, IServiceProvider services)
     {
         _detector = detector;
         _services = services;
@@ -17,12 +17,12 @@ internal sealed class UAuthClientOptionsPostConfigure : IPostConfigureOptions<UA
 
     public void PostConfigure(string? name, UAuthClientOptions options)
     {
-        if (!options.AutoDetectClientProfile)
+        if (!options.AutoDetectApplicationProfile)
             return;
 
-        if (options.ClientProfile != UAuthClientProfile.NotSpecified)
+        if (options.ApplicationProfile != UAuthApplicationProfile.NotSpecified)
             return;
 
-        options.ClientProfile = _detector.Detect(_services);
+        options.ApplicationProfile = _detector.Detect(_services);
     }
 }

@@ -36,10 +36,13 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting.Internal;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -94,27 +97,15 @@ public static class ServiceCollectionExtensions
 
         services.AddUltimateAuthResourceInternal();
 
-        var temp = new UAuthResourceApiOptions();
-        configure?.Invoke(temp);
-
-        if (temp.AllowedClientOrigins?.Count > 0)
-        {
-            services.AddCors(cors =>
-            {
-                cors.AddPolicy(temp.CorsPolicyName, policy =>
-                {
-                    policy
-                        .WithOrigins(temp.AllowedClientOrigins.ToArray())
-                        .AllowAnyHeader()
-                        .AllowAnyMethod()
-                        .AllowCredentials();
-                });
-            });
-        }
+        services.AddCors();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CorsOptions>, UAuthResourceCorsOptionsSetup>());
 
         return services;
     }
 
+    // =========================
+    // ADD SERVER INTERNAL
+    // =========================
     private static IServiceCollection AddUltimateAuthServerInternal(this IServiceCollection services)
     {
         services.AddSingleton<IUAuthRuntimeMarker, ServerRuntimeMarker>();
@@ -122,13 +113,39 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IOpaqueTokenGenerator, OpaqueTokenGenerator>();
         services.TryAddSingleton<IJwtTokenGenerator,JwtTokenGenerator>();
         services.TryAddSingleton<INumericCodeGenerator, NumericCodeGenerator>();
-        services.TryAddSingleton<IJwtSigningKeyProvider, DevelopmentJwtSigningKeyProvider>();
+
+        var usesBuiltInSigning = !services.Any(x => x.ServiceType == typeof(IJwtSigningKeyProvider));
+        var usesBuiltInHashing = !services.Any(x => x.ServiceType == typeof(ITokenHasher));
+
+        services.TryAddSingleton<IJwtSigningKeyProvider, ConfiguredJwtSigningKeyProvider>();
 
         services.TryAddScoped<ITokenHasher>(sp =>
         {
-            var keyProvider = sp.GetRequiredService<IJwtSigningKeyProvider>();
-            var key = keyProvider.Resolve(null);
-            return new HmacSha256TokenHasher(((SymmetricSecurityKey)key.Key).Key);
+            var options = sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+
+            var key = UAuthKeyMaterial.Decode(options.Cryptography.TokenHashingKey, "Cryptography.TokenHashingKey");
+
+            return new HmacSha256TokenHasher(key);
+        });
+
+        services.AddSingleton<IValidateOptions<UAuthServerOptions>>(sp =>
+        {
+            var environmentName = sp.GetService<IHostEnvironment>()?.EnvironmentName ?? Environments.Production;
+            return new UAuthCryptographyOptionsValidator(environmentName, usesBuiltInSigning, usesBuiltInHashing);
+        });
+
+        services.TryAddSingleton<IJwtVerificationKeyProvider>(sp =>
+        {
+            var signingProvider = sp.GetRequiredService<IJwtSigningKeyProvider>();
+
+            if (signingProvider is not ConfiguredJwtSigningKeyProvider)
+            {
+                throw new InvalidOperationException("A custom JWT signing provider requires an explicit IJwtVerificationKeyProvider registration.");
+            }
+
+            var signingKey = signingProvider.Resolve(null);
+
+            return new StaticJwtVerificationKeyProvider(new[] { signingKey.Key });
         });
 
         // -----------------------------
@@ -207,6 +224,7 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IRefreshFlowService, RefreshFlowService>();
         services.TryAddScoped<IPkceService, PkceService>();
         services.TryAddScoped<IAuthenticationLockoutService, AuthenticationLockoutService>();
+        services.TryAddScoped<IPureJwtLogoutService, PureJwtLogoutService>();
 
         services.TryAddSingleton<IClock, CodeBeam.UltimateAuth.Server.Infrastructure.SystemClock>();
 
@@ -241,15 +259,14 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IClientBaseAddressProvider, RefererHeaderBaseAddressProvider>();
         services.AddSingleton<IClientBaseAddressProvider, ConfiguredClientBaseAddressProvider>();
         services.AddSingleton<IClientBaseAddressProvider, RequestHostBaseAddressProvider>();
-        services.AddSingleton<ClientBaseAddressResolver>();
 
+        services.AddSingleton<ClientBaseAddressResolver>();
         services.TryAddScoped<ITenantResolver, UAuthTenantResolver>();
         services.TryAddScoped<IRefreshTokenResolver, RefreshTokenResolver>();
         services.TryAddScoped<IDeviceResolver, DeviceResolver>();
         services.TryAddScoped<IValidateCredentialResolver, ValidateCredentialResolver>();
         services.TryAddScoped<ITransportCredentialResolver, TransportCredentialResolver>();
         services.TryAddScoped<IPrimaryCredentialResolver, PrimaryCredentialResolver>();
-        services.TryAddSingleton<AuthResponseOptionsModeTemplateResolver>();
         services.TryAddSingleton<IAuthResponseResolver, AuthResponseResolver>();
         services.TryAddSingleton<IEffectiveAuthModeResolver, EffectiveAuthModeResolver>();
         services.TryAddSingleton<IPrimaryTokenResolver, PrimaryTokenResolver>();
@@ -265,12 +282,34 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IPkceAuthorizationValidator, PkceAuthorizationValidator>();
         services.TryAddScoped<IUserIdentifierValidator, UserIdentifierValidator>();
         services.TryAddScoped<IUserProfileValidator, UserProfileValidator>();
+        services.TryAddScoped<IUAuthJwtValidator, UAuthJwtValidator>();
+
+        services.TryAddSingleton<IOptions<UAuthJwtValidationOptions>>(sp =>
+        {
+            var serverOptions =
+                sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+
+            var signingProvider =
+                sp.GetRequiredService<IJwtSigningKeyProvider>();
+
+            var signingKey = signingProvider.Resolve(
+                serverOptions.Token.KeyId);
+
+            return Microsoft.Extensions.Options.Options.Create(
+                new UAuthJwtValidationOptions
+                {
+                    Issuer = serverOptions.Token.Issuer,
+                    Audience = serverOptions.Token.Audience,
+                    ValidAlgorithms = new[] { signingKey.Algorithm },
+                    ClockSkew = TimeSpan.FromSeconds(30),
+                    MaximumTokenSizeInBytes = 16 * 1024
+                });
+        });
 
         services.TryAddScoped<ICredentialResponseWriter, CredentialResponseWriter>();
         services.TryAddScoped<IRefreshResponseWriter, RefreshResponseWriter>();
-        services.TryAddSingleton<IClientProfileReader, ClientProfileReader>();
+        services.TryAddSingleton<IApplicationProfileReader, ApplicationProfileReader>();
         
-        services.TryAddSingleton<ClientProfileAuthResponseAdapter>();
         services.TryAddScoped<IEffectiveServerOptionsProvider, EffectiveServerOptionsProvider>();
 
         services.TryAddSingleton<IUAuthHeaderPolicyBuilder, UAuthHeaderPolicyBuilder>();
@@ -475,7 +514,28 @@ public static class ServiceCollectionExtensions
         // Resource API Specific
         services.AddSingleton<IUAuthRuntimeMarker, ResourceRuntimeMarker>();
 
+        services.AddSingleton<IValidateOptions<UAuthResourceApiOptions>, UAuthResourceApiOptionsValidator>();
+        services.AddOptions<UAuthResourceApiOptions>().ValidateOnStart();
+
+        services.TryAddSingleton<IOptions<UAuthJwtValidationOptions>>(sp =>
+        {
+            var resource = sp.GetRequiredService<
+                IOptions<UAuthResourceApiOptions>>().Value;
+
+            var jwt = resource.Auth.Jwt
+                ?? throw new InvalidOperationException(
+                    "Auth.Jwt is required for JWT validation.");
+
+            return Microsoft.Extensions.Options.Options.Create(jwt);
+        });
+
+        services.TryAddSingleton<IEffectiveAuthModeResolver, EffectiveAuthModeResolver>();
+        services.AddSingleton<ResourceApiAuthModeProvider>();
+
         services.AddScoped<ISessionValidator, RemoteSessionValidator>();
+        services.TryAddScoped<IUAuthJwtValidator, UAuthJwtValidator>();
+        services.TryAddSingleton<IJwtVerificationKeyProvider, ConfiguredJwtVerificationKeyProvider>();
+
         services.AddScoped<IUserAccessor<UserKey>, ResourceUserAccessor<UserKey>>();
         //services.AddScoped<IAuthContextFactory, ResourceAuthContextFactory>();
         services.AddScoped<IAccessOrchestrator, UAuthResourceAccessOrchestrator>();
@@ -484,13 +544,6 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IUserAccessor, UserAccessorBridge>();
         services.TryAddScoped<ISessionContextAccessor, SessionContextAccessor>();
         services.TryAddScoped<ICurrentUser, HttpContextCurrentUser>();
-
-        services.AddScoped<IInnerSessionIdResolver, BearerSessionIdResolver>();
-        services.AddScoped<IInnerSessionIdResolver, HeaderSessionIdResolver>();
-        services.AddScoped<IInnerSessionIdResolver, QuerySessionIdResolver>();
-        services.AddScoped<IInnerSessionIdResolver, CookieSessionIdResolver>();
-
-        services.TryAddScoped<ISessionIdResolver, ResourceCompositeSessionIdResolver>();
 
         services.TryAddScoped<ITransportCredentialResolver, TransportCredentialResolver>();
         services.TryAddScoped<IDeviceContextFactory, DeviceContextFactory>();
@@ -539,14 +592,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthorizationHandler, UAuthAuthorizationHandler>();
         services.AddScoped<IAuthorizationMiddlewareResultHandler, UAuthStatusAuthorizationResultHandler>();
 
-        services.AddHttpClient<ISessionValidator, RemoteSessionValidator>((sp, client) =>
+        services.AddHttpClient<ISessionValidator, RemoteSessionValidator>(
+        (sp, client) =>
         {
-            var opts = sp.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value;
+            var mode = sp.GetRequiredService<ResourceApiAuthModeProvider>().Mode;
 
-            if (string.IsNullOrWhiteSpace(opts.UAuthHubBaseUrl))
-                throw new InvalidOperationException("UAuthHubBaseUrl is not configured. Add it via UAuthResourceApiOptions.");
+            if (mode == UAuthMode.PureJwt)
+                return;
 
-            client.BaseAddress = new Uri(opts.UAuthHubBaseUrl);
+            var options = sp.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value;
+
+            client.BaseAddress = new Uri(options.Hub.BaseUrl, UriKind.Absolute);
         });
 
         return services;

@@ -1,20 +1,20 @@
 ﻿using CodeBeam.UltimateAuth.Core;
-using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Auth;
 
 internal sealed class EffectiveAuthModeResolver : IEffectiveAuthModeResolver
 {
-    public UAuthMode Resolve(UAuthClientProfile clientProfile)
+    public UAuthMode Resolve(AuthModeResolutionContext context)
     {
-        return clientProfile switch
+        return context.ApplicationProfile switch
         {
-            UAuthClientProfile.BlazorServer => UAuthMode.PureOpaque,
-            UAuthClientProfile.WebServer => UAuthMode.Hybrid,
-            UAuthClientProfile.BlazorWasm => UAuthMode.Hybrid,
-            UAuthClientProfile.Maui => UAuthMode.Hybrid,
-            UAuthClientProfile.Api => UAuthMode.PureJwt,
+            UAuthApplicationProfile.BlazorServer => UAuthMode.PureOpaque,
+            UAuthApplicationProfile.WebServer => UAuthMode.Hybrid,
+            UAuthApplicationProfile.BlazorWasm => UAuthMode.Hybrid,
+            UAuthApplicationProfile.Maui => UAuthMode.Hybrid,
+            UAuthApplicationProfile.Api => UAuthMode.PureJwt,
+            UAuthApplicationProfile.ResourceApi => UAuthMode.PureJwt,
             _ => UAuthMode.Hybrid
         };
     }

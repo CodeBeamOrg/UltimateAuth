@@ -17,7 +17,9 @@ public interface IRefreshTokenStore
 
     Task RevokeBySessionAsync(AuthSessionId sessionId, DateTimeOffset revokedAt, CancellationToken ct = default);
 
-    Task RevokeByChainAsync(SessionChainId chainId, DateTimeOffset revokedAt, CancellationToken ct = default);
+    Task RevokeBySessionChainAsync(SessionChainId chainId, DateTimeOffset revokedAt, CancellationToken ct = default);
+    
+    Task RevokeByRefreshChainAsync(RefreshChainId refreshChainId, DateTimeOffset revokedAt, CancellationToken ct = default);
 
     Task RevokeAllForUserAsync(UserKey userKey, DateTimeOffset revokedAt, CancellationToken ct = default);
 }

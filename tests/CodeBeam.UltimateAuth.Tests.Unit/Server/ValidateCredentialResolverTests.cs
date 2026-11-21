@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
@@ -7,7 +8,6 @@ using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -23,7 +23,7 @@ public class ValidateCredentialResolverTests
 
         var resolver = CreateResolver(PrimaryTokenKind.Session);
         var response = CreateResponse(
-            session: CookieDelivery("uauth-session"));
+            session: CookieDelivery(GrantKind.Session, "uauth-session"));
 
         var result = await resolver.ResolveAsync(context, response);
 
@@ -35,21 +35,21 @@ public class ValidateCredentialResolverTests
     }
 
     [Theory]
-    [InlineData(TokenResponseMode.None)]
-    [InlineData(TokenResponseMode.Header)]
-    [InlineData(TokenResponseMode.Body)]
+    [InlineData(GrantDeliveryMode.None)]
+    [InlineData(GrantDeliveryMode.Header)]
+    [InlineData(GrantDeliveryMode.Body)]
     public async Task Session_should_require_cookie_delivery(
-        TokenResponseMode mode)
+        GrantDeliveryMode mode)
     {
         var context = CreateContext();
         context.Request.Headers.Cookie = "uauth-session=session-123";
 
         var resolver = CreateResolver(PrimaryTokenKind.Session);
         var response = CreateResponse(
-            session: new CredentialResponseOptions
-            {
-                Mode = mode
-            });
+            session: new EffectiveGrantDelivery(
+                GrantKind.Session,
+                TokenFormat.Opaque,
+                mode));
 
         var result = await resolver.ResolveAsync(context, response);
 
@@ -63,10 +63,10 @@ public class ValidateCredentialResolverTests
         var resolver = CreateResolver(PrimaryTokenKind.Session);
 
         var response = CreateResponse(
-            session: new CredentialResponseOptions
-            {
-                Mode = TokenResponseMode.Cookie
-            });
+            session: new EffectiveGrantDelivery(
+                GrantKind.Session,
+                TokenFormat.Opaque,
+                GrantDeliveryMode.Cookie));
 
         var result = await resolver.ResolveAsync(context, response);
 
@@ -81,7 +81,10 @@ public class ValidateCredentialResolverTests
 
         var result = await resolver.ResolveAsync(
             context,
-            CreateResponse(session: CookieDelivery("uauth-session")));
+            CreateResponse(
+                session: CookieDelivery(
+                    GrantKind.Session,
+                    "uauth-session")));
 
         result.Should().BeNull();
     }
@@ -100,7 +103,10 @@ public class ValidateCredentialResolverTests
 
         var result = await resolver.ResolveAsync(
             context,
-            CreateResponse(session: CookieDelivery("uauth-session")));
+            CreateResponse(
+                session: CookieDelivery(
+                    GrantKind.Session,
+                    "uauth-session")));
 
         result.Should().BeNull();
     }
@@ -136,6 +142,7 @@ public class ValidateCredentialResolverTests
             context,
             CreateResponse(access: HeaderDelivery()));
 
+        result.Should().NotBeNull();
         result!.Value.Should().Be("access-123");
     }
 
@@ -149,10 +156,12 @@ public class ValidateCredentialResolverTests
 
         var result = await resolver.ResolveAsync(
             context,
-            CreateResponse(access: HeaderDelivery(
-                "X-Access-Token",
-                HeaderTokenFormat.Raw)));
+            CreateResponse(
+                access: HeaderDelivery(
+                    "X-Access-Token",
+                    HeaderTokenFormat.Raw)));
 
+        result.Should().NotBeNull();
         result!.Value.Should().Be("access-123");
     }
 
@@ -166,18 +175,20 @@ public class ValidateCredentialResolverTests
 
         var result = await resolver.ResolveAsync(
             context,
-            CreateResponse(access: HeaderDelivery(
-                format: HeaderTokenFormat.Raw)));
+            CreateResponse(
+                access: HeaderDelivery(
+                    format: HeaderTokenFormat.Raw)));
 
+        result.Should().NotBeNull();
         result!.Value.Should().Be("Bearer access-123");
     }
 
     [Theory]
-    [InlineData(TokenResponseMode.None)]
-    [InlineData(TokenResponseMode.Cookie)]
-    [InlineData(TokenResponseMode.Body)]
+    [InlineData(GrantDeliveryMode.None)]
+    [InlineData(GrantDeliveryMode.Cookie)]
+    [InlineData(GrantDeliveryMode.Body)]
     public async Task Access_token_should_require_header_delivery(
-        TokenResponseMode mode)
+        GrantDeliveryMode mode)
     {
         var context = CreateContext();
         context.Request.Headers.Authorization = "Bearer access-123";
@@ -186,10 +197,11 @@ public class ValidateCredentialResolverTests
 
         var result = await resolver.ResolveAsync(
             context,
-            CreateResponse(access: new CredentialResponseOptions
-            {
-                Mode = mode
-            }));
+            CreateResponse(
+                access: new EffectiveGrantDelivery(
+                    GrantKind.AccessToken,
+                    TokenFormat.Jwt,
+                    mode)));
 
         result.Should().BeNull();
     }
@@ -259,37 +271,40 @@ public class ValidateCredentialResolverTests
             new FixedPrimaryCredentialResolver(kind));
     }
 
-    private static CredentialResponseOptions CookieDelivery(string name)
+    private static EffectiveGrantDelivery CookieDelivery(
+        GrantKind kind,
+        string name)
     {
-        return new CredentialResponseOptions
-        {
-            Mode = TokenResponseMode.Cookie
-        }.WithCookie(new UAuthCookieOptions
-        {
-            Name = name
-        });
+        return new EffectiveGrantDelivery(
+            kind: kind,
+            tokenFormat: TokenFormat.Opaque,
+            mode: GrantDeliveryMode.Cookie,
+            cookie: new UAuthCookieOptions
+            {
+                Name = name
+            });
     }
 
-    private static CredentialResponseOptions HeaderDelivery(
-        string? name = null,
+    private static EffectiveGrantDelivery HeaderDelivery(
+        string name = "Authorization",
         HeaderTokenFormat format = HeaderTokenFormat.Bearer)
     {
-        return new CredentialResponseOptions
-        {
-            Mode = TokenResponseMode.Header,
-            Name = name,
-            HeaderFormat = format
-        };
+        return new EffectiveGrantDelivery(
+            kind: GrantKind.AccessToken,
+            tokenFormat: TokenFormat.Jwt,
+            mode: GrantDeliveryMode.Header,
+            name: name,
+            headerFormat: format);
     }
 
     private static EffectiveAuthResponse CreateResponse(
-        CredentialResponseOptions? session = null,
-        CredentialResponseOptions? access = null)
+        EffectiveGrantDelivery? session = null,
+        EffectiveGrantDelivery? access = null)
     {
         return new EffectiveAuthResponse(
-            session ?? CredentialResponseOptions.Disabled(GrantKind.Session),
-            access ?? CredentialResponseOptions.Disabled(GrantKind.AccessToken),
-            CredentialResponseOptions.Disabled(GrantKind.RefreshToken),
+            session ?? EffectiveGrantDelivery.Disabled(GrantKind.Session),
+            access ?? EffectiveGrantDelivery.Disabled(GrantKind.AccessToken),
+            EffectiveGrantDelivery.Disabled(GrantKind.RefreshToken),
             EffectiveRedirectResponse.Disabled);
     }
 

@@ -1,15 +1,20 @@
-﻿using System.Security.Claims;
+﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Runtime;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
+using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Server.ResourceApi;
 using CodeBeam.UltimateAuth.Server.Runtime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Server.Authorization;
 
@@ -19,14 +24,12 @@ internal sealed class UAuthStatusAuthorizationResultHandler : IAuthorizationMidd
 
     public async Task HandleAsync(RequestDelegate next, HttpContext context, AuthorizationPolicy policy, PolicyAuthorizationResult authorizeResult)
     {
-        // Preserve the framework's normal challenge/forbid behavior.
         if (!authorizeResult.Succeeded)
         {
             await _default.HandleAsync(next, context, policy, authorizeResult);
             return;
         }
 
-        // The user must have a validated UltimateAuth identity.
         var identity = context.User.Identities.FirstOrDefault(x =>
             x.IsAuthenticated &&
             x.AuthenticationType == UAuthConstants.SchemeDefaults.GlobalScheme);
@@ -42,8 +45,37 @@ internal sealed class UAuthStatusAuthorizationResultHandler : IAuthorizationMidd
         }
 
         var tenant = context.GetTenant();
+
         var runtime = context.RequestServices
             .GetRequiredService<IUAuthRuntimeMarker>();
+
+        if (runtime is ResourceRuntimeMarker)
+        {
+            var mode = context.RequestServices.GetRequiredService<ResourceApiAuthModeProvider>().Mode;
+
+            if (mode == UAuthMode.PureJwt)
+            {
+                await _default.HandleAsync(next, context, policy, authorizeResult);
+
+                return;
+            }
+        }
+        else
+        {
+            var profileReader = context.RequestServices.GetRequiredService<IApplicationProfileReader>();
+            var optionsProvider = context.RequestServices
+                .GetRequiredService<IEffectiveServerOptionsProvider>();
+
+            var applicationProfile = await profileReader.ReadAsync(context);
+            var effective = optionsProvider.GetEffective(context, applicationProfile);
+
+            if (effective.Mode == UAuthMode.PureJwt)
+            {
+                await _default.HandleAsync(next, context, policy, authorizeResult);
+
+                return;
+            }
+        }
 
         bool isActive;
         bool mayUseInactiveException;

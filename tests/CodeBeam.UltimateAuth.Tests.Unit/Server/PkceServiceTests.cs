@@ -106,7 +106,7 @@ public sealed class PkceServiceTests
         capturedArtifact.CodeChallenge.Should().Be(command.CodeChallenge);
         capturedArtifact.ChallengeMethod.Should().Be(PkceChallengeMethod.S256);
         capturedArtifact.ExpiresAt.Should().Be(Now.AddSeconds(AuthorizationCodeLifetimeSeconds));
-        capturedArtifact.Context.ClientProfile.Should().Be(command.ClientProfile);
+        capturedArtifact.Context.ApplicationProfile.Should().Be(command.ApplicationProfile);
         capturedArtifact.Context.Tenant.Should().Be(command.Tenant);
         capturedArtifact.Context.RedirectUri.Should().Be(command.RedirectUri);
         capturedArtifact.Context.Device.Should().BeEquivalentTo(device);
@@ -303,8 +303,8 @@ public sealed class PkceServiceTests
         var device = CreateDevice();
 
         var artifact = CreatePkceArtifact(
-            clientProfile:
-                UAuthClientProfile.BlazorWasm,
+            applicationProfile:
+                UAuthApplicationProfile.BlazorWasm,
             device: device);
 
         SetupSuccessfulValidation(
@@ -336,9 +336,9 @@ public sealed class PkceServiceTests
 
         captured.Should().NotBeNull();
 
-        captured!.EffectiveClientProfile
+        captured!.EffectiveApplicationProfile
             .Should().Be(
-                UAuthClientProfile.BlazorWasm);
+                UAuthApplicationProfile.BlazorWasm);
 
         captured.Device
             .Should().BeSameAs(device);
@@ -475,8 +475,8 @@ public sealed class PkceServiceTests
                 Now.AddSeconds(
                     AuthorizationCodeLifetimeSeconds));
 
-        captured.Context.ClientProfile
-            .Should().Be(hub.ClientProfile);
+        captured.Context.ApplicationProfile
+            .Should().Be(hub.ApplicationProfile);
 
         captured.Context.Tenant
             .Should().Be(hub.Tenant);
@@ -714,7 +714,7 @@ public sealed class PkceServiceTests
     string challengeMethod = "S256",
     DeviceContext? device = null,
     string? redirectUri = "/callback",
-    UAuthClientProfile clientProfile = UAuthClientProfile.BlazorWasm,
+    UAuthApplicationProfile applicationProfile = UAuthApplicationProfile.BlazorWasm,
     TenantKey? tenant = null)
     {
         return new PkceAuthorizeCommand
@@ -723,7 +723,7 @@ public sealed class PkceServiceTests
             ChallengeMethod = challengeMethod,
             Device = device ?? DeviceContext.Anonymous(),
             RedirectUri = redirectUri,
-            ClientProfile = clientProfile,
+            ApplicationProfile = applicationProfile,
             Tenant = tenant ?? TenantKey.Single
         };
     }
@@ -752,13 +752,13 @@ public sealed class PkceServiceTests
         string codeChallenge = "code-challenge",
         PkceChallengeMethod challengeMethod = PkceChallengeMethod.S256,
         DateTimeOffset? expiresAt = null,
-        UAuthClientProfile clientProfile = UAuthClientProfile.BlazorWasm,
+        UAuthApplicationProfile applicationProfile = UAuthApplicationProfile.BlazorWasm,
         TenantKey? tenant = null,
         string? redirectUri = "/callback",
         DeviceContext? device = null)
     {
         var context = new PkceContextSnapshot(
-            clientProfile,
+            applicationProfile,
             tenant ?? TenantKey.Single,
             redirectUri,
             device ?? DeviceContext.Anonymous());
@@ -773,7 +773,7 @@ public sealed class PkceServiceTests
 
     private static HubFlowArtifact CreateHubArtifact(
         string? authorizationCode = null,
-        UAuthClientProfile clientProfile = UAuthClientProfile.BlazorWasm,
+        UAuthApplicationProfile applicationProfile = UAuthApplicationProfile.BlazorWasm,
         TenantKey? tenant = null,
         DeviceContext? device = null,
         string? returnUrl = "/callback")
@@ -786,7 +786,7 @@ public sealed class PkceServiceTests
         return new HubFlowArtifact(
             HubSessionId.New(),
             HubFlowType.Login,
-            clientProfile,
+            applicationProfile,
             tenant ?? TenantKey.Single,
             device ?? DeviceContext.Anonymous(),
             returnUrl,

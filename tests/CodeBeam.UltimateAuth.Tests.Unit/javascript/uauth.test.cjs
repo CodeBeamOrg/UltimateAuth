@@ -411,7 +411,7 @@ test("postJson sends antiforgery token to trusted cross-origin UAuthHub", async 
     const result = await uauth.postJson({
         url: "https://localhost:6110/auth/try-login",
         payload: { username: "test" },
-        clientProfile: "BlazorWasm",
+        applicationProfile: "BlazorWasm",
         trustedOrigin: "https://localhost:6110"
     });
 
@@ -450,7 +450,7 @@ test("postJson fails closed when antiforgery is not configured", async () => {
         uauth.postJson({
             url: authUrl("/auth/try-login"),
             payload: { username: "test" },
-            clientProfile: "BlazorServer",
+            applicationProfile: "BlazorServer",
             trustedOrigin: HUB_ORIGIN
         }),
         /Authentication URL is required|antiforgery is not configured/i
@@ -472,7 +472,7 @@ test("429 try-and-commit returns throttle metadata without committing or reading
         tryUrl: authUrl("/auth/try-login"),
         commitUrl: authUrl("/auth/login"),
         data: {},
-        clientProfile: "BlazorServer",
+        applicationProfile: "BlazorServer",
         trustedOrigin: HUB_ORIGIN
     });
     assert.equal(result.status, 429);
@@ -513,7 +513,7 @@ test("logout 429 is observable and never navigates or changes stored tokens", as
     const result = await uauth.post({
         url: authUrl("/auth/logout"),
         mode: "logout",
-        clientProfile: "BlazorServer",
+        applicationProfile: "BlazorServer",
         trustedOrigin: HUB_ORIGIN
     });
 
@@ -547,7 +547,7 @@ test("refresh 429 leaves stored credentials untouched and sends only once", asyn
 
     uauth.storage.set("local", "access", "valid-access");
     uauth.storage.set("session", "refresh", "valid-refresh");
-    const result = await uauth.post({ url: authUrl("/auth/refresh"), mode: "fetch", clientProfile: "BlazorWasm", trustedOrigin: HUB_ORIGIN });
+    const result = await uauth.post({ url: authUrl("/auth/refresh"), mode: "fetch", applicationProfile: "BlazorWasm", trustedOrigin: HUB_ORIGIN });
     assert.equal(result.status, 429);
     assert.equal(uauth.storage.get("local", "access"), "valid-access");
     assert.equal(uauth.storage.get("session", "refresh"), "valid-refresh");
@@ -584,7 +584,7 @@ test("successful observed logout navigates after confirmed success without repla
     const result = await uauth.post({
         url: authUrl("/auth/logout"),
         mode: "logout",
-        clientProfile: "BlazorWasm",
+        applicationProfile: "BlazorWasm",
         trustedOrigin: HUB_ORIGIN
     });
 
@@ -613,7 +613,7 @@ test("observed logout rejects unsafe redirect protocols", async () => {
         uauth.post({
             url: authUrl("/auth/logout"),
             mode: "logout",
-            clientProfile: "BlazorWasm",
+            applicationProfile: "BlazorWasm",
             trustedOrigin: HUB_ORIGIN
         }),
         /Invalid logout redirect protocol/
@@ -663,7 +663,7 @@ test("authenticated logout uses the same Device ID for CSRF token and POST", asy
     const result = await uauth.post({
         url: authUrl("/auth/logout"),
         mode: "logout-observe",
-        clientProfile: "BlazorServer",
+        applicationProfile: "BlazorServer",
         trustedOrigin: HUB_ORIGIN
     });
 
@@ -744,7 +744,7 @@ test("submitLoginForm TryOnly reads native credentials without committing", asyn
         mode: "TryOnly",
         tryUrl: "/auth/try-login",
         commitUrl: "/auth/login",
-        clientProfile: "BlazorServer",
+        applicationProfile: "BlazorServer",
         trustedOrigin: null,
         isPkce: false
     });
@@ -768,7 +768,7 @@ test("submitLoginForm rejects disabled credential fields", async () => {
             mode: "TryAndCommit",
             tryUrl: "/auth/try-login",
             commitUrl: "/auth/login",
-            clientProfile: "BlazorServer",
+            applicationProfile: "BlazorServer",
             trustedOrigin: null,
             isPkce: false
         }),
@@ -800,7 +800,7 @@ test("submitLoginForm TryAndCommit reuses original form", async () => {
         mode: "TryAndCommit",
         tryUrl: "/auth/try-login",
         commitUrl: "/auth/login",
-        clientProfile: "BlazorServer",
+        applicationProfile: "BlazorServer",
         trustedOrigin: null,
         isPkce: false
     });

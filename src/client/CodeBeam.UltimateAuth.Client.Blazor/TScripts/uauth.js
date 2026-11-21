@@ -78,7 +78,7 @@ window.uauth.tryAndCommit = async function (options) {
         tryUrl,
         commitUrl,
         data,
-        clientProfile,
+        applicationProfile,
         trustedOrigin
     } = options;
 
@@ -101,7 +101,7 @@ window.uauth.tryAndCommit = async function (options) {
     const tryResponse = await window.uauth.postJson({
         url: validatedTryUrl,
         payload: data,
-        clientProfile,
+        applicationProfile,
         trustedOrigin
     });
 
@@ -166,8 +166,8 @@ window.uauth.tryAndCommit = async function (options) {
 
         const cp = document.createElement("input");
         cp.type = "hidden";
-        cp.name = "__uauth_client_profile";
-        cp.value = clientProfile ?? "";
+        cp.name = "__uauth_application_profile";
+        cp.value = applicationProfile ?? "";
         form.appendChild(cp);
 
         const udid = document.createElement("input");
@@ -194,7 +194,7 @@ window.uauth.post = async function (options) {
         url,
         mode,
         data,
-        clientProfile,
+        applicationProfile,
         trustedOrigin
     } = options;
 
@@ -210,8 +210,8 @@ window.uauth.post = async function (options) {
 
         const cp = document.createElement("input");
         cp.type = "hidden";
-        cp.name = "__uauth_client_profile";
-        cp.value = clientProfile ?? "";
+        cp.name = "__uauth_application_profile";
+        cp.value = applicationProfile ?? "";
         form.appendChild(cp);
 
         const udid = document.createElement("input");
@@ -249,7 +249,7 @@ window.uauth.post = async function (options) {
         url: validatedUrl,
         method: "POST",
         payload: data,
-        clientProfile,
+        applicationProfile,
         contentType: "form",
         credentials: "include",
         allowCrossOriginCredentials: true,
@@ -272,7 +272,7 @@ window.uauth.postJson = function (options) {
         url,
         method: "POST",
         payload: options.payload,
-        clientProfile: options.clientProfile,
+        applicationProfile: options.applicationProfile,
         contentType: "json",
         credentials: "include",
         allowCrossOriginCredentials: true,
@@ -288,7 +288,7 @@ window.uauth.request = async function (options) {
         url,
         method = "GET",
         payload = null,
-        clientProfile = "",
+        applicationProfile = "",
         contentType = "json",
         credentials = "same-origin",
         headers: customHeaders = {}
@@ -327,7 +327,7 @@ window.uauth.request = async function (options) {
     const headers = {
         ...customHeaders,
         "X-UDID": window.uauth.deviceId,
-        "X-UAuth-ClientProfile": clientProfile,
+        "X-UAuth-ApplicationProfile": applicationProfile,
         "X-Requested-With": "UAuth"
     };
 
@@ -440,7 +440,7 @@ window.uauth.resourceRequest = async function (options) {
         baseAddress,
         method = "GET",
         payload = null,
-        clientProfile = "",
+        applicationProfile = "",
         credentials = "Auto",
         requestId
     } = options;
@@ -525,7 +525,7 @@ window.uauth.resourceRequest = async function (options) {
 
     const headers = {
         "X-UDID": window.uauth.deviceId,
-        "X-UAuth-ClientProfile": clientProfile,
+        "X-UAuth-ApplicationProfile": applicationProfile,
         "X-Requested-With": "UAuth"
     };
 
@@ -721,7 +721,7 @@ window.uauth.submitLoginForm = async function (form, options) {
         mode,
         tryUrl,
         commitUrl,
-        clientProfile,
+        applicationProfile,
         trustedOrigin,
         isPkce
     } = options;
@@ -817,7 +817,7 @@ window.uauth.submitLoginForm = async function (form, options) {
     const response = await window.uauth.postJson({
         url: validatedTryUrl,
         payload,
-        clientProfile,
+        applicationProfile,
         trustedOrigin
     });
 

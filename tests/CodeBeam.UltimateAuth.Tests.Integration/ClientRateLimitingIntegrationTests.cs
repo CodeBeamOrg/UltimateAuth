@@ -80,7 +80,7 @@ public sealed class ClientRateLimitingIntegrationTests
         var http = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = false });
         http.DefaultRequestHeaders.Add("Origin", "https://localhost:6130");
         http.DefaultRequestHeaders.Add("X-UDID", "client-rate-device-123456789");
-        http.DefaultRequestHeaders.Add("X-UAuth-ClientProfile", "BlazorServer");
+        http.DefaultRequestHeaders.Add("X-UAuth-ApplicationProfile", "BlazorServer");
         var login = await CsrfTestClient.PostJsonAsync(http, "/auth/login", new { identifier = user.Identifier, secret = user.Secret });
         Assert.True(login.Headers.TryGetValues("Set-Cookie", out var cookies));
         http.DefaultRequestHeaders.Add("Cookie", string.Join("; ", cookies!.Select(c => c.Split(';')[0])));
@@ -92,7 +92,7 @@ public sealed class ClientRateLimitingIntegrationTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
-        services.AddUltimateAuthClient(o => { o.ClientProfile = UAuthClientProfile.BlazorServer; o.AutoDetectClientProfile = false; });
+        services.AddUltimateAuthClient(o => { o.ApplicationProfile = UAuthApplicationProfile.BlazorServer; o.AutoDetectApplicationProfile = false; });
         services.AddSingleton<UAuthClientDiagnostics>();
         services.AddSingleton<IClock>(factory.Clock);
         services.AddSingleton<IUAuthRequestClient>(transport);

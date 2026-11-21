@@ -11,14 +11,11 @@ public abstract class RefreshTokenStoreContractTests
 {
     protected abstract Task<IRefreshTokenStoreTestDatabase> CreateDatabaseAsync();
 
-    protected static readonly TenantKey TenantA =
-        TenantKey.FromExternal("tenant-a");
+    protected static readonly TenantKey TenantA = TenantKey.FromExternal("tenant-a");
 
-    protected static readonly TenantKey TenantB =
-        TenantKey.FromExternal("tenant-b");
+    protected static readonly TenantKey TenantB = TenantKey.FromExternal("tenant-b");
 
-    protected static readonly DateTimeOffset Now =
-        new(2026, 1, 15, 12, 0, 0, TimeSpan.Zero);
+    protected static readonly DateTimeOffset Now = new(2026, 1, 15, 12, 0, 0, TimeSpan.Zero);
 
     // ============================================================
     // STORE / FIND
@@ -46,7 +43,7 @@ public abstract class RefreshTokenStoreContractTests
         persisted.Tenant.Should().Be(token.Tenant);
         persisted.UserKey.Should().Be(token.UserKey);
         persisted.SessionId.Should().Be(token.SessionId);
-        persisted.ChainId.Should().Be(token.ChainId);
+        persisted.SessionChainId.Should().Be(token.SessionChainId);
         persisted.CreatedAt.Should().Be(token.CreatedAt);
         persisted.ExpiresAt.Should().Be(token.ExpiresAt);
         persisted.RevokedAt.Should().BeNull();
@@ -578,7 +575,7 @@ public abstract class RefreshTokenStoreContractTests
         await StoreAsync(store, token1, token2);
 
         await store.ExecuteAsync(
-            ct => store.RevokeByChainAsync(
+            ct => store.RevokeBySessionChainAsync(
                 chain,
                 Now.AddMinutes(10),
                 ct), ct: TestContext.Current.CancellationToken);
@@ -618,7 +615,7 @@ public abstract class RefreshTokenStoreContractTests
         await StoreAsync(store, target, other);
 
         await store.ExecuteAsync(
-            ct => store.RevokeByChainAsync(
+            ct => store.RevokeBySessionChainAsync(
                 targetChain,
                 Now.AddMinutes(10),
                 ct), ct: TestContext.Current.CancellationToken);
@@ -810,7 +807,7 @@ public abstract class RefreshTokenStoreContractTests
         await StoreAsync(storeB, tokenB);
 
         await storeA.ExecuteAsync(
-            ct => storeA.RevokeByChainAsync(
+            ct => storeA.RevokeBySessionChainAsync(
                 chain,
                 Now.AddMinutes(10),
                 ct), ct: TestContext.Current.CancellationToken);
@@ -955,7 +952,7 @@ public abstract class RefreshTokenStoreContractTests
             tenant: TenantA,
             userKey: UserKey.New(),
             sessionId: TestIds.Session("session-without-chain"),
-            chainId: null,
+            sessionChainId: null,
             createdAt: Now,
             expiresAt: Now.AddDays(30));
 
@@ -965,8 +962,181 @@ public abstract class RefreshTokenStoreContractTests
             await store.FindByHashAsync(token.TokenHash, ct: TestContext.Current.CancellationToken);
 
         persisted.Should().NotBeNull();
-        persisted!.ChainId.Should().BeNull();
+        persisted!.SessionChainId.Should().BeNull();
         persisted.TokenId.Should().Be(token.TokenId);
+    }
+
+    [Fact]
+    public async Task StoreAsync_PureJwt_PreservesSessionlessRefreshMetadata()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var store = db.CreateStore(TenantA);
+
+        var chainId = RefreshChainId.New();
+        var deviceId = TestDevice.Default().DeviceId;
+        var authenticatedAt = Now.AddHours(-2);
+
+        var token = RefreshToken.Create(
+            tokenId: TokenId.New(),
+            tokenHash: "purejwt-metadata",
+            tenant: TenantA,
+            userKey: UserKey.New(),
+            sessionId: null,
+            sessionChainId: null,
+            createdAt: Now,
+            expiresAt: Now.AddDays(7),
+            refreshChainId: chainId,
+            deviceId: deviceId,
+            authenticatedAt: authenticatedAt);
+
+        await StoreAsync(store, token);
+
+        var persisted = await store.FindByHashAsync(
+            token.TokenHash,
+            TestContext.Current.CancellationToken);
+
+        persisted.Should().NotBeNull();
+        persisted!.SessionId.Should().BeNull();
+        persisted.SessionChainId.Should().BeNull();
+        persisted.RefreshChainId.Should().Be(chainId);
+        persisted.DeviceId.Should().Be(deviceId);
+        persisted.AuthenticatedAt.Should().Be(authenticatedAt);
+        persisted.TokenId.Should().Be(token.TokenId);
+    }
+
+    [Fact]
+    public async Task RevokeByRefreshChainAsync_RevokesOnlyMatchingRefreshChain()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var store = db.CreateStore(TenantA);
+
+        var user = UserKey.New();
+        var targetChain = RefreshChainId.New();
+        var otherChain = RefreshChainId.New();
+
+        RefreshToken Create(
+            string hash,
+            RefreshChainId refreshChainId) =>
+            RefreshToken.Create(
+                tokenId: TokenId.New(),
+                tokenHash: hash,
+                tenant: TenantA,
+                userKey: user,
+                sessionId: null,
+                sessionChainId: null,
+                createdAt: Now,
+                expiresAt: Now.AddDays(7),
+                refreshChainId: refreshChainId,
+                deviceId: TestDevice.Default().DeviceId,
+                authenticatedAt: Now);
+
+        var first = Create("refresh-chain-first", targetChain);
+        var second = Create("refresh-chain-second", targetChain);
+        var unrelated = Create("refresh-chain-unrelated", otherChain);
+
+        await StoreAsync(store, first, second, unrelated);
+
+        var revokedAt = Now.AddMinutes(10);
+
+        await store.ExecuteAsync(
+            ct => store.RevokeByRefreshChainAsync(
+                targetChain, revokedAt, ct),
+            TestContext.Current.CancellationToken);
+
+        var firstResult = await store.FindByHashAsync(first.TokenHash, TestContext.Current.CancellationToken);
+        var secondResult = await store.FindByHashAsync(second.TokenHash, TestContext.Current.CancellationToken);
+        var unrelatedResult = await store.FindByHashAsync(unrelated.TokenHash, TestContext.Current.CancellationToken);
+
+        firstResult!.RevokedAt.Should().Be(revokedAt);
+        secondResult!.RevokedAt.Should().Be(revokedAt);
+        unrelatedResult!.IsRevoked.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RevokeByRefreshChainAsync_IsTenantIsolated()
+    {
+        await using var db = await CreateDatabaseAsync();
+
+        var storeA = db.CreateStore(TenantA);
+        var storeB = db.CreateStore(TenantB);
+        var sharedChain = RefreshChainId.New();
+
+        RefreshToken Create(TenantKey tenant, string hash) =>
+            RefreshToken.Create(
+                tokenId: TokenId.New(),
+                tokenHash: hash,
+                tenant: tenant,
+                userKey: UserKey.New(),
+                sessionId: null,
+                sessionChainId: null,
+                createdAt: Now,
+                expiresAt: Now.AddDays(7),
+                refreshChainId: sharedChain,
+                deviceId: TestDevice.Default().DeviceId);
+
+        var tokenA = Create(TenantA, "tenant-a-refresh-chain");
+        var tokenB = Create(TenantB, "tenant-b-refresh-chain");
+
+        await StoreAsync(storeA, tokenA);
+        await StoreAsync(storeB, tokenB);
+
+        await storeA.ExecuteAsync(
+            ct => storeA.RevokeByRefreshChainAsync(
+                sharedChain, Now.AddMinutes(10), ct),
+            TestContext.Current.CancellationToken);
+
+        var persistedA = await storeA.FindByHashAsync(tokenA.TokenHash, TestContext.Current.CancellationToken);
+        var persistedB = await storeB.FindByHashAsync(tokenB.TokenHash, TestContext.Current.CancellationToken);
+
+        persistedA!.IsRevoked.Should().BeTrue();
+        persistedB!.IsRevoked.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RevokeBySessionChainAsync_DoesNotRevokeSessionlessPureJwtTokens()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var store = db.CreateStore(TenantA);
+
+        var sessionChain = SessionChainId.New();
+
+        var sessionToken = RefreshToken.Create(
+            tokenId: TokenId.New(),
+            tokenHash: "session-bound-refresh",
+            tenant: TenantA,
+            userKey: UserKey.New(),
+            sessionId: TestIds.Session("session-bound"),
+            sessionChainId: sessionChain,
+            createdAt: Now,
+            expiresAt: Now.AddDays(7));
+
+        var pureJwtToken = RefreshToken.Create(
+            tokenId: TokenId.New(),
+            tokenHash: "sessionless-purejwt-refresh",
+            tenant: TenantA,
+            userKey: UserKey.New(),
+            sessionId: null,
+            sessionChainId: null,
+            createdAt: Now,
+            expiresAt: Now.AddDays(7),
+            refreshChainId: RefreshChainId.New(),
+            deviceId: TestDevice.Default().DeviceId);
+
+        await StoreAsync(store, sessionToken, pureJwtToken);
+
+        await store.ExecuteAsync(
+            ct => store.RevokeBySessionChainAsync(
+                sessionChain, Now.AddMinutes(10), ct),
+            TestContext.Current.CancellationToken);
+
+        var sessionResult = await store.FindByHashAsync(
+            sessionToken.TokenHash, TestContext.Current.CancellationToken);
+
+        var pureJwtResult = await store.FindByHashAsync(
+            pureJwtToken.TokenHash, TestContext.Current.CancellationToken);
+
+        sessionResult!.IsRevoked.Should().BeTrue();
+        pureJwtResult!.IsRevoked.Should().BeFalse();
     }
 
     // ============================================================
@@ -1002,7 +1172,7 @@ public abstract class RefreshTokenStoreContractTests
             tenant: tenant,
             userKey: user,
             sessionId: session,
-            chainId: chain,
+            sessionChainId: chain,
             createdAt: Now,
             expiresAt: Now.AddDays(30));
     }

@@ -6,5 +6,5 @@ public sealed class HubCredentials
 {
     public string AuthorizationCode { get; init; } = default!;
     public string CodeVerifier { get; init; } = default!;
-    public UAuthClientProfile ClientProfile { get; init; }
+    public UAuthApplicationProfile ApplicationProfile { get; init; }
 }

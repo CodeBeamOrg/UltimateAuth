@@ -37,7 +37,7 @@ internal sealed class HubFlowService : IHubFlowService
         var artifact = new HubFlowArtifact(
             hubSessionId,
             HubFlowType.Login,
-            request.ClientProfile,
+            request.ApplicationProfile,
             request.Tenant,
             request.Device,
             request.ReturnUrl,
