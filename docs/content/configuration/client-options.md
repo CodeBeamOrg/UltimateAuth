@@ -23,7 +23,7 @@ For Blazor applications, use:
 ```csharp
 builder.Services.AddUltimateAuthClientBlazor(options =>
 {
-    options.AutoDetectClientProfile = true;
+    options.AutoDetectApplicationProfile = true;
     options.DefaultReturnUrl = "/";
 });
 ```
@@ -37,7 +37,7 @@ The platform-independent registration method is:
 ```csharp
 builder.Services.AddUltimateAuthClient(options =>
 {
-    options.AutoDetectClientProfile = true;
+    options.AutoDetectApplicationProfile = true;
 });
 ```
 
@@ -75,8 +75,8 @@ builder.Services.AddUltimateAuthServer(options =>
 
 builder.Services.AddUltimateAuthClientBlazor(options =>
 {
-    options.ClientProfile = UAuthClientProfile.BlazorServer;
-    options.AutoDetectClientProfile = false;
+    options.ApplicationProfile = UAuthApplicationProfile.BlazorServer;
+    options.AutoDetectApplicationProfile = false;
 });
 ```
 
@@ -92,8 +92,8 @@ The client controls the application-side integration.
 
 | Property | Type | Purpose |
 |---|---|---|
-| `ClientProfile` | `UAuthClientProfile` | Identifies the client platform |
-| `AutoDetectClientProfile` | `bool` | Enables automatic profile detection |
+| `ApplicationProfile` | `UAuthApplicationProfile` | Identifies the application environment |
+| `AutoDetectApplicationProfile` | `bool` | Enables automatic profile detection |
 | `DefaultReturnUrl` | `string?` | Default navigation destination after authentication |
 | `Endpoints` | `UAuthClientEndpointOptions` | Authentication endpoint paths |
 | `Login` | `UAuthClientLoginFlowOptions` | Login flow configuration |
@@ -118,14 +118,14 @@ builder.Services.AddUltimateAuthClientBlazor(options =>
 });
 ```
 
-## 3. Client Profiles
+## 3. Application Profiles
 
-The client profile identifies the application environment and influences authentication flow behavior.
+The application profile identifies the application environment and influences authentication flow behavior.
 
 Configure it through:
 
 ```csharp
-options.ClientProfile
+options.ApplicationProfile
 ```
 
 UltimateAuth defines profiles including:
@@ -140,21 +140,21 @@ UltimateAuth defines profiles including:
 | `UAuthHub` | UltimateAuth Hub |
 | `NotSpecified` | Profile not explicitly selected |
 
-Different client profiles may result in different authentication modes on the server.
+Different application profiles may result in different authentication modes on the server.
 
 For example, the default server mode resolver maps Blazor Server to `PureOpaque` and Blazor WebAssembly to `Hybrid`.
 
-The client profile does not itself authorize an authentication mode. The server must support and permit the resolved mode.
+The application profile does not itself authorize an authentication mode. The server must support and permit the resolved mode.
 
-## 4. Automatic Client Profile Detection
+## 4. Automatic Application Profile Detection
 
 Automatic profile detection is enabled by default:
 
 ```csharp
-options.AutoDetectClientProfile = true;
+options.AutoDetectApplicationProfile = true;
 ```
 
-When enabled, UltimateAuth detects the client environment if `ClientProfile` remains `NotSpecified`.
+When enabled, UltimateAuth detects the application environment if `ApplicationProfile` remains `NotSpecified`.
 
 The current detector checks for:
 
@@ -169,7 +169,7 @@ The current detector checks for:
 ```csharp
 builder.Services.AddUltimateAuthClientBlazor(options =>
 {
-    options.AutoDetectClientProfile = true;
+    options.AutoDetectApplicationProfile = true;
 });
 ```
 
@@ -182,8 +182,8 @@ For applications that need predictable behavior independent of assembly-based de
 ```csharp
 builder.Services.AddUltimateAuthClientBlazor(options =>
 {
-    options.AutoDetectClientProfile = false;
-    options.ClientProfile = UAuthClientProfile.BlazorWasm;
+    options.AutoDetectApplicationProfile = false;
+    options.ApplicationProfile = UAuthApplicationProfile.BlazorWasm;
 });
 ```
 
@@ -201,12 +201,12 @@ This configuration is invalid:
 ```csharp
 builder.Services.AddUltimateAuthClientBlazor(options =>
 {
-    options.AutoDetectClientProfile = false;
-    options.ClientProfile = UAuthClientProfile.NotSpecified;
+    options.AutoDetectApplicationProfile = false;
+    options.ApplicationProfile = UAuthApplicationProfile.NotSpecified;
 });
 ```
 
-When automatic detection is disabled, an explicit client profile must be provided.
+When automatic detection is disabled, an explicit application profile must be provided.
 
 ### Explicit Profiles Take Precedence
 
@@ -217,7 +217,7 @@ For example:
 ```csharp
 builder.Services.AddUltimateAuthClientBlazor(options =>
 {
-    options.ClientProfile = UAuthClientProfile.BlazorServer;
+    options.ApplicationProfile = UAuthApplicationProfile.BlazorServer;
 });
 ```
 
@@ -373,8 +373,7 @@ options.Resource.BaseAddress = "https://api.example.com";
 Individual resource paths are supplied when making requests:
 
 ```csharp
-await UAuthClient.Resource
-    .GetAsync<List<Product>>("/api/products");
+await UAuthClient.Resource.GetAsync<List<Product>>("/api/products");
 ```
 
 #### Credential Modes
@@ -455,7 +454,7 @@ A trusted server-hosted application may explicitly enable direct credential post
 ```csharp
 builder.Services.AddUltimateAuthClientBlazor(options =>
 {
-    options.ClientProfile = UAuthClientProfile.BlazorServer;
+    options.ApplicationProfile = UAuthApplicationProfile.BlazorServer;
     options.Login.AllowCredentialPost = true;
 });
 ```
@@ -896,7 +895,7 @@ For example:
 {
   "UltimateAuth": {
     "Client": {
-      "AutoDetectClientProfile": true,
+      "AutoDetectApplicationProfile": true,
       "DefaultReturnUrl": "/dashboard",
       "Endpoints": {
         "BasePath": "https://auth.example.com/auth"
@@ -984,13 +983,13 @@ UAuthClientOptions
 UAuthClientEndpointOptions
 ```
 
-### Client Profile Validation
+### Application Profile Validation
 
 The validator rejects a configuration where:
 
 ```csharp
-options.AutoDetectClientProfile = false;
-options.ClientProfile = UAuthClientProfile.NotSpecified;
+options.AutoDetectApplicationProfile = false;
+options.ApplicationProfile = UAuthApplicationProfile.NotSpecified;
 ```
 
 An explicit profile is required when detection is disabled.
@@ -1026,7 +1025,7 @@ Applications that require early validation can arrange for the configured option
 
 ### Validation Scope
 
-The current validators check essential client profile and endpoint requirements.
+The current validators check essential application profile and endpoint requirements.
 
 They do not automatically validate every possible combination of client flow, server deployment, cookie behavior, and authentication mode.
 
@@ -1039,9 +1038,9 @@ The following example configures a Blazor WebAssembly client using a remote auth
 ```csharp
 builder.Services.AddUltimateAuthClientBlazor(options =>
 {
-    // Client profile
-    options.AutoDetectClientProfile = false;
-    options.ClientProfile = UAuthClientProfile.BlazorWasm;
+    // Application profile
+    options.AutoDetectApplicationProfile = false;
+    options.ApplicationProfile = UAuthApplicationProfile.BlazorWasm;
 
     // Authentication server
     options.Endpoints.BasePath = "https://auth.example.com/auth";
@@ -1081,9 +1080,9 @@ The following example configures a Blazor Server client.
 ```csharp
 builder.Services.AddUltimateAuthClientBlazor(options =>
 {
-    // Client profile
-    options.AutoDetectClientProfile = false;
-    options.ClientProfile = UAuthClientProfile.BlazorServer;
+    // Application profile
+    options.AutoDetectApplicationProfile = false;
+    options.ApplicationProfile = UAuthApplicationProfile.BlazorServer;
 
     // Same-origin authentication endpoints
     options.Endpoints.BasePath = "/auth";
@@ -1130,8 +1129,8 @@ builder.Services.AddUltimateAuthServer(options =>
 // Client: platform integration and flow behavior
 builder.Services.AddUltimateAuthClientBlazor(options =>
 {
-    options.ClientProfile = UAuthClientProfile.BlazorServer;
-    options.AutoDetectClientProfile = false;
+    options.ApplicationProfile = UAuthApplicationProfile.BlazorServer;
+    options.AutoDetectApplicationProfile = false;
     options.Endpoints.BasePath = "/auth";
     options.AutoRefresh.Enabled = true;
 });
@@ -1146,7 +1145,7 @@ The two configuration objects have different responsibilities.
 | Refresh token replay policy | Server |
 | Credential recovery rules | Server |
 | Allowed authentication modes | Server |
-| Client profile | Client |
+| Application profile | Client |
 | PKCE navigation | Client |
 | Automatic background refresh | Client |
 | Reauthentication navigation | Client |
@@ -1166,11 +1165,11 @@ It already registers the underlying client SDK.
 
 ### Disabling Profile Detection Without Selecting a Profile
 
-When `AutoDetectClientProfile` is false, set `ClientProfile` explicitly.
+When `AutoDetectApplicationProfile` is false, set `ApplicationProfile` explicitly.
 
 ### Relying on Automatic Detection in an Ambiguous Hosting Environment
 
-For complex hosting arrangements, consider specifying the client profile explicitly.
+For complex hosting arrangements, consider specifying the application profile explicitly.
 
 ### Enabling Direct Credential Posting in a Public Client
 
@@ -1208,8 +1207,8 @@ The current client registration validates options when they are resolved, rather
 
 | Option | Default | Description |
 |---|---|---|
-| `ClientProfile` | `NotSpecified` | Client environment |
-| `AutoDetectClientProfile` | `true` | Automatic profile detection |
+| `ApplicationProfile` | `NotSpecified` | Application environment |
+| `AutoDetectApplicationProfile` | `true` | Automatic profile detection |
 | `DefaultReturnUrl` | `null` | Global return URL |
 | `Endpoints.BasePath` | `/auth` | Authentication endpoint base |
 | `Login.ReturnUrl` | `null` | Login return URL |

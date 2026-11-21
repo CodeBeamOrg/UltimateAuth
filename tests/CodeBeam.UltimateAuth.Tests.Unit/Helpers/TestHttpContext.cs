@@ -7,7 +7,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 
 internal static class TestHttpContext
 {
-    public static HttpContext Create(TenantKey? tenant = null, UAuthApplicationProfile clientProfile = UAuthApplicationProfile.NotSpecified)
+    public static HttpContext Create(TenantKey? tenant = null, UAuthApplicationProfile applicationProfile = UAuthApplicationProfile.NotSpecified)
     {
         var ctx = new DefaultHttpContext();
         

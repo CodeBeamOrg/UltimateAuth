@@ -6,7 +6,7 @@ public sealed class HubFlowState
 {
     public HubSessionId HubSessionId { get; init; }
     public HubFlowType FlowType { get; init; }
-    public UAuthApplicationProfile ClientProfile { get; init; }
+    public UAuthApplicationProfile ApplicationProfile { get; init; }
     public string? ReturnUrl { get; init; }
     public HubErrorCode? Error { get; init; }
     public int AttemptCount { get; init; }
@@ -22,7 +22,7 @@ public sealed class HubFlowState
         {
             HubSessionId = HubSessionId,
             FlowType = FlowType,
-            ClientProfile = ClientProfile,
+            ApplicationProfile = ApplicationProfile,
             ReturnUrl = ReturnUrl,
             Error = null,
             AttemptCount = AttemptCount,

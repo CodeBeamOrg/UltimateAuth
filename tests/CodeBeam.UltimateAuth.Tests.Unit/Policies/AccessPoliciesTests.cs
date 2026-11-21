@@ -109,7 +109,7 @@ public sealed class AccessPoliciesTests
                 targetUserKey: null,
                 resourceTenant: resourceTenant,
                 action: "users.get.admin",
-                clientProfile: UAuthApplicationProfile.NotSpecified,
+                applicationProfile: UAuthApplicationProfile.NotSpecified,
                 attributes: EmptyAttributes.Instance);
 
             var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
@@ -254,7 +254,7 @@ public sealed class AccessPoliciesTests
                 targetUserKey: null,
                 resourceTenant: TenantKey.Single,
                 action: "users.repair.system",
-                clientProfile: UAuthApplicationProfile.NotSpecified,
+                applicationProfile: UAuthApplicationProfile.NotSpecified,
                 attributes: EmptyAttributes.Instance);
 
             var result = await sut.DecideAsync(context, ct: TestContext.Current.CancellationToken);
@@ -766,7 +766,7 @@ public sealed class AccessPoliciesTests
                 targetUserKey: null,
                 resourceTenant: TenantKey.System,
                 action: "users.get.admin",
-                clientProfile: UAuthApplicationProfile.NotSpecified,
+                applicationProfile: UAuthApplicationProfile.NotSpecified,
                 attributes: EmptyAttributes.Instance);
 
             sut.AppliesTo(context).Should().BeFalse();

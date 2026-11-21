@@ -9,7 +9,7 @@ public static class AuthFlowContextExtensions
     {
         return new AuthContext
         {
-            ClientProfile = flow.ClientProfile,
+            ApplicationProfile = flow.ApplicationProfile,
             Tenant = flow.Tenant,
             Operation = flow.FlowType.ToAuthOperation(),
             Mode = flow.EffectiveMode,

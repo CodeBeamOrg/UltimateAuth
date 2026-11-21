@@ -389,7 +389,7 @@ public class EffectiveServerOptionsProviderTests
         resolver.Verify(x => x.Resolve(
             It.Is<AuthModeResolutionContext>(c =>
                 c.Tenant == TenantKey.Single &&
-                c.ClientProfile == UAuthApplicationProfile.Api)),
+                c.ApplicationProfile == UAuthApplicationProfile.Api)),
             Times.Once);
     }
 
@@ -441,7 +441,7 @@ public class EffectiveServerOptionsProviderTests
             AuthMode = UAuthMode.PureJwt
         };
 
-        options.ClientProfileModes[UAuthApplicationProfile.Api] =
+        options.ApplicationProfileModes[UAuthApplicationProfile.Api] =
             UAuthMode.Hybrid;
 
         var result = new UAuthServerOptionsValidator()
@@ -455,15 +455,15 @@ public class EffectiveServerOptionsProviderTests
     {
         var options = new UAuthServerOptions();
 
-        options.ClientProfileModes[UAuthApplicationProfile.Api] =
+        options.ApplicationProfileModes[UAuthApplicationProfile.Api] =
             UAuthMode.PureJwt;
 
         var clone = options.Clone();
 
-        clone.ClientProfileModes[UAuthApplicationProfile.Api] =
+        clone.ApplicationProfileModes[UAuthApplicationProfile.Api] =
             UAuthMode.Hybrid;
 
-        options.ClientProfileModes[UAuthApplicationProfile.Api]
+        options.ApplicationProfileModes[UAuthApplicationProfile.Api]
             .Should().Be(UAuthMode.PureJwt);
     }
 
@@ -507,14 +507,13 @@ public class EffectiveServerOptionsProviderTests
     //    var login = provider.GetEffective(
     //        ctx,
     //        AuthFlowType.Login,
-    //        UAuthClientProfile.Api);
+    //        UAuthApplicationProfile.Api);
 
     //    var api = provider.GetEffective(
     //        ctx,
     //        AuthFlowType.ApiAccess,
-    //        UAuthClientProfile.Api);
+    //        UAuthApplicationProfile.Api);
 
     //    Assert.NotEqual(login.Mode, api.Mode);
     //}
-
 }

@@ -216,7 +216,7 @@ public partial class UAuthLoginForm
                     mode = SubmitMode.ToString(),
                     tryUrl = ResolvedTryEndpoint,
                     commitUrl = ResolvedCommitEndpoint,
-                    clientProfile = ClientProfileValue,
+                    applicationProfile = ApplicationProfileValue,
                     trustedOrigin = TrustedOrigin,
                     isPkce = LoginType == UAuthLoginType.Pkce
                 });
@@ -276,7 +276,7 @@ public partial class UAuthLoginForm
         }
     }
 
-    private string ClientProfileValue => Options.Value.ClientProfile.ToString();
+    private string ApplicationProfileValue => Options.Value.ApplicationProfile.ToString();
 
     private string? TrustedOrigin
     {

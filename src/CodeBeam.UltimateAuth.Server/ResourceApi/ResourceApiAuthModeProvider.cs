@@ -33,7 +33,7 @@ internal sealed class ResourceApiAuthModeProvider
         var mode = options.Auth.Mode ?? resolver.Resolve(
             new AuthModeResolutionContext
             {
-                ClientProfile = UAuthApplicationProfile.ResourceApi,
+                ApplicationProfile = UAuthApplicationProfile.ResourceApi,
                 Tenant = TenantKey.Single
             });
 

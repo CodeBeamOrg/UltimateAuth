@@ -17,6 +17,6 @@ If you are new, follow this order:
 - Authentication Model
 - Flow-Based Authentication
 - Authentication Modes
-- Client Profiles
+- Application Profiles
 - Runtime Architecture
 - Request Lifecycle

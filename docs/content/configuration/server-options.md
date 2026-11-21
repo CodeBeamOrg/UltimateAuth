@@ -365,7 +365,7 @@ The server's PKCE configuration is separate from the client's PKCE flow settings
 
 ## 7. Authentication Modes
 
-UltimateAuth supports authentication mode resolution based on the client profile.
+UltimateAuth supports authentication mode resolution based on the application profile.
 
 The server exposes:
 
@@ -395,7 +395,7 @@ The effective mode is resolved by `IEffectiveAuthModeResolver`.
 
 ### Default Mode Resolution
 
-UltimateAuth resolves the effective authentication mode using the application profile unless the server explicitly configures `AuthMode` or `ClientProfileModes`.
+UltimateAuth resolves the effective authentication mode using the application profile unless the server explicitly configures `AuthMode` or `ApplicationProfileModes`.
 
 | Application Profile | Default Mode |
 |---|---|
@@ -406,9 +406,9 @@ UltimateAuth resolves the effective authentication mode using the application pr
 | Api | PureJwt |
 | ResourceApi | PureJwt |
 
-The server controls the effective authentication mode. Client profile metadata is not an authorization boundary.
+The server controls the effective authentication mode. Application profile metadata is not an authorization boundary.
 
-`AuthMode` forces a single mode for the server, while `ClientProfileModes` provides explicit profile-specific mappings. These configuration mechanisms cannot be combined.
+`AuthMode` forces a single mode for the server, while `ApplicationProfileModes` provides explicit profile-specific mappings. These configuration mechanisms cannot be combined.
 
 `AllowedModes` restricts permitted modes but does not select a mode.
 

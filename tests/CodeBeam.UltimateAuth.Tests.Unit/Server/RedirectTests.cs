@@ -46,11 +46,11 @@ public class RedirectTests
     }
 
     [Fact]
-    public async Task ClientProfile_Is_Read_From_Header()
+    public async Task ApplicationProfile_Is_Read_From_Header()
     {
         var reader = new ApplicationProfileReader();
         var ctx = TestHttpContext.Create();
-        ctx.Request.Headers[UAuthConstants.Headers.ClientProfile] = "BlazorServer";
+        ctx.Request.Headers[UAuthConstants.Headers.ApplicationProfile] = "BlazorServer";
 
         var profile = await reader.ReadAsync(ctx);
         profile.Should().Be(UAuthApplicationProfile.BlazorServer);
@@ -59,10 +59,10 @@ public class RedirectTests
     [Theory]
     [InlineData(UAuthApplicationProfile.BlazorWasm, UAuthMode.Hybrid)]
     [InlineData(UAuthApplicationProfile.BlazorServer, UAuthMode.PureOpaque)]
-    public void ClientProfile_Resolves_To_Correct_Mode(UAuthApplicationProfile profile, UAuthMode expected)
+    public void ApplicationProfile_Resolves_To_Correct_Mode(UAuthApplicationProfile profile, UAuthMode expected)
     {
         var resolver = new EffectiveAuthModeResolver();
-        var mode = resolver.Resolve(new AuthModeResolutionContext() { ClientProfile = profile, Tenant = TenantKey.Single });
+        var mode = resolver.Resolve(new AuthModeResolutionContext() { ApplicationProfile = profile, Tenant = TenantKey.Single });
         mode.Should().Be(expected);
     }
 

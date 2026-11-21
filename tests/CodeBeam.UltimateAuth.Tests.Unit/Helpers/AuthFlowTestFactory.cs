@@ -29,7 +29,7 @@ internal static class AuthFlowTestFactory
     {
         return new AuthFlowContext(
             flowType: AuthFlowType.Login,
-            clientProfile: UAuthApplicationProfile.BlazorServer,
+            applicationProfile: UAuthApplicationProfile.BlazorServer,
             effectiveMode: mode,
             device: TestDevice.Default(),
             tenantKey: tenant ?? TenantKey.Single,

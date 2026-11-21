@@ -21,7 +21,7 @@ public sealed class DeviceRequiredInvariant : IAuthorityInvariant
     {
         if (context.Operation is AuthOperation.Login or AuthOperation.Refresh)
         {
-            return context.ClientProfile switch
+            return context.ApplicationProfile switch
             {
                 UAuthApplicationProfile.BlazorWasm => true,
                 UAuthApplicationProfile.BlazorServer => true,

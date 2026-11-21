@@ -381,7 +381,7 @@ public class LoginOrchestratorTests
 
         var execution = new AuthExecutionContext
         {
-            EffectiveClientProfile = UAuthApplicationProfile.BlazorWasm,
+            EffectiveApplicationProfile = UAuthApplicationProfile.BlazorWasm,
             Device = overriddenDevice
         };
 
@@ -453,13 +453,13 @@ public class LoginOrchestratorTests
 
         var executionA = new AuthExecutionContext
         {
-            EffectiveClientProfile = UAuthApplicationProfile.BlazorWasm,
+            EffectiveApplicationProfile = UAuthApplicationProfile.BlazorWasm,
             Device = TestDevice.Default()
         };
 
         var executionB = new AuthExecutionContext
         {
-            EffectiveClientProfile = UAuthApplicationProfile.BlazorWasm,
+            EffectiveApplicationProfile = UAuthApplicationProfile.BlazorWasm,
             Device = TestDevice.Alternative()
         };
 
@@ -565,7 +565,7 @@ public class LoginOrchestratorTests
 
         var executionA = new AuthExecutionContext
         {
-            EffectiveClientProfile =
+            EffectiveApplicationProfile =
                 UAuthApplicationProfile.BlazorWasm,
 
             Device = device
@@ -573,7 +573,7 @@ public class LoginOrchestratorTests
 
         var executionB = new AuthExecutionContext
         {
-            EffectiveClientProfile =
+            EffectiveApplicationProfile =
                 UAuthApplicationProfile.BlazorWasm,
 
             Device = device
@@ -1012,7 +1012,7 @@ public class LoginOrchestratorTests
 
         var factory = runtime.Services.GetRequiredService<IAuthFlowContextFactory>();
 
-        var flow = await factory.RecreateWithClientProfileAsync(initial, UAuthApplicationProfile.Api, TestContext.Current.CancellationToken);
+        var flow = await factory.RecreateWithApplicationProfileAsync(initial, UAuthApplicationProfile.Api, TestContext.Current.CancellationToken);
 
         flow.EffectiveMode.Should().Be(UAuthMode.PureJwt);
 

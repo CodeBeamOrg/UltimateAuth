@@ -29,7 +29,7 @@ namespace CodeBeam.UltimateAuth.Client.Services;
 /// <para>
 /// Important:
 /// <list type="bullet">
-/// <item><description>Behavior depends on client profile (e.g., Blazor Server vs WASM).</description></item>
+/// <item><description>Behavior depends on application profile (e.g., Blazor Server vs WASM).</description></item>
 /// <item><description>Login may result in redirects or cookie/token updates.</description></item>
 /// <item><description>Refresh behavior differs between PureOpaque and Hybrid modes.</description></item>
 /// <item><description>Session state is managed server-side and may expire independently.</description></item>
@@ -42,7 +42,7 @@ public interface IFlowClient
     /// Performs a login operation.
     /// </summary>
     /// <remarks>
-    /// This method triggers redirects depending on the client profile and configuration.
+    /// This method triggers redirects depending on the application profile and configuration.
     /// </remarks>
     Task LoginAsync(LoginRequest request, string? returnUrl = null);
 

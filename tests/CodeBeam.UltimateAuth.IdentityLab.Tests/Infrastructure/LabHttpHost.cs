@@ -68,7 +68,7 @@ internal sealed class LabHttpHost(WebApplication app) : IAsyncDisposable
         {
             BaseAddress = new Uri(app.Urls.Single())
         };
-        client.DefaultRequestHeaders.Add("X-UAuth-ClientProfile", "BlazorServer");
+        client.DefaultRequestHeaders.Add("X-UAuth-ApplicationProfile", "BlazorServer");
         if (device is not null) client.DefaultRequestHeaders.Add("X-UDID", device);
         return client;
     }

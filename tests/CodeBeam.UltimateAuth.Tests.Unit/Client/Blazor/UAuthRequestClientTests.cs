@@ -28,7 +28,7 @@ public sealed class UAuthRequestClientTests : BunitContext
     {
         var options = new UAuthClientOptions
         {
-            ClientProfile = profile
+            ApplicationProfile = profile
         };
 
         if (basePath is not null)

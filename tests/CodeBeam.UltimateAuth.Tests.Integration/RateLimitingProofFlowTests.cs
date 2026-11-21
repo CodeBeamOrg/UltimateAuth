@@ -60,7 +60,7 @@ public sealed class RateLimitingProofFlowTests
         { o.RateLimiting.Enabled = true; o.RateLimiting.Endpoints[UAuthEndpoint.Refresh] = new() { PermitLimit = 1, Window = Window }; });
         var user = await factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
         using var client = Client(factory);
-        client.DefaultRequestHeaders.Add("X-UAuth-ClientProfile", "BlazorWasm");
+        client.DefaultRequestHeaders.Add("X-UAuth-ApplicationProfile", "BlazorWasm");
         var login = await CsrfTestClient.PostJsonAsync(client, "/auth/login", new { identifier = user.Identifier, secret = user.Secret });
         var cookies = Cookies(login);
         var session = cookies.Split("; ").Single(c => c.StartsWith("uas="));

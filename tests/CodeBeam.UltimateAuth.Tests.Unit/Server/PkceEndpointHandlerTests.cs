@@ -88,7 +88,7 @@ public sealed class PkceEndpointHandlerTests
         captured.ChallengeMethod.Should().Be("S256");
         captured.RedirectUri.Should().Be("/after-login");
         captured.Device.Should().BeEquivalentTo(device);
-        captured.ClientProfile.Should().Be(fixture.Flow.ClientProfile);
+        captured.ApplicationProfile.Should().Be(fixture.Flow.ApplicationProfile);
         captured.Tenant.Should().Be(fixture.Flow.Tenant);
     }
 
@@ -349,8 +349,8 @@ public sealed class PkceEndpointHandlerTests
         // not the context copied from the authorization artifact.
         capturedSnapshot.Should().NotBeNull();
 
-        capturedSnapshot!.ClientProfile
-            .Should().Be(fixture.Flow.ClientProfile);
+        capturedSnapshot!.ApplicationProfile
+            .Should().Be(fixture.Flow.ApplicationProfile);
 
         capturedSnapshot.Tenant
             .Should().Be(fixture.Flow.Tenant);
@@ -362,8 +362,8 @@ public sealed class PkceEndpointHandlerTests
         // to the context captured when the authorization code was issued.
         capturedExecution.Should().NotBeNull();
 
-        capturedExecution!.EffectiveClientProfile
-            .Should().Be(artifact.Context.ClientProfile);
+        capturedExecution!.EffectiveApplicationProfile
+            .Should().Be(artifact.Context.ApplicationProfile);
 
         capturedExecution.Device
             .Should().BeEquivalentTo(artifact.Context.Device);
@@ -900,7 +900,7 @@ public sealed class PkceEndpointHandlerTests
 
         return new AuthFlowContext(
             flowType: AuthFlowType.RefreshSession,
-            clientProfile: source.ClientProfile,
+            applicationProfile: source.ApplicationProfile,
             effectiveMode: source.EffectiveMode,
             device: source.Device,
             tenantKey: source.Tenant,

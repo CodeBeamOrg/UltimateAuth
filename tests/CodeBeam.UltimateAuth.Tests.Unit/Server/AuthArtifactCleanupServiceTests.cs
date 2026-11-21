@@ -47,7 +47,7 @@ public sealed class AuthArtifactCleanupServiceTests
             CredentialType.Password,
             flow.Device.DeviceId!.Value.Value,
             "alice",
-            flow.ClientProfile,
+            flow.ApplicationProfile,
             "fingerprint",
             now.AddMinutes(1));
 

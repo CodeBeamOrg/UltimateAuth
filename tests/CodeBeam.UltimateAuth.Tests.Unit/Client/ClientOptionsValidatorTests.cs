@@ -9,21 +9,21 @@ namespace CodeBeam.UltimateAuth.Tests.Unit;
 public class ClientOptionsValidatorTests
 {
     [Fact]
-    public void ClientProfile_not_specified_and_autodetect_disabled_should_fail()
+    public void ApplicationProfile_not_specified_and_autodetect_disabled_should_fail()
     {
         var services = new ServiceCollection();
 
         services.AddOptions<UAuthClientOptions>()
             .Configure(o =>
             {
-                o.ClientProfile = UAuthApplicationProfile.NotSpecified;
-                o.AutoDetectClientProfile = false;
+                o.ApplicationProfile = UAuthApplicationProfile.NotSpecified;
+                o.AutoDetectApplicationProfile = false;
             });
 
         services.AddSingleton<IValidateOptions<UAuthClientOptions>, UAuthClientOptionsValidator>();
         var provider = services.BuildServiceProvider();
         Action act = () => _ = provider.GetRequiredService<IOptions<UAuthClientOptions>>().Value;
-        act.Should().Throw<OptionsValidationException>().WithMessage("*ClientProfile*AutoDetectClientProfile*");
+        act.Should().Throw<OptionsValidationException>().WithMessage("*ApplicationProfile*AutoDetectApplicationProfile*");
     }
 
     [Fact]
@@ -51,8 +51,8 @@ public class ClientOptionsValidatorTests
         services.AddOptions<UAuthClientOptions>()
             .Configure(o =>
             {
-                o.ClientProfile = UAuthApplicationProfile.BlazorWasm;
-                o.AutoDetectClientProfile = false;
+                o.ApplicationProfile = UAuthApplicationProfile.BlazorWasm;
+                o.AutoDetectApplicationProfile = false;
                 o.Endpoints.BasePath = "/auth";
             });
 
@@ -60,7 +60,7 @@ public class ClientOptionsValidatorTests
         services.AddSingleton<IValidateOptions<UAuthClientOptions>, UAuthClientEndpointOptionsValidator>();
         var provider = services.BuildServiceProvider();
         var options = provider.GetRequiredService<IOptions<UAuthClientOptions>>().Value;
-        options.ClientProfile.Should().Be(UAuthApplicationProfile.BlazorWasm);
+        options.ApplicationProfile.Should().Be(UAuthApplicationProfile.BlazorWasm);
     }
 
     [Fact]

@@ -12,7 +12,7 @@ public sealed class AuthFlowContext
 {
 
     public AuthFlowType FlowType { get; }
-    public UAuthApplicationProfile ClientProfile { get; }
+    public UAuthApplicationProfile ApplicationProfile { get; }
     public UAuthMode EffectiveMode { get; }
     public DeviceContext Device { get; }
 
@@ -38,7 +38,7 @@ public sealed class AuthFlowContext
 
     internal AuthFlowContext(
         AuthFlowType flowType,
-        UAuthApplicationProfile clientProfile,
+        UAuthApplicationProfile applicationProfile,
         UAuthMode effectiveMode,
         DeviceContext device,
         TenantKey tenantKey,
@@ -54,7 +54,7 @@ public sealed class AuthFlowContext
             throw new InvalidOperationException("AuthFlowContext cannot be created with invalid or unresolved tenant.");
 
         FlowType = flowType;
-        ClientProfile = clientProfile;
+        ApplicationProfile = applicationProfile;
         EffectiveMode = effectiveMode;
         Device = device;
 

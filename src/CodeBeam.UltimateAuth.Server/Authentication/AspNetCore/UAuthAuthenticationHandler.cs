@@ -27,7 +27,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
     private readonly IAuthStateSnapshotFactory _snapshotFactory;
     private readonly IUAuthJwtValidator _jwtValidator;
     private readonly IEffectiveServerOptionsProvider _effectiveOptions;
-    private readonly IApplicationProfileReader _clientProfileReader;
+    private readonly IApplicationProfileReader _applicationProfileReader;
     private readonly IAuthResponseResolver _authResponseResolver;
     private readonly UAuthServerOptions _serverOptions;
     private readonly IClock _clock;
@@ -42,7 +42,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         IAuthStateSnapshotFactory snapshotFactory,
         IUAuthJwtValidator jwtValidator,
         IEffectiveServerOptionsProvider effectiveOptions,
-        IApplicationProfileReader clientProfileReader,
+        IApplicationProfileReader applicationProfileReader,
         IAuthResponseResolver authResponseResolver,
         IOptions<UAuthServerOptions> serverOptions,
         IClock uauthClock)
@@ -54,7 +54,7 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
         _snapshotFactory = snapshotFactory;
         _jwtValidator = jwtValidator;
         _effectiveOptions = effectiveOptions;
-        _clientProfileReader = clientProfileReader;
+        _applicationProfileReader = applicationProfileReader;
         _authResponseResolver = authResponseResolver;
         _serverOptions = serverOptions.Value;
         _clock = uauthClock;
@@ -62,13 +62,13 @@ internal sealed class UAuthAuthenticationHandler : AuthenticationHandler<UAuthAu
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var clientProfile = await _clientProfileReader.ReadAsync(Context);
+        var applicationProfile = await _applicationProfileReader.ReadAsync(Context);
         var tenant = Context.GetTenant();
-        var effective = _effectiveOptions.GetEffective(tenant, clientProfile);
+        var effective = _effectiveOptions.GetEffective(tenant, applicationProfile);
 
         var mode = effective.Mode;
 
-        var response = _authResponseResolver.ResolveForAuthentication(mode, clientProfile, effective);
+        var response = _authResponseResolver.ResolveForAuthentication(mode, applicationProfile, effective);
 
         var credential = await _transportCredentialResolver.ResolveAsync(Context, mode, response);
 

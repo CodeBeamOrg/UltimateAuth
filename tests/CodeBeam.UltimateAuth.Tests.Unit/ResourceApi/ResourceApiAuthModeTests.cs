@@ -23,7 +23,7 @@ public sealed class ResourceApiAuthModeTests
         var result = resolver.Resolve(
             new AuthModeResolutionContext
             {
-                ClientProfile = UAuthApplicationProfile.ResourceApi,
+                ApplicationProfile = UAuthApplicationProfile.ResourceApi,
                 Tenant = TenantKey.Single
             });
 
@@ -70,7 +70,7 @@ public sealed class ResourceApiAuthModeTests
         resolver
             .Setup(x => x.Resolve(
                 It.Is<AuthModeResolutionContext>(context =>
-                    context.ClientProfile ==
+                    context.ApplicationProfile ==
                         UAuthApplicationProfile.ResourceApi)))
             .Returns(UAuthMode.PureOpaque);
 
@@ -92,7 +92,7 @@ public sealed class ResourceApiAuthModeTests
 
         resolver.Verify(x => x.Resolve(
             It.Is<AuthModeResolutionContext>(context =>
-                context.ClientProfile ==
+                context.ApplicationProfile ==
                     UAuthApplicationProfile.ResourceApi)),
             Times.Exactly(2));
     }

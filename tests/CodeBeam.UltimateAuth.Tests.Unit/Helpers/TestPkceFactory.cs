@@ -25,7 +25,7 @@ internal static class TestPkceFactory
         var key = AuthArtifactKey.New();
 
         var snapshot = new PkceContextSnapshot(
-            clientProfile: profile,
+            applicationProfile: profile,
             tenant: (TenantKey)tenant,
             redirectUri: "/",
             device: TestDevice.Default()

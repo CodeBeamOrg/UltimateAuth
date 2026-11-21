@@ -147,11 +147,11 @@ For refresh-token input, the resolver checks:
 
 The explicit header takes precedence. Header values may be supplied with a `Bearer ` prefix, which the resolver strips.
 
-On success, the endpoint chooses a **primary credential** according to the refresh response policy, rather than automatically writing every credential returned by the flow. The refresh token is written separately when permitted by the response policy and when a replacement exists. Actual cookie/header placement is determined by the effective response configuration and client profile.
+On success, the endpoint chooses a **primary credential** according to the refresh response policy, rather than automatically writing every credential returned by the flow. The refresh token is written separately when permitted by the response policy and when a replacement exists. Actual cookie/header placement is determined by the effective response configuration and application profile.
 
 The HTTP endpoint returns **`204 No Content`** on successful refresh and **`401 Unauthorized`** when continuation fails. Clients should obtain credentials from the configured response delivery mechanism rather than expecting a JSON token payload. When `Diagnostics.EnableRefreshDetails` is enabled, the endpoint also writes the refresh outcome through its diagnostic response writer.
 
-> Response delivery customization is not fully independent in v0.1.0: mode templates and client-profile adaptation constrain the effective behavior. Do not assume every configured credential-delivery override is honored.
+> Response delivery customization is not fully independent in v0.1.0: mode templates and application-profile adaptation constrain the effective behavior. Do not assume every configured credential-delivery override is honored.
 
 ## Outcomes and client expectations
 

@@ -9,7 +9,7 @@ public sealed record HubBeginRequest
     public string AuthorizationCode { get; init; } = default!;
     public string CodeVerifier { get; init; } = default!;
 
-    public UAuthApplicationProfile ClientProfile { get; init; }
+    public UAuthApplicationProfile ApplicationProfile { get; init; }
     public TenantKey Tenant { get; init; }
 
     public string? ReturnUrl { get; init; }

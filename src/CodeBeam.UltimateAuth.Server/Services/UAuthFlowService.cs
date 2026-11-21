@@ -45,9 +45,9 @@ internal sealed class UAuthFlowService : IUAuthFlowService, IUAuthInternalFlowSe
 
     public async Task<LoginResult> LoginAsync(AuthFlowContext flow, AuthExecutionContext execution, LoginRequest request, CancellationToken ct = default)
     {
-        var effectiveFlow = execution.EffectiveClientProfile is null
+        var effectiveFlow = execution.EffectiveApplicationProfile is null
             ? flow
-            : await _authFlowContextFactory.RecreateWithClientProfileAsync(flow, (UAuthApplicationProfile)execution.EffectiveClientProfile, ct);
+            : await _authFlowContextFactory.RecreateWithApplicationProfileAsync(flow, (UAuthApplicationProfile)execution.EffectiveApplicationProfile, ct);
         effectiveFlow = execution.Device is null
             ? effectiveFlow
             : await _authFlowContextFactory.RecreateWithDeviceAsync(effectiveFlow, execution.Device, ct);
@@ -61,9 +61,9 @@ internal sealed class UAuthFlowService : IUAuthFlowService, IUAuthInternalFlowSe
 
     public async Task<LoginResult> LoginAsync(AuthFlowContext flow, AuthExecutionContext execution, LoginRequest request, LoginExecutionOptions loginExecution, CancellationToken ct = default)
     {
-        var effectiveFlow = execution.EffectiveClientProfile is null
+        var effectiveFlow = execution.EffectiveApplicationProfile is null
             ? flow
-            : await _authFlowContextFactory.RecreateWithClientProfileAsync(flow, (UAuthApplicationProfile)execution.EffectiveClientProfile, ct);
+            : await _authFlowContextFactory.RecreateWithApplicationProfileAsync(flow, (UAuthApplicationProfile)execution.EffectiveApplicationProfile, ct);
         effectiveFlow = execution.Device is null
             ? effectiveFlow
             : await _authFlowContextFactory.RecreateWithDeviceAsync(effectiveFlow, execution.Device, ct);

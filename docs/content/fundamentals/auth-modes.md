@@ -477,15 +477,15 @@ For example, Blazor WebAssembly can use PureOpaque through a secure cookie-based
 
 The runtime does not inherently determine the security model.
 
-## Client Profiles and authentication modes
+## Application Profiles and authentication modes
 
-UltimateAuth supports different client environments through Client Profiles.
+UltimateAuth supports different client environments through Application Profiles.
 
-A Client Profile can provide suitable defaults for a runtime, including credential delivery and authentication-mode selection.
+An Application Profile can provide suitable defaults for a runtime, including credential delivery and authentication-mode selection.
 
-However, a Client Profile and an authentication mode represent different concerns.
+However, an Application Profile and an authentication mode represent different concerns.
 
-**Client Profile**
+**Application Profile**
 
 Describes how the application interacts with the authentication system, including runtime characteristics and credential transport.
 

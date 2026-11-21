@@ -16,25 +16,25 @@ public sealed class UAuthUserAccessor<TUserId> : IUserAccessor<TUserId>
 {
     private readonly ISessionStoreFactory _kernelFactory;
     private readonly IUserIdConverter<TUserId> _userIdConverter;
-    private readonly IApplicationProfileReader _clientProfileReader;
+    private readonly IApplicationProfileReader _applicationProfileReader;
     private readonly IEffectiveServerOptionsProvider _effectiveOptions;
 
     public UAuthUserAccessor(
         ISessionStoreFactory kernelFactory,
         IUserIdConverterResolver converterResolver,
-        IApplicationProfileReader clientProfileReader,
+        IApplicationProfileReader applicationProfileReader,
         IEffectiveServerOptionsProvider effectiveOptions)
     {
         _kernelFactory = kernelFactory;
         _userIdConverter = converterResolver.GetConverter<TUserId>();
-        _clientProfileReader = clientProfileReader;
+        _applicationProfileReader = applicationProfileReader;
         _effectiveOptions = effectiveOptions;
     }
 
     public async Task ResolveAsync(HttpContext context)
     {
         var tenant = context.GetTenant();
-        var profile = await _clientProfileReader.ReadAsync(context);
+        var profile = await _applicationProfileReader.ReadAsync(context);
         var mode = _effectiveOptions.GetEffective(context, profile).Mode;
 
         if (mode == UAuthMode.PureJwt)

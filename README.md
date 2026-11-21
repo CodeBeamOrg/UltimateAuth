@@ -92,7 +92,7 @@ UltimateAuth eliminates fragmentation by handling client differences internally 
 
 Built-in capabilities designed for real-world scenarios:
 
-- Automatic client profile detection (blazor server - WASM - MAUI)
+- Automatic application profile detection (blazor server - WASM - MAUI)
 - Selectable authentication modes (Session / Token / Hybrid / SemiHybrid)
 - Device-aware sessions
 - PKCE flows out of the box

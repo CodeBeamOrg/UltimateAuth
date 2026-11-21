@@ -18,12 +18,12 @@ public class ApplicationProfileTests
 
         var options = new UAuthClientOptions
         {
-            AutoDetectClientProfile = false,
-            ClientProfile = UAuthApplicationProfile.NotSpecified
+            AutoDetectApplicationProfile = false,
+            ApplicationProfile = UAuthApplicationProfile.NotSpecified
         };
 
         sut.PostConfigure(null, options);
-        options.ClientProfile.Should().Be(UAuthApplicationProfile.NotSpecified);
+        options.ApplicationProfile.Should().Be(UAuthApplicationProfile.NotSpecified);
     }
 
     [Fact]
@@ -34,12 +34,12 @@ public class ApplicationProfileTests
 
         var options = new UAuthClientOptions
         {
-            AutoDetectClientProfile = true,
-            ClientProfile = UAuthApplicationProfile.BlazorServer
+            AutoDetectApplicationProfile = true,
+            ApplicationProfile = UAuthApplicationProfile.BlazorServer
         };
 
         sut.PostConfigure(null, options);
-        options.ClientProfile.Should().Be(UAuthApplicationProfile.BlazorServer);
+        options.ApplicationProfile.Should().Be(UAuthApplicationProfile.BlazorServer);
     }
 
     [Fact]
@@ -54,12 +54,12 @@ public class ApplicationProfileTests
 
         var options = new UAuthClientOptions
         {
-            AutoDetectClientProfile = true,
-            ClientProfile = UAuthApplicationProfile.NotSpecified
+            AutoDetectApplicationProfile = true,
+            ApplicationProfile = UAuthApplicationProfile.NotSpecified
         };
 
         sut.PostConfigure(null, options);
-        options.ClientProfile.Should().Be(UAuthApplicationProfile.Maui);
+        options.ApplicationProfile.Should().Be(UAuthApplicationProfile.Maui);
     }
 
     [Fact]
@@ -79,8 +79,8 @@ public class ApplicationProfileTests
     //public void Detect_Should_Default_To_WebServer()
     //{
     //    var sp = new ServiceCollection().BuildServiceProvider();
-    //    var detector = new UAuthClientProfileDetector();
+    //    var detector = new UAuthApplicationProfileDetector();
     //    var result = detector.Detect(sp);
-    //    result.Should().Be(UAuthClientProfile.WebServer);
+    //    result.Should().Be(UAuthApplicationProfile.WebServer);
     //}
 }

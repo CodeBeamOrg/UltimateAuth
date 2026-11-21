@@ -500,11 +500,11 @@ internal class UAuthFlowClient : IFlowClient
 
     private void EnsureCanPost()
     {
-        var canPost = ClientLoginCapabilities.CanPostCredentials(_options.ClientProfile);
+        var canPost = ClientLoginCapabilities.CanPostCredentials(_options.ApplicationProfile);
 
         if (!_options.Login.AllowCredentialPost && !canPost)
         {
-            throw new InvalidOperationException("Direct credential posting is disabled for this client profile. " +
+            throw new InvalidOperationException("Direct credential posting is disabled for this application profile. " +
                 "Public clients (e.g. Blazor WASM) MUST use PKCE-based login flows. " +
                 "If this is a trusted server-hosted client, you may explicitly enable " +
                 "Login.AllowCredentialPost, but doing so is insecure for public clients.");
@@ -540,7 +540,7 @@ internal class UAuthFlowClient : IFlowClient
             ["authorization_code"] = authorizationCode,
             ["code_verifier"] = codeVerifier,
             [UAuthConstants.Form.ReturnUrl] = returnUrl,
-            ["client_profile"] = _options.ClientProfile.ToString(),
+            ["application_profile"] = _options.ApplicationProfile.ToString(),
             ["device"] = deviceEncoded
         };
 

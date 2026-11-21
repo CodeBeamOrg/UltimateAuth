@@ -330,7 +330,7 @@ Also configure the `UAuthApp` root component, login page, and UltimateAuth JavaS
 
 ### Authentication behavior
 
-The default client profile resolution selects `PureOpaque` for Blazor Server.
+The default application profile resolution selects `PureOpaque` for Blazor Server.
 
 This uses session-oriented authentication rather than requiring the application to manage access and refresh tokens manually.
 
@@ -572,7 +572,7 @@ Include the UltimateAuth JavaScript asset in the application's HTML host page.
 
 ### Authentication modes and signing keys
 
-A single UAuthHub can issue different authentication credentials according to the resolved client profile and server configuration.
+A single UAuthHub can issue different authentication credentials according to the resolved application profile and server configuration.
 
 Blazor Server defaults to PureOpaque, while Blazor WebAssembly and MAUI default to Hybrid. API-oriented profiles default to PureJwt.
 
@@ -1083,13 +1083,13 @@ For server-to-server requests, use an appropriate server-side HTTP client and au
 
 See [Resource API Requests](/docs/client-sdk/resource-api-requests) for supported operations, result handling, credential configuration, security considerations, and request cancellation.
 
-## 10. Authentication Modes and Client Profiles
+## 10. Authentication Modes and Application Profiles
 
-UltimateAuth separates **client profile detection** from **authentication mode enforcement**.
+UltimateAuth separates **application profile detection** from **authentication mode enforcement**.
 
-The default resolver maps client profiles to authentication modes.
+The default resolver maps application profiles to authentication modes.
 
-| Client profile | Default resolved mode |
+| Application profile | Default resolved mode |
 |---|---|
 | Blazor Server | `PureOpaque` |
 | Blazor WASM | `Hybrid` |
@@ -1120,7 +1120,7 @@ builder.Services.AddUltimateAuthServer(options =>
 
 It does not select a mode for every request.
 
-The effective mode is resolved from the client profile and then checked against the server's allowed-mode policy.
+The effective mode is resolved from the application profile and then checked against the server's allowed-mode policy.
 
 For most applications, use the default mode resolution unless you have a specific integration requirement.
 
@@ -1273,7 +1273,7 @@ Before deploying, verify the following:
 UltimateAuth is built around two fundamental responsibilities:
 
 - **UltimateAuth Server** — Manages authentication, users, credentials, sessions, authorization, and the security lifecycle.
-- **UltimateAuth Client** — Integrates an application with the authentication system using the appropriate client profile and authentication flows.
+- **UltimateAuth Client** — Integrates an application with the authentication system using the appropriate application profile and authentication flows.
 
 Every application needs access to an authentication server, but that server does not have to be a separate application. It can be hosted within your existing ASP.NET Core application or deployed independently as UAuthHub.
 
@@ -1370,5 +1370,5 @@ The authentication foundation remains consistent.
 - [QuickStart](/docs/getting-started/quickstart) — Build the minimal in-memory application.
 - [Ecosystem](/docs/getting-started/ecosystem) — Explore packages and supported integrations.
 - [Server Options](/docs/configuration/server-options) — Configure server authentication and security behavior.
-- [Client Options](/docs/configuration/client-options) — Configure client profiles, endpoints, refresh, and reauthentication.
+- [Client Options](/docs/configuration/client-options) — Configure application profiles, endpoints, refresh, and reauthentication.
 - [Advanced Configuration](/docs/configuration/advanced-configuration) — Explore effective options, dependency injection, and extension points.

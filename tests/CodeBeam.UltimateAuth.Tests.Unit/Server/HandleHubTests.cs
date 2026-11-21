@@ -101,7 +101,7 @@ public sealed class HandleHubTests
         flow.FlowType.Should().Be(
             HubFlowType.Login);
 
-        flow.ClientProfile.Should().Be(
+        flow.ApplicationProfile.Should().Be(
             UAuthApplicationProfile.BlazorWasm);
 
         flow.ReturnUrl.Should().Be(ReturnUrl);
@@ -186,59 +186,59 @@ public sealed class HandleHubTests
     }
 
     // ---------------------------------------------------------------------
-    // Client profile
+    // Application profile
     // ---------------------------------------------------------------------
 
     [Fact]
-    public async Task HandleHubEntry_ShouldParseClientProfileCaseInsensitively()
+    public async Task HandleHubEntry_ShouldParseApplicationProfileCaseInsensitively()
     {
         var fixture = CreateFixture();
 
         var form = CreateForm();
 
-        form["__uauth_client_profile"] =
+        form["__uauth_application_profile"] =
             "blazorwasm";
 
         SetForm(fixture.Context, form);
 
         var artifact = await ExecuteAndCaptureArtifact(fixture);
 
-        artifact.ClientProfile.Should().Be(
+        artifact.ApplicationProfile.Should().Be(
             UAuthApplicationProfile.BlazorWasm);
     }
 
     [Fact]
-    public async Task HandleHubEntry_WhenClientProfileIsInvalid_ShouldUseNotSpecified()
+    public async Task HandleHubEntry_WhenApplicationProfileIsInvalid_ShouldUseNotSpecified()
     {
         var fixture = CreateFixture();
 
         var form = CreateForm();
 
-        form["__uauth_client_profile"] =
-            "definitely-not-a-client-profile";
+        form["__uauth_application_profile"] =
+            "definitely-not-a-application-profile";
 
         SetForm(fixture.Context, form);
 
         var artifact = await ExecuteAndCaptureArtifact(fixture);
 
-        artifact.ClientProfile.Should().Be(
+        artifact.ApplicationProfile.Should().Be(
             UAuthApplicationProfile.NotSpecified);
     }
 
     [Fact]
-    public async Task HandleHubEntry_WhenClientProfileIsMissing_ShouldUseNotSpecified()
+    public async Task HandleHubEntry_WhenApplicationProfileIsMissing_ShouldUseNotSpecified()
     {
         var fixture = CreateFixture();
 
         var form = CreateForm();
 
-        form.Remove("__uauth_client_profile");
+        form.Remove("__uauth_application_profile");
 
         SetForm(fixture.Context, form);
 
         var artifact = await ExecuteAndCaptureArtifact(fixture);
 
-        artifact.ClientProfile.Should().Be(
+        artifact.ApplicationProfile.Should().Be(
             UAuthApplicationProfile.NotSpecified);
     }
 
@@ -582,7 +582,7 @@ public sealed class HandleHubTests
             [UAuthConstants.Form.ReturnUrl] =
                 ReturnUrl,
 
-            ["__uauth_client_profile"] =
+            ["__uauth_application_profile"] =
                 UAuthApplicationProfile.BlazorWasm.ToString()
         };
     }

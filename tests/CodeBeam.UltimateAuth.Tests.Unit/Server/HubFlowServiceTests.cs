@@ -67,7 +67,7 @@ public sealed class HubFlowServiceTests
         flow.HubSessionId.Value.Should().Be(result.HubSessionId);
 
         flow.FlowType.Should().Be(HubFlowType.Login);
-        flow.ClientProfile.Should().Be(request.ClientProfile);
+        flow.ApplicationProfile.Should().Be(request.ApplicationProfile);
         flow.Tenant.Should().Be(request.Tenant);
         flow.Device.Should().BeSameAs(request.Device);
         flow.ReturnUrl.Should().Be(request.ReturnUrl);
@@ -621,7 +621,7 @@ public sealed class HubFlowServiceTests
         {
             AuthorizationCode = AuthorizationCode,
             CodeVerifier = CodeVerifier,
-            ClientProfile = UAuthApplicationProfile.BlazorWasm,
+            ApplicationProfile = UAuthApplicationProfile.BlazorWasm,
             Tenant = TenantKey.Single,
             Device = TestDevice.Default(),
             ReturnUrl = ReturnUrl,

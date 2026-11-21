@@ -10,7 +10,7 @@ public sealed class LoginPreviewArtifact : AuthArtifact
     public CredentialType Factor { get; }
     public string DeviceId { get; }
     public string Identifier { get; }
-    public UAuthApplicationProfile ClientProfile { get; }
+    public UAuthApplicationProfile ApplicationProfile { get; }
     public string Fingerprint { get; }
 
     public LoginPreviewArtifact(
@@ -19,7 +19,7 @@ public sealed class LoginPreviewArtifact : AuthArtifact
         CredentialType factor,
         string deviceId,
         string identifier,
-        UAuthApplicationProfile clientProfile,
+        UAuthApplicationProfile applicationProfile,
         string fingerprint,
         DateTimeOffset expiresAt)
         : base(AuthArtifactType.LoginPreview, expiresAt)
@@ -29,7 +29,7 @@ public sealed class LoginPreviewArtifact : AuthArtifact
         Factor = factor;
         DeviceId = deviceId;
         Identifier = identifier;
-        ClientProfile = clientProfile;
+        ApplicationProfile = applicationProfile;
         Fingerprint = fingerprint;
     }
 
@@ -39,7 +39,7 @@ public sealed class LoginPreviewArtifact : AuthArtifact
         CredentialType factor,
         string deviceId,
         string identifier,
-        UAuthApplicationProfile clientProfile,
+        UAuthApplicationProfile applicationProfile,
         string fingerprint)
     {
         return Tenant == tenant
@@ -47,7 +47,7 @@ public sealed class LoginPreviewArtifact : AuthArtifact
             && Factor == factor
             && string.Equals(DeviceId, deviceId, StringComparison.Ordinal)
             && string.Equals(Identifier, identifier, StringComparison.Ordinal)
-            && ClientProfile == clientProfile
+            && ApplicationProfile == applicationProfile
             && string.Equals(Fingerprint, fingerprint, StringComparison.Ordinal);
     }
 }

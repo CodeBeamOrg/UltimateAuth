@@ -604,7 +604,7 @@ public sealed class UserLifecycleTests : IClassFixture<AuthServerFactory>
             targetUserKey: actor,
             resourceTenant: TenantKeys.Single,
             action: "test",
-            clientProfile: UAuthApplicationProfile.NotSpecified,
+            applicationProfile: UAuthApplicationProfile.NotSpecified,
             attributes: EmptyAttributes.Instance);
 
         // DefaultPageSize = 2

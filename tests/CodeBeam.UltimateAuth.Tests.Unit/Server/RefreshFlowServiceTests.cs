@@ -518,7 +518,7 @@ public sealed class RefreshFlowServiceTests
 
         return new AuthFlowContext(
             flowType: AuthFlowType.RefreshSession,
-            clientProfile: UAuthApplicationProfile.Api,
+            applicationProfile: UAuthApplicationProfile.Api,
             effectiveMode: mode,
             device: Device,
             tenantKey: TenantKey.Single,

@@ -17,7 +17,7 @@ public sealed class GrantDeliveryOptions
     /// Gets or sets the delivery mode for this grant.
     /// </summary>
     /// <remarks>
-    /// Null inherits the global delivery preference or the authentication mode and client profile defaults when no global preference is configured.
+    /// Null inherits the global delivery preference or the authentication mode and application profile defaults when no global preference is configured.
     /// </remarks>
     public GrantDeliveryMode? Mode { get; set; }
 

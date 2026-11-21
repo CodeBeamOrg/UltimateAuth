@@ -53,13 +53,13 @@ internal sealed class ResourceApiTestHost : IAsyncDisposable
         builder.Services.AddScoped<ISessionValidator>(
             _ => sessionValidator);
 
-        var clientProfile = UAuthApplicationProfile.BlazorServer;
+        var applicationProfile = UAuthApplicationProfile.BlazorServer;
 
         var profileReader = new Mock<IApplicationProfileReader>();
 
         profileReader
             .Setup(x => x.ReadAsync(It.IsAny<HttpContext>()))
-            .ReturnsAsync(clientProfile);
+            .ReturnsAsync(applicationProfile);
 
         builder.Services.AddSingleton(profileReader.Object);
 
@@ -75,7 +75,7 @@ internal sealed class ResourceApiTestHost : IAsyncDisposable
         effectiveOptionsProvider
             .Setup(x => x.GetEffective(
                 It.IsAny<TenantKey>(),
-                clientProfile))
+                applicationProfile))
             .Returns(effective);
 
         builder.Services.AddSingleton(
@@ -99,7 +99,7 @@ internal sealed class ResourceApiTestHost : IAsyncDisposable
         authResponseResolver
             .Setup(x => x.ResolveForAuthentication(
                 UAuthMode.PureOpaque,
-                clientProfile,
+                applicationProfile,
                 effective))
             .Returns(authenticationResponse);
 

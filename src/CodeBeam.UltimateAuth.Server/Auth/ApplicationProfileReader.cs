@@ -9,14 +9,14 @@ internal sealed class ApplicationProfileReader : IApplicationProfileReader
 {
     public async Task<UAuthApplicationProfile> ReadAsync(HttpContext context)
     {
-        if (context.Request.Headers.TryGetValue(UAuthConstants.Headers.ClientProfile, out var headerValue) && TryParse(headerValue, out var headerProfile))
+        if (context.Request.Headers.TryGetValue(UAuthConstants.Headers.ApplicationProfile, out var headerValue) && TryParse(headerValue, out var headerProfile))
         {
             return headerProfile;
         }
 
         var form = await context.GetCachedFormAsync();
 
-        if (form is not null && form.TryGetValue(UAuthConstants.Form.ClientProfile, out var formValue) && TryParse(formValue, out var formProfile))
+        if (form is not null && form.TryGetValue(UAuthConstants.Form.ApplicationProfile, out var formValue) && TryParse(formValue, out var formProfile))
         {
             return formProfile;
         }

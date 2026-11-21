@@ -14,7 +14,7 @@ internal static class TestHubFactory
         return new HubFlowArtifact(
             HubSessionId.New(),
             HubFlowType.Login,
-            pkce.Context.ClientProfile,
+            pkce.Context.ApplicationProfile,
             pkce.Context.Tenant,
             TestDevice.Default(),
             "/",

@@ -38,7 +38,7 @@ internal sealed class HubCredentialResolver : IHubCredentialResolver
         {
             AuthorizationCode = authorizationCode,
             CodeVerifier = codeVerifier,
-            ClientProfile = flow.ClientProfile,
+            ApplicationProfile = flow.ApplicationProfile,
         };
     }
 }

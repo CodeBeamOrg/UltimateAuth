@@ -60,7 +60,7 @@ Without a unified resource client, developers typically need to:
 1. Configure an additional HTTP client.
 2. Determine how authentication credentials should accompany requests.
 3. Handle browser credential policies and cross-origin restrictions.
-4. Maintain device and client profile metadata where applicable.
+4. Maintain device and application profile metadata where applicable.
 5. Deserialize successful responses.
 6. Translate unsuccessful HTTP responses into application-friendly results.
 7. Implement similar request handling across multiple components.
@@ -609,7 +609,7 @@ This separation allows protected APIs to validate access tokens independently wh
 
 ---
 
-## 8. Device and Client Profile Metadata
+## 8. Device and Application Profile Metadata
 
 UltimateAuth maintains a distinction between user identity, device identity, and client environment.
 
@@ -617,11 +617,11 @@ For browser resource requests, the transport can propagate UltimateAuth metadata
 
 ```text
 X-UDID
-X-UAuth-ClientProfile
+X-UAuth-ApplicationProfile
 X-Requested-With
 ```
 
-This keeps resource requests consistent with the UltimateAuth client environment without requiring every application component to construct these headers manually.
+This keeps resource requests consistent with the UltimateAuth application environment without requiring every application component to construct these headers manually.
 
 For example:
 
@@ -633,15 +633,15 @@ does not require the developer to manually retrieve and attach the device identi
 
 ### Metadata Is Not Proof of Identity
 
-Device identifiers and client profile values describe request context.
+Device identifiers and application profile values describe request context.
 
 They are not independent authentication credentials.
 
-A receiving API must not grant access solely because a request declares a particular device identifier or client profile.
+A receiving API must not grant access solely because a request declares a particular device identifier or application profile.
 
 The server remains responsible for validating the user's authentication state and permissions.
 
-For more information, see [Client Profiles](/docs/fundamentals/client-profiles).
+For more information, see [Application Profiles](/docs/fundamentals/application-profiles).
 
 ---
 
@@ -916,7 +916,7 @@ Different responsibilities. One consistent client model.
 ## Related Documentation
 
 - [Client SDK Overview](/docs/client-sdk/overview) — Understand the unified client architecture.
-- [Client Options](/docs/configuration/client-options) — Configure client profiles, authentication endpoints, and resource options.
+- [Client Options](/docs/configuration/client-options) — Configure application profiles, authentication endpoints, and resource options.
 - [Authentication](/docs/client-sdk/authentication) — Work with authentication flows and session renewal.
-- [Client Profiles](/docs/fundamentals/client-profiles) — Understand runtime-specific authentication behavior.
+- [Application Profiles](/docs/fundamentals/application-profiles) — Understand runtime-specific authentication behavior.
 - [Real-World Setup](/docs/getting-started/real-world-setup) — Configure Blazor applications, UAuthHub, and separate Resource APIs.

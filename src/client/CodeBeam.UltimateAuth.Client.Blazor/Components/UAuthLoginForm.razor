@@ -11,7 +11,7 @@
 
 <form @ref="_form" method="post" action="@ResolvedCommitEndpoint" onsubmit="@SubmitAsync" onsubmit:preventDefault>
 
-    <input type="hidden" name="@UAuthConstants.Form.ClientProfile" value="@ClientProfileValue" />
+    <input type="hidden" name="@UAuthConstants.Form.ApplicationProfile" value="@ApplicationProfileValue" />
     <input type="hidden" name="@UAuthConstants.Form.Device" value="@_deviceId" />
 
     @if (LoginType == UAuthLoginType.Pkce)

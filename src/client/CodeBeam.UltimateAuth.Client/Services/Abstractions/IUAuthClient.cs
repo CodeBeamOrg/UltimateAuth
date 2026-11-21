@@ -8,8 +8,8 @@ namespace CodeBeam.UltimateAuth.Client;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This client is designed to work across different client profiles (Blazor Server, WASM, MAUI, MVC, API).
-/// Behavior may vary depending on the configured <c>ClientProfile</c>.
+/// This client is designed to work across different application profiles (Blazor Server, WASM, MAUI, MVC, API).
+/// Behavior may vary depending on the configured <c>ApplicationProfile</c>.
 /// </para>
 /// 
 /// <para>

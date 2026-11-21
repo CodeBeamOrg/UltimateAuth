@@ -97,7 +97,7 @@ internal static class ResourceAccessContextBuilder
             targetUserKey: null,
             resourceTenant: tenant,
             action: action,
-            clientProfile: UAuthApplicationProfile.NotSpecified,
+            applicationProfile: UAuthApplicationProfile.NotSpecified,
             attributes: attributes);
     }
 

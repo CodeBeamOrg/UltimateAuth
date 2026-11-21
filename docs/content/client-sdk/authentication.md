@@ -61,7 +61,7 @@ Before implementing login, determine whether your application is a trusted serve
 
 Public clients must not rely on embedding a secret or trusting browser-executed code to protect credentials.
 
-UltimateAuth restricts direct credential posting based on the configured client profile and login options.
+UltimateAuth restricts direct credential posting based on the configured application profile and login options.
 
 For public clients, use the PKCE flow instead of enabling direct credential posting.
 
@@ -481,7 +481,7 @@ The application should not repeatedly resubmit the same invalid authorization co
 
 ## 8. Direct Credential Posting Restrictions
 
-UltimateAuth restricts direct credential posting according to the configured client profile.
+UltimateAuth restricts direct credential posting according to the configured application profile.
 
 The client option is:
 
@@ -507,7 +507,7 @@ This must not be used to bypass PKCE requirements in a public browser applicatio
 
 **Do not enable direct credential posting in production Blazor WebAssembly or SPA clients.**
 
-A client profile is an integration descriptor, not cryptographic proof that the caller is trusted.
+An application profile is an integration descriptor, not cryptographic proof that the caller is trusted.
 
 Server-side security requirements remain authoritative.
 
@@ -743,7 +743,7 @@ await UAuthClient.Flows.LogoutAsync();
 
 The method uses the configured logout endpoint and navigation transport.
 
-Depending on the client profile and configuration, logout may involve navigation and authentication state changes.
+Depending on the application profile and configuration, logout may involve navigation and authentication state changes.
 
 ### Logout Button
 
@@ -1117,7 +1117,7 @@ In PKCE mode, the component:
 
 The application does not need to manually construct the PKCE completion request for this form.
 
-**Important:** PKCE mode requires a supported server-side UAuthHub environment. `UAuthLoginForm` checks the available Hub capabilities and throws when PKCE login is requested in an unsupported client profile.
+**Important:** PKCE mode requires a supported server-side UAuthHub environment. `UAuthLoginForm` checks the available Hub capabilities and throws when PKCE login is requested in an unsupported application profile.
 
 A Blazor WebAssembly application should initiate PKCE using `BeginPkceAsync`; the Hub-hosted login form handles the completion stage.
 

@@ -801,7 +801,7 @@ public sealed class LogoutEndpointHandlerTests
 
         return new AuthFlowContext(
             flowType: source.FlowType,
-            clientProfile: source.ClientProfile,
+            applicationProfile: source.ApplicationProfile,
             effectiveMode: source.EffectiveMode,
             device: source.Device,
             tenantKey: source.Tenant,
@@ -821,7 +821,7 @@ public sealed class LogoutEndpointHandlerTests
 
         return new AuthFlowContext(
             flowType: source.FlowType,
-            clientProfile: source.ClientProfile,
+            applicationProfile: source.ApplicationProfile,
             effectiveMode: source.EffectiveMode,
             device: source.Device,
             tenantKey: source.Tenant,
@@ -864,7 +864,7 @@ public sealed class LogoutEndpointHandlerTests
 
         return new AuthFlowContext(
             flowType: source.FlowType,
-            clientProfile: source.ClientProfile,
+            applicationProfile: source.ApplicationProfile,
             effectiveMode: UAuthMode.PureJwt,
             device: source.Device,
             tenantKey: source.Tenant,

@@ -20,7 +20,7 @@ public interface IEffectiveAuthModeResolver
     /// Selects the authentication mode for the supplied context.
     /// </summary>
     /// <param name="context">
-    /// Context containing the tenant, client profile and optional HTTP request information.
+    /// Context containing the tenant, application profile and optional HTTP request information.
     /// </param>
     /// <returns>The selected authentication mode.</returns>
     UAuthMode Resolve(AuthModeResolutionContext context);

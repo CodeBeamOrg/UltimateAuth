@@ -88,8 +88,8 @@ builder.Services.AddUltimateAuthServer(o =>
 
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {
-    o.ClientProfile = UAuthApplicationProfile.BlazorServer;
-    o.AutoDetectClientProfile = false;
+    o.ApplicationProfile = UAuthApplicationProfile.BlazorServer;
+    o.AutoDetectApplicationProfile = false;
     o.Login.AllowCredentialPost = true;
     //o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;

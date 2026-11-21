@@ -14,7 +14,7 @@ public class ClientProductInfoTests
     {
         var options = Options.Create(new UAuthClientOptions
         {
-            ClientProfile = UAuthApplicationProfile.BlazorServer,
+            ApplicationProfile = UAuthApplicationProfile.BlazorServer,
             AutoRefresh = new UAuthClientAutoRefreshOptions
             {
                 Enabled = true,
@@ -32,7 +32,7 @@ public class ClientProductInfoTests
 
         info.Should().NotBeNull();
         info.ProductName.Should().Be("UltimateAuth Client");
-        info.ClientProfile.Should().Be(UAuthApplicationProfile.BlazorServer);
+        info.ApplicationProfile.Should().Be(UAuthApplicationProfile.BlazorServer);
         info.AutoRefreshEnabled.Should().BeTrue();
         info.RefreshInterval.Should().Be(TimeSpan.FromMinutes(5));
         info.ReauthBehavior.Should().Be(ReauthBehavior.RaiseEvent);

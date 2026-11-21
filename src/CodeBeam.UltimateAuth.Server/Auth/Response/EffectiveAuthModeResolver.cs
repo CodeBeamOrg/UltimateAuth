@@ -7,7 +7,7 @@ internal sealed class EffectiveAuthModeResolver : IEffectiveAuthModeResolver
 {
     public UAuthMode Resolve(AuthModeResolutionContext context)
     {
-        return context.ClientProfile switch
+        return context.ApplicationProfile switch
         {
             UAuthApplicationProfile.BlazorServer => UAuthMode.PureOpaque,
             UAuthApplicationProfile.WebServer => UAuthMode.Hybrid,

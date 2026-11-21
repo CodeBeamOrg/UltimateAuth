@@ -12,14 +12,14 @@ namespace CodeBeam.UltimateAuth.Client.Options;
 /// </para>
 ///
 /// <para>
-/// The most important concept is <see cref="ClientProfile"/>, which determines
-/// how authentication behaves depending on the client type (e.g., Blazor Server, WASM, API).
+/// The most important concept is <see cref="ApplicationProfile"/>, which determines
+/// how authentication behaves depending on the application type (e.g., Blazor Server, WASM, API).
 /// </para>
 ///
 /// <para>
 /// Key areas:
 /// <list type="bullet">
-/// <item><description><b>Client Profile:</b> Controls auth mode (session vs token, PKCE, etc.)</description></item>
+/// <item><description><b>Application Profile:</b> Controls auth mode (session vs token, PKCE, etc.)</description></item>
 /// <item><description><b>Flows:</b> Login, PKCE, refresh, and reauthentication behavior</description></item>
 /// <item><description><b>Endpoints:</b> Server route configuration</description></item>
 /// <item><description><b>State Events:</b> Client-side state change notifications</description></item>
@@ -30,8 +30,8 @@ namespace CodeBeam.UltimateAuth.Client.Options;
 /// <para>
 /// Important:
 /// <list type="bullet">
-/// <item><description>If <see cref="AutoDetectClientProfile"/> is enabled, the profile is inferred automatically.</description></item>
-/// <item><description>If disabled, <see cref="ClientProfile"/> must be explicitly set.</description></item>
+/// <item><description>If <see cref="AutoDetectApplicationProfile"/> is enabled, the profile is inferred automatically.</description></item>
+/// <item><description>If disabled, <see cref="ApplicationProfile"/> must be explicitly set.</description></item>
 /// <item><description>Different profiles may result in different authentication modes (e.g., PureOpaque vs Hybrid).</description></item>
 /// </list>
 /// </para>
@@ -39,21 +39,21 @@ namespace CodeBeam.UltimateAuth.Client.Options;
 public sealed class UAuthClientOptions
 {
     /// <summary>
-    /// Specifies the client profile used for authentication behavior.
+    /// Specifies the application profile used for authentication behavior.
     /// </summary>
     /// <remarks>
     /// Determines how authentication flows are executed (e.g., session-based, PKCE, token-based).
     /// </remarks>
-    public UAuthApplicationProfile ClientProfile { get; set; } = UAuthApplicationProfile.NotSpecified;
+    public UAuthApplicationProfile ApplicationProfile { get; set; } = UAuthApplicationProfile.NotSpecified;
 
     /// <summary>
-    /// Enables automatic detection of the client profile.
+    /// Enables automatic detection of the application profile.
     /// </summary>
     /// <remarks>
     /// When enabled, UltimateAuth infers the client type (e.g., Blazor Server, WASM).
-    /// Disable this to guarantee explicitly control behavior via <see cref="ClientProfile"/>.
+    /// Disable this to guarantee explicitly control behavior via <see cref="ApplicationProfile"/>.
     /// </remarks>
-    public bool AutoDetectClientProfile { get; set; } = true;
+    public bool AutoDetectApplicationProfile { get; set; } = true;
 
     /// <summary>
     /// Default return URL used for interactive authentication flows.

@@ -46,7 +46,7 @@ UltimateAuth
 │
 └── Client
     └── UAuthClientOptions
-        ├── Client profile
+        ├── Application profile
         ├── Login and PKCE flows
         ├── Endpoint configuration
         ├── Auto-refresh
@@ -204,7 +204,7 @@ UltimateAuth clients have their own configuration model.
 ```csharp
 builder.Services.AddUltimateAuthClient(options =>
 {
-    options.AutoDetectClientProfile = true;
+    options.AutoDetectApplicationProfile = true;
     options.DefaultReturnUrl = "/";
 });
 ```
@@ -235,8 +235,8 @@ Those are server-side responsibilities.
 
 | Property | Responsibility |
 |---|---|
-| `ClientProfile` | Explicit client profile |
-| `AutoDetectClientProfile` | Automatic client profile detection |
+| `ApplicationProfile` | Explicit application profile |
+| `AutoDetectApplicationProfile` | Automatic application profile detection |
 | `DefaultReturnUrl` | Default post-authentication navigation |
 | `Login` | Client login flow behavior |
 | `Pkce` | Client PKCE flow behavior |
@@ -264,7 +264,7 @@ builder.Services.AddUltimateAuthServer(options =>
 
 builder.Services.AddUltimateAuthClient(options =>
 {
-    options.AutoDetectClientProfile = true;
+    options.AutoDetectApplicationProfile = true;
     options.DefaultReturnUrl = "/";
 });
 ```
@@ -277,7 +277,7 @@ These registrations configure different components.
 | Token lifetime | Controls | Does not control |
 | Credential reset policy | Controls | Does not control |
 | Allowed authentication modes | Controls | Does not control |
-| Client profile | Does not control | Controls |
+| Application profile | Does not control | Controls |
 | Client auto-refresh | Does not control | Controls |
 | Client navigation | Does not control | Controls |
 | Server endpoint exposure | Controls | Uses configured routes |
@@ -341,7 +341,7 @@ For example:
 {
   "UltimateAuth": {
     "Client": {
-      "AutoDetectClientProfile": true,
+      "AutoDetectApplicationProfile": true,
       "DefaultReturnUrl": "/dashboard",
       "AutoRefresh": {
         "Enabled": true
@@ -823,7 +823,7 @@ Configure authentication modes, token lifetimes, session lifetimes, credential p
 
 ### Keep Client Behavior in Client Options
 
-Configure client profiles, navigation, auto-refresh, reauthentication, and endpoint usage through `UAuthClientOptions`.
+Configure application profiles, navigation, auto-refresh, reauthentication, and endpoint usage through `UAuthClientOptions`.
 
 ### Use Configuration Files for Environment Differences
 
@@ -862,5 +862,5 @@ The Core-only registration exists for infrastructure scenarios that explicitly c
 
 - [Configuration Overview](/docs/configuration/configuration-overview) — Understand the overall configuration model.
 - [Server Options](/docs/configuration/server-options) — Configure authentication and security behavior.
-- [Client Options](/docs/configuration/client-options) — Configure client profiles, flows, and SDK behavior.
+- [Client Options](/docs/configuration/client-options) — Configure application profiles, flows, and SDK behavior.
 - [Advanced Configuration](/docs/configuration/advanced-configuration) — Customize integration, multi-tenancy, and runtime extension points.

@@ -24,22 +24,22 @@ internal sealed class EffectiveServerOptionsProvider : IEffectiveServerOptionsPr
         return _baseOptions.Value;
     }
 
-    public EffectiveUAuthServerOptions GetEffective(HttpContext context, UAuthApplicationProfile clientProfile)
+    public EffectiveUAuthServerOptions GetEffective(HttpContext context, UAuthApplicationProfile applicationProfile)
     {
         return CreateEffective(new AuthModeResolutionContext
         {
             Tenant = context.GetTenant(),
-            ClientProfile = clientProfile,
+            ApplicationProfile = applicationProfile,
             HttpContext = context
         });
     }
 
-    public EffectiveUAuthServerOptions GetEffective(TenantKey tenant, UAuthApplicationProfile clientProfile)
+    public EffectiveUAuthServerOptions GetEffective(TenantKey tenant, UAuthApplicationProfile applicationProfile)
     {
         return CreateEffective(new AuthModeResolutionContext
         {
             Tenant = tenant,
-            ClientProfile = clientProfile
+            ApplicationProfile = applicationProfile
         });
     }
 
@@ -67,7 +67,7 @@ internal sealed class EffectiveServerOptionsProvider : IEffectiveServerOptionsPr
     private UAuthMode ResolveMode(UAuthServerOptions options, AuthModeResolutionContext context)
     {
         var mode = options.AuthMode
-            ?? (options.ClientProfileModes.TryGetValue(context.ClientProfile, out var mapped)
+            ?? (options.ApplicationProfileModes.TryGetValue(context.ApplicationProfile, out var mapped)
                     ? mapped
                     : _modeResolver.Resolve(context));
 

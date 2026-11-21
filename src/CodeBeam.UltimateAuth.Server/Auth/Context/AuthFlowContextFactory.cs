@@ -14,7 +14,7 @@ namespace CodeBeam.UltimateAuth.Server.Auth;
 
 internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
 {
-    private readonly IApplicationProfileReader _clientProfileReader;
+    private readonly IApplicationProfileReader _applicationProfileReader;
     private readonly IPrimaryTokenResolver _primaryTokenResolver;
     private readonly IEffectiveServerOptionsProvider _serverOptionsProvider;
     private readonly IAuthResponseResolver _authResponseResolver;
@@ -24,7 +24,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
     private readonly IClock _clock;
 
     public AuthFlowContextFactory(
-        IApplicationProfileReader clientProfileReader,
+        IApplicationProfileReader applicationProfileReader,
         IPrimaryTokenResolver primaryTokenResolver,
         IEffectiveServerOptionsProvider serverOptionsProvider,
         IAuthResponseResolver authResponseResolver,
@@ -33,7 +33,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         ISessionValidator sessionValidator,
         IClock clock)
     {
-        _clientProfileReader = clientProfileReader;
+        _applicationProfileReader = applicationProfileReader;
         _primaryTokenResolver = primaryTokenResolver;
         _serverOptionsProvider = serverOptionsProvider;
         _authResponseResolver = authResponseResolver;
@@ -49,9 +49,9 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         var sessionCtx = ctx.GetSessionContext();
         var user = ctx.GetUserContext();
 
-        var clientProfile = await _clientProfileReader.ReadAsync(ctx);
+        var applicationProfile = await _applicationProfileReader.ReadAsync(ctx);
 
-        var effective = _serverOptionsProvider.GetEffective(ctx, clientProfile);
+        var effective = _serverOptionsProvider.GetEffective(ctx, applicationProfile);
         var options = effective.Options;
 
         var effectiveMode = effective.Mode;
@@ -61,7 +61,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
             throw new InvalidOperationException($"Auth mode '{effectiveMode}' is not allowed by server configuration.");
 
         var primaryTokenKind = _primaryTokenResolver.Resolve(effectiveMode);
-        var response = _authResponseResolver.Resolve(effectiveMode, flowType, clientProfile, effective);
+        var response = _authResponseResolver.Resolve(effectiveMode, flowType, applicationProfile, effective);
         var deviceInfo = await _deviceResolver.ResolveAsync(ctx);
         var deviceContext = _deviceContextFactory.Create(deviceInfo);
         var returnUrl = await ctx.GetReturnUrlAsync();
@@ -122,7 +122,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
 
         return new AuthFlowContext(
             flowType,
-            clientProfile,
+            applicationProfile,
             effectiveMode,
             deviceContext,
             tenant,
@@ -136,7 +136,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         );
     }
 
-    public async ValueTask<AuthFlowContext> RecreateWithClientProfileAsync(AuthFlowContext existing, UAuthApplicationProfile overriddenProfile, CancellationToken ct = default)
+    public async ValueTask<AuthFlowContext> RecreateWithApplicationProfileAsync(AuthFlowContext existing, UAuthApplicationProfile overriddenProfile, CancellationToken ct = default)
     {
         var flowType = existing.FlowType;
         var tenant = existing.Tenant;
@@ -154,7 +154,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
 
         if (effectiveMode != existing.EffectiveMode && existing.IsAuthenticated)
         {
-            throw new InvalidOperationException("An authenticated flow cannot change its authentication mode through a client profile override.");
+            throw new InvalidOperationException("An authenticated flow cannot change its authentication mode through a application profile override.");
         }
 
         var primaryTokenKind = _primaryTokenResolver.Resolve(effectiveMode);
@@ -187,7 +187,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
 
         return ValueTask.FromResult(new AuthFlowContext(
             flowType,
-            existing.ClientProfile,
+            existing.ApplicationProfile,
             existing.EffectiveMode,
             device,
             tenant,

@@ -4,7 +4,7 @@ using CodeBeam.UltimateAuth.Core.Options;
 namespace CodeBeam.UltimateAuth.Client.Runtime;
 
 /// <summary>
-/// Represents product information for the UltimateAuth client, including versioning, client profile, and runtime details.
+/// Represents product information for the UltimateAuth client, including versioning, application profile, and runtime details.
 /// </summary>
 public sealed class UAuthClientProductInfo
 {
@@ -44,9 +44,9 @@ public sealed class UAuthClientProductInfo
 
 
     /// <summary>
-    /// Gets the client profile associated with the UltimateAuth client. This is a required property that must be initialized with a valid UAuthClientProfile value.
+    /// Gets the application profile associated with the UltimateAuth client. This is a required property that must be initialized with a valid UAuthApplicationProfile value.
     /// </summary>
-    public UAuthApplicationProfile ClientProfile { get; init; } = default!;
+    public UAuthApplicationProfile ApplicationProfile { get; init; } = default!;
 
 
     /// <summary>

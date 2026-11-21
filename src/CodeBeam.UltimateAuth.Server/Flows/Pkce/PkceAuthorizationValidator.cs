@@ -31,10 +31,10 @@ internal sealed class PkceAuthorizationValidator : IPkceAuthorizationValidator
         if (!string.Equals(original.Tenant, completion.Tenant, StringComparison.Ordinal))
             return false;
 
-        // TODO: Bind the effective client profile rather than the physical
+        // TODO: Bind the effective application profile rather than the physical
         // completion request profile. In Hub flows the artifact may represent
         // BlazorWasm while the completion request is executed by UAuthHub.
-        //if (!original.ClientProfile.Equals(completion.ClientProfile))
+        //if (!original.ApplicationProfile.Equals(completion.ApplicationProfile))
         //    return false;
 
         // TODO: Add protocol-level redirect/return-url binding once the

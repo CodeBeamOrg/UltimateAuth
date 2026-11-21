@@ -95,7 +95,7 @@ internal sealed class AccessContextFactory : IAccessContextFactory
             targetUserKey: targetUserKey,
             resourceTenant: resourceTenant,
             action: action,
-            clientProfile: authFlow.ClientProfile,
+            applicationProfile: authFlow.ApplicationProfile,
             attributes: attrs.Count > 0
                 ? new ReadOnlyDictionary<string, object>(attrs)
                 : EmptyAttributes.Instance,

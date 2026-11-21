@@ -23,14 +23,14 @@ public sealed class UAuthServerOptionsValidator : IValidateOptions<UAuthServerOp
             if (!Enum.IsDefined(configuredMode))
                 return ValidateOptionsResult.Fail($"Invalid AuthMode value: {configuredMode}.");
 
-            if (options.ClientProfileModes.Count > 0)
-                return ValidateOptionsResult.Fail("AuthMode and ClientProfileModes cannot be configured together.");
+            if (options.ApplicationProfileModes.Count > 0)
+                return ValidateOptionsResult.Fail("AuthMode and ApplicationProfileModes cannot be configured together.");
         }
 
-        foreach (var (profile, mode) in options.ClientProfileModes)
+        foreach (var (profile, mode) in options.ApplicationProfileModes)
         {
             if (!Enum.IsDefined(profile))
-                return ValidateOptionsResult.Fail($"Invalid client profile: {profile}.");
+                return ValidateOptionsResult.Fail($"Invalid application profile: {profile}.");
 
             if (!Enum.IsDefined(mode))
                 return ValidateOptionsResult.Fail($"Invalid authentication mode: {mode}.");
@@ -38,7 +38,7 @@ public sealed class UAuthServerOptionsValidator : IValidateOptions<UAuthServerOp
 
         var configuredModes = options.AuthMode is { } selected
             ? new[] { selected }
-            : options.ClientProfileModes.Values.Distinct();
+            : options.ApplicationProfileModes.Values.Distinct();
 
         foreach (var mode in configuredModes)
         {

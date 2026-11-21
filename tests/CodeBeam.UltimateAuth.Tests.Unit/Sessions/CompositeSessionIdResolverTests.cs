@@ -189,7 +189,7 @@ public sealed class CompositeSessionIdResolverTests
     }
 
     [Fact]
-    public async Task ResolveAsync_ShouldReadClientProfileAndUseItsEffectiveOptions()
+    public async Task ResolveAsync_ShouldReadApplicationProfileAndUseItsEffectiveOptions()
     {
         var expected = CreateSessionId("cookie-session-000000000000000000000002");
 

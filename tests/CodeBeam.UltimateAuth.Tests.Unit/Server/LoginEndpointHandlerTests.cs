@@ -369,7 +369,7 @@ public sealed class LoginEndpointHandlerTests
             CredentialType.Password,
             deviceId.Value,
             identifier,
-            fixture.Flow.ClientProfile,
+            fixture.Flow.ApplicationProfile,
             fingerprint,
             Now.AddMinutes(5));
 
@@ -474,7 +474,7 @@ public sealed class LoginEndpointHandlerTests
             CredentialType.Password,
             deviceId.Value,
             identifier,
-            fixture.Flow.ClientProfile,
+            fixture.Flow.ApplicationProfile,
             fingerprint,
             Now.AddMinutes(5));
 
@@ -572,7 +572,7 @@ public sealed class LoginEndpointHandlerTests
             CredentialType.Password,
             deviceId.Value,
             identifier,
-            fixture.Flow.ClientProfile,
+            fixture.Flow.ApplicationProfile,
             fingerprint,
             Now.AddMinutes(5));
 
@@ -655,7 +655,7 @@ public sealed class LoginEndpointHandlerTests
             CredentialType.Password,
             deviceId.Value,
             identifier,
-            fixture.Flow.ClientProfile,
+            fixture.Flow.ApplicationProfile,
             LoginPreviewFingerprint.Create(
                 fixture.Flow.Tenant,
                 identifier,

@@ -66,13 +66,12 @@ internal sealed class UAuthStatusAuthorizationResultHandler : IAuthorizationMidd
             var optionsProvider = context.RequestServices
                 .GetRequiredService<IEffectiveServerOptionsProvider>();
 
-            var clientProfile = await profileReader.ReadAsync(context);
-            var effective = optionsProvider.GetEffective(context, clientProfile);
+            var applicationProfile = await profileReader.ReadAsync(context);
+            var effective = optionsProvider.GetEffective(context, applicationProfile);
 
             if (effective.Mode == UAuthMode.PureJwt)
             {
-                await _default.HandleAsync(
-                    next, context, policy, authorizeResult);
+                await _default.HandleAsync(next, context, policy, authorizeResult);
 
                 return;
             }

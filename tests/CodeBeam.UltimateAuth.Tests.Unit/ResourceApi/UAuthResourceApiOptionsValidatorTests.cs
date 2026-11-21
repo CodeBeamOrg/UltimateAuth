@@ -61,7 +61,7 @@ public sealed class UAuthResourceApiOptionsValidatorTests
 
         resolver.Verify(
             x => x.Resolve(It.Is<AuthModeResolutionContext>(
-                c => c.ClientProfile == UAuthApplicationProfile.ResourceApi)),
+                c => c.ApplicationProfile == UAuthApplicationProfile.ResourceApi)),
             Times.Once);
     }
 

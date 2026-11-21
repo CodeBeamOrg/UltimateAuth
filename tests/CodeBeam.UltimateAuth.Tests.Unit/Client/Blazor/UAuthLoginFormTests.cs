@@ -114,12 +114,12 @@ public sealed class UAuthLoginFormTests : BunitContext
     // -----------------------------------------------------------------
 
     [Fact]
-    public void Render_UsesClientProfileFormContractName()
+    public void Render_UsesApplicationProfileFormContractName()
     {
         var cut = RenderLoginForm();
 
         cut.FindAll(
-                $"input[name='{UAuthConstants.Form.ClientProfile}']")
+                $"input[name='{UAuthConstants.Form.ApplicationProfile}']")
             .Should()
             .ContainSingle();
     }

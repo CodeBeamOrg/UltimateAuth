@@ -193,7 +193,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     {
         _factory.Clock.Reset();
 
-        SetClientProfile("BlazorServer");
+        SetApplicationProfile("BlazorServer");
 
         var response =
             await RefreshAsync();
@@ -386,7 +386,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
             $"different-device-{Guid.NewGuid():N}");
 
         otherClient.DefaultRequestHeaders.Add(
-            "X-UAuth-ClientProfile",
+            "X-UAuth-ApplicationProfile",
             "BlazorServer");
 
         otherClient.DefaultRequestHeaders.Add(
@@ -818,8 +818,8 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         using var clientB =
             CreateClient(deviceId);
 
-        SetClientProfile(clientA, "BlazorWasm");
-        SetClientProfile(clientB, "BlazorWasm");
+        SetApplicationProfile(clientA, "BlazorWasm");
+        SetApplicationProfile(clientB, "BlazorWasm");
 
         clientA.DefaultRequestHeaders.Add(
             "Cookie",
@@ -876,8 +876,8 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         using var clientB =
             CreateClient(factory, deviceId);
 
-        SetClientProfile(clientA, "BlazorWasm");
-        SetClientProfile(clientB, "BlazorWasm");
+        SetApplicationProfile(clientA, "BlazorWasm");
+        SetApplicationProfile(clientB, "BlazorWasm");
 
         clientA.DefaultRequestHeaders.Add(
             "Cookie",
@@ -911,7 +911,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         using var continuation =
             CreateClient(factory, deviceId);
 
-        SetClientProfile(
+        SetApplicationProfile(
             continuation,
             "BlazorWasm");
 
@@ -954,8 +954,8 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         using var clientB =
             CreateClient(deviceId);
 
-        SetClientProfile(clientA, "BlazorWasm");
-        SetClientProfile(clientB, "BlazorWasm");
+        SetApplicationProfile(clientA, "BlazorWasm");
+        SetApplicationProfile(clientB, "BlazorWasm");
 
         clientA.DefaultRequestHeaders.Add(
             "Cookie",
@@ -981,7 +981,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         using var replayClient =
             CreateClient(deviceId);
 
-        SetClientProfile(
+        SetApplicationProfile(
             replayClient,
             "BlazorWasm");
 
@@ -1027,8 +1027,8 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         using var clientB =
             CreateClient(deviceId);
 
-        SetClientProfile(clientA, "BlazorWasm");
-        SetClientProfile(clientB, "BlazorWasm");
+        SetApplicationProfile(clientA, "BlazorWasm");
+        SetApplicationProfile(clientB, "BlazorWasm");
 
         clientA.DefaultRequestHeaders.Add(
             "Cookie",
@@ -1055,7 +1055,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         using var verificationClient =
             CreateClient(deviceId);
 
-        SetClientProfile(
+        SetApplicationProfile(
             verificationClient,
             "BlazorWasm");
 
@@ -1242,7 +1242,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         using var replayClient =
             CreateClient(deviceId);
 
-        SetClientProfile(
+        SetApplicationProfile(
             replayClient,
             "BlazorWasm");
 
@@ -1307,7 +1307,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         using var attacker =
             CreateClient(factory, deviceId);
 
-        SetClientProfile(
+        SetApplicationProfile(
             attacker,
             "BlazorWasm");
 
@@ -1330,7 +1330,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         using var legitimateClient =
             CreateClient(factory, deviceId);
 
-        SetClientProfile(
+        SetApplicationProfile(
             legitimateClient,
             "BlazorWasm");
 
@@ -1376,7 +1376,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         // Still inside duplicate tolerance window.
         using var duplicate = CreateClient(factory, deviceId);
 
-        SetClientProfile(duplicate, "BlazorWasm");
+        SetApplicationProfile(duplicate, "BlazorWasm");
 
         duplicate.DefaultRequestHeaders.Add("Cookie", originalCookies);
 
@@ -1388,7 +1388,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         // duplicate was rejected but must NOT have destroyed R1.
         using var legitimate = CreateClient(factory, deviceId);
 
-        SetClientProfile(legitimate, "BlazorWasm");
+        SetApplicationProfile(legitimate, "BlazorWasm");
 
         legitimate.DefaultRequestHeaders.Add("Cookie", replacementCookies);
 
@@ -1452,7 +1452,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         using var attacker =
             CreateClient(deviceA);
 
-        SetClientProfile(
+        SetApplicationProfile(
             attacker,
             "BlazorWasm");
 
@@ -1473,7 +1473,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         using var safeClient =
             CreateClient(deviceB);
 
-        SetClientProfile(
+        SetApplicationProfile(
             safeClient,
             "BlazorWasm");
 
@@ -1936,7 +1936,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         using var replayClient =
             CreateClient(deviceId);
 
-        SetClientProfile(
+        SetApplicationProfile(
             replayClient,
             "BlazorWasm");
 
@@ -1992,11 +1992,11 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         using var clientB =
             CreateClient(deviceId);
 
-        SetClientProfile(
+        SetApplicationProfile(
             clientA,
             "BlazorWasm");
 
-        SetClientProfile(
+        SetApplicationProfile(
             clientB,
             "BlazorWasm");
 
@@ -2171,7 +2171,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 factory,
                 $"tenant-a-device-{Guid.NewGuid():N}");
 
-        SetClientProfile(
+        SetApplicationProfile(
             tenantBClient,
             "BlazorWasm");
 
@@ -2236,7 +2236,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 factory,
                 deviceId);
 
-        SetClientProfile(
+        SetApplicationProfile(
             tenantBClient,
             "BlazorWasm");
 
@@ -2264,7 +2264,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
                 factory,
                 deviceId);
 
-        SetClientProfile(
+        SetApplicationProfile(
             tenantAClient,
             "BlazorWasm");
 
@@ -2418,7 +2418,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         using var attacker =
             CreateClient(factory, deviceId);
 
-        SetClientProfile(
+        SetApplicationProfile(
             attacker,
             "BlazorWasm");
 
@@ -2449,7 +2449,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         using var client = CreateClient(
             $"maui-refresh-{Guid.NewGuid():N}");
 
-        SetClientProfile(client, "Maui");
+        SetApplicationProfile(client, "Maui");
 
         // Login with CSRF protection.
         using var login = await CsrfTestClient.PostJsonAsync(
@@ -2524,7 +2524,7 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
 
     private async Task<string> LoginAsync(IntegrationTestUser user, string profile = "BlazorServer")
     {
-        SetClientProfile(profile);
+        SetApplicationProfile(profile);
 
         var response = await CsrfTestClient.PostJsonAsync(_client,
             "/auth/login",
@@ -2555,10 +2555,10 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     private static async Task<string> LoginAsync(HttpClient client, IntegrationTestUser user, string profile)
     {
         client.DefaultRequestHeaders.Remove(
-            "X-UAuth-ClientProfile");
+            "X-UAuth-ApplicationProfile");
 
         client.DefaultRequestHeaders.Add(
-            "X-UAuth-ClientProfile",
+            "X-UAuth-ApplicationProfile",
             profile);
 
         var response =
@@ -2593,16 +2593,16 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
         return factory.Create(TenantKeys.Single);
     }
 
-    private void SetClientProfile(string profile)
+    private void SetApplicationProfile(string profile)
     {
-        _client.DefaultRequestHeaders.Remove("X-UAuth-ClientProfile");
-        _client.DefaultRequestHeaders.Add("X-UAuth-ClientProfile", profile);
+        _client.DefaultRequestHeaders.Remove("X-UAuth-ApplicationProfile");
+        _client.DefaultRequestHeaders.Add("X-UAuth-ApplicationProfile", profile);
     }
 
-    private static void SetClientProfile(HttpClient client, string profile)
+    private static void SetApplicationProfile(HttpClient client, string profile)
     {
-        client.DefaultRequestHeaders.Remove("X-UAuth-ClientProfile");
-        client.DefaultRequestHeaders.Add("X-UAuth-ClientProfile", profile);
+        client.DefaultRequestHeaders.Remove("X-UAuth-ApplicationProfile");
+        client.DefaultRequestHeaders.Add("X-UAuth-ApplicationProfile", profile);
     }
 
     private static string BuildCookieHeader(HttpResponseMessage response)

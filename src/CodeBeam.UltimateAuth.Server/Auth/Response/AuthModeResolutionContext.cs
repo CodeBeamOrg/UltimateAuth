@@ -8,7 +8,7 @@ namespace CodeBeam.UltimateAuth.Server.Auth;
 /// Provides the context used to select an authentication mode.
 /// </summary>
 /// <remarks>
-/// The client profile describes the client environment and is not proof of client identity.
+/// The application profile describes the client environment and is not proof of client identity.
 /// Request headers, query values, and other client-supplied data must not be treated as trusted authentication or authorization evidence.
 /// <br/><br/>
 /// HttpContext may be unavailable for operations that are not associated with an HTTP request.
@@ -22,10 +22,10 @@ public sealed class AuthModeResolutionContext
     public required TenantKey Tenant { get; init; }
 
     /// <summary>
-    /// Gets the resolved client environment.
+    /// Gets the resolved application environment.
     /// This value must not be treated as authenticated identity.
     /// </summary>
-    public required UAuthApplicationProfile ClientProfile { get; init; }
+    public required UAuthApplicationProfile ApplicationProfile { get; init; }
 
     /// <summary>
     /// Gets the current HTTP context, when available.

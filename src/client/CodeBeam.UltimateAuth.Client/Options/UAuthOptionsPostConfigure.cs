@@ -17,12 +17,12 @@ internal sealed class UAuthClientOptionsPostConfigure : IPostConfigureOptions<UA
 
     public void PostConfigure(string? name, UAuthClientOptions options)
     {
-        if (!options.AutoDetectClientProfile)
+        if (!options.AutoDetectApplicationProfile)
             return;
 
-        if (options.ClientProfile != UAuthApplicationProfile.NotSpecified)
+        if (options.ApplicationProfile != UAuthApplicationProfile.NotSpecified)
             return;
 
-        options.ClientProfile = _detector.Detect(_services);
+        options.ApplicationProfile = _detector.Detect(_services);
     }
 }

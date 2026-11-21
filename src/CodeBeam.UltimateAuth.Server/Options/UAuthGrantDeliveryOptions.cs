@@ -16,7 +16,7 @@ public sealed class UAuthGrantDeliveryOptions
     /// Gets or sets the default delivery mode for grants issued by the authentication mode.
     /// </summary>
     /// <remarks>
-    /// Null uses authentication mode and client profile defaults. Individual grant settings take precedence.
+    /// Null uses authentication mode and application profile defaults. Individual grant settings take precedence.
     /// </remarks>
     public GrantDeliveryMode? Default { get; set; }
 

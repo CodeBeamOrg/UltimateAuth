@@ -9,6 +9,6 @@ namespace CodeBeam.UltimateAuth.Server.Options;
 public interface IEffectiveServerOptionsProvider
 {
     UAuthServerOptions GetOriginal(HttpContext context);
-    EffectiveUAuthServerOptions GetEffective(HttpContext context, UAuthApplicationProfile clientProfile);
-    EffectiveUAuthServerOptions GetEffective(TenantKey tenant, UAuthApplicationProfile clientProfile);
+    EffectiveUAuthServerOptions GetEffective(HttpContext context, UAuthApplicationProfile applicationProfile);
+    EffectiveUAuthServerOptions GetEffective(TenantKey tenant, UAuthApplicationProfile applicationProfile);
 }

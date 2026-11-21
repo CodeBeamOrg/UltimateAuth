@@ -54,31 +54,31 @@ public sealed class UAuthServerOptions
     // -------------------------------------------------------
 
     /// <summary>
-    /// Gets or sets the authentication mode used for all client profiles when explicitly configured.
+    /// Gets or sets the authentication mode used for all application profiles when explicitly configured.
     /// </summary>
     /// <remarks>
-    /// When null, mode selection uses the configured client profile mappings or the registered authentication mode resolver.
+    /// When null, mode selection uses the configured application profile mappings or the registered authentication mode resolver.
     /// <br/><br/>
-    /// Setting this property establishes a server-controlled mode selection that cannot be changed by client profile headers.
+    /// Setting this property establishes a server-controlled mode selection that cannot be changed by application profile headers.
     /// <br/><br/>
-    /// This setting is mutually exclusive with ClientProfileModes.
+    /// This setting is mutually exclusive with ApplicationProfileModes.
     /// The selected mode must be included in AllowedModes when an allowlist is configured.
     /// </remarks>
     public UAuthMode? AuthMode { get; set; }
 
     /// <summary>
-    /// Gets or sets explicit authentication mode mappings for individual client profiles.
+    /// Gets or sets explicit authentication mode mappings for individual application profiles.
     /// </summary>
     /// <remarks>
     /// Mappings override the default automatic selection for the specified profiles.
     /// Profiles without mappings use the registered resolver.
     /// <br/><br/>
-    /// Client profiles describe client environments and are not authenticated client identities.
+    /// Application profiles describe application environments and are not authenticated application identities.
     /// Use a server-controlled authentication policy when selecting modes is security-sensitive.
     /// <br/><br/>
     /// Cannot be combined with an explicit AuthMode.
     /// </remarks>
-    public Dictionary<UAuthApplicationProfile, UAuthMode> ClientProfileModes { get; set; } = new();
+    public Dictionary<UAuthApplicationProfile, UAuthMode> ApplicationProfileModes { get; set; } = new();
 
     /// <summary>
     /// Cryptographic keys used by the built-in implementations.
@@ -210,7 +210,7 @@ public sealed class UAuthServerOptions
         return new UAuthServerOptions
         {
             AuthMode = AuthMode,
-            ClientProfileModes = new(ClientProfileModes),
+            ApplicationProfileModes = new(ApplicationProfileModes),
             Cryptography = Cryptography.Clone(),
             AllowedModes = AllowedModes?.ToArray(),
             HubDeploymentMode = HubDeploymentMode,

@@ -44,7 +44,7 @@ internal sealed class UAuthResourceRequestClient : IUAuthResourceRequestClient
                     baseAddress = _options.Resource.BaseAddress,
                     method,
                     payload,
-                    clientProfile = _options.ClientProfile.ToString(),
+                    applicationProfile = _options.ApplicationProfile.ToString(),
                     credentials = _options.Resource.Credentials.ToString(),
                     requestId
                 });
