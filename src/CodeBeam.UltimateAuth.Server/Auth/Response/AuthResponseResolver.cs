@@ -72,21 +72,13 @@ internal sealed class AuthResponseResolver : IAuthResponseResolver
             effectiveMode is UAuthMode.Hybrid
                 or UAuthMode.SemiHybrid
                 or UAuthMode.PureJwt,
-            effectiveMode == UAuthMode.Hybrid
-                ? GrantDeliveryMode.Cookie
-                : effectiveMode == UAuthMode.PureOpaque
-                    ? GrantDeliveryMode.None
-                    : GrantDeliveryMode.Header,
+            GrantDeliveryMode.Cookie,
             delivery.RefreshToken,
             delivery.Default,
             applicationProfile,
             options);
 
-        return new EffectiveAuthResponse(
-            session,
-            accessToken,
-            refreshToken,
-            redirect);
+        return new EffectiveAuthResponse(session, accessToken, refreshToken, redirect);
     }
 
     private static EffectiveGrantDelivery ResolveGrant(

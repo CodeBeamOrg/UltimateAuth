@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
+﻿using CodeBeam.UltimateAuth.Client.Abstractions;
+using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
@@ -11,12 +12,14 @@ internal sealed class UAuthResourceRequestClient : IUAuthResourceRequestClient
 {
     private readonly IJSRuntime _js;
     private readonly IUAuthClientBootstrapper _bootstrapper;
+    private readonly IUAuthTokenStore _tokenStore;
     private readonly UAuthClientOptions _options;
 
-    public UAuthResourceRequestClient(IJSRuntime js, IUAuthClientBootstrapper bootstrapper, IOptions<UAuthClientOptions> options)
+    public UAuthResourceRequestClient(IJSRuntime js, IUAuthClientBootstrapper bootstrapper, IUAuthTokenStore tokenStore, IOptions<UAuthClientOptions> options)
     {
         _js = js;
         _bootstrapper = bootstrapper;
+        _tokenStore = tokenStore;
         _options = options.Value;
     }
 
@@ -37,6 +40,14 @@ internal sealed class UAuthResourceRequestClient : IUAuthResourceRequestClient
 
         try
         {
+            var accessToken = _tokenStore.Read();
+
+            if (accessToken is not null && accessToken.IsExpired(DateTimeOffset.UtcNow))
+            {
+                _tokenStore.Clear();
+                accessToken = null;
+            }
+
             var result = await _js.InvokeAsync<UAuthResourceTransportResult>("uauth.resourceRequest", ct,
                 new
                 {
@@ -46,6 +57,7 @@ internal sealed class UAuthResourceRequestClient : IUAuthResourceRequestClient
                     payload,
                     applicationProfile = _options.ApplicationProfile.ToString(),
                     credentials = _options.Resource.Credentials.ToString(),
+                    accessToken = accessToken?.Token,
                     requestId
                 });
 

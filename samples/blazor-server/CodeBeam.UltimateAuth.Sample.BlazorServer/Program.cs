@@ -68,27 +68,12 @@ builder.Services.AddUltimateAuthServer(o =>
     //o.Session.Lifetime = TimeSpan.FromSeconds(20);
     //o.Session.TouchInterval = TimeSpan.FromSeconds(9);
     //o.Session.IdleTimeout = TimeSpan.FromSeconds(10);
-
-    o.GrantDelivery.Default = GrantDeliveryMode.Cookie;
-    // PureJwt access token cookie
-    o.Cookie.AccessToken.Name = "uat";
-    o.Cookie.AccessToken.HttpOnly = true;
-    o.Cookie.AccessToken.SecurePolicy = CookieSecurePolicy.Always;
-    o.Cookie.AccessToken.SameSite = SameSiteMode.Lax;
-    o.Cookie.AccessToken.Path = "/";
-
-    // PureJwt refresh token cookie
-    o.Cookie.RefreshToken.Name = "uar";
-    o.Cookie.RefreshToken.HttpOnly = true;
-    o.Cookie.RefreshToken.SecurePolicy = CookieSecurePolicy.Always;
-    o.Cookie.RefreshToken.SameSite = SameSiteMode.Lax;
-    o.Cookie.RefreshToken.Path = "/";
 })
     .AddUltimateAuthInMemory();
 
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {
-    o.ApplicationProfile = UAuthApplicationProfile.BlazorServer;
+    o.ApplicationProfile = UAuthApplicationProfile.BlazorWasm;
     o.AutoDetectApplicationProfile = false;
     o.Login.AllowCredentialPost = true;
     //o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);

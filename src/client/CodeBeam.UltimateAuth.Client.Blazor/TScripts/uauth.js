@@ -425,11 +425,33 @@ window.uauth.request = async function (options) {
         }
     }
 
+    const accessTokenHeader = response.headers.get("X-UAuth-Access-Header");
+
+    let accessToken = null;
+    let accessTokenExpiresAt = null;
+    let accessTokenFormat = null;
+    let accessTokenHeaderFormat = null;
+
+    if (response.ok && accessTokenHeader) {
+        if (!/^[A-Za-z0-9!#$%&'*+.^_`|~-]+$/.test(accessTokenHeader)) {
+            throw new Error("Invalid access token header name.");
+        }
+
+        accessToken = response.headers.get(accessTokenHeader);
+        accessTokenExpiresAt = response.headers.get("X-UAuth-Access-Expires");
+        accessTokenFormat = response.headers.get("X-UAuth-Access-Format");
+        accessTokenHeaderFormat = response.headers.get("X-UAuth-Access-HeaderFormat");
+    }
+
     return {
         retryAfter: response.headers.get("Retry-After"),
         ok: response.ok,
         status: response.status,
         refreshOutcome: response.headers.get("X-UAuth-Refresh"),
+        accessToken,
+        accessTokenExpiresAt,
+        accessTokenFormat,
+        accessTokenHeaderFormat,
         body: responseBody
     };
 };
@@ -442,6 +464,7 @@ window.uauth.resourceRequest = async function (options) {
         payload = null,
         applicationProfile = "",
         credentials = "Auto",
+        accessToken = null,
         requestId
     } = options;
 
@@ -528,6 +551,21 @@ window.uauth.resourceRequest = async function (options) {
         "X-UAuth-ApplicationProfile": applicationProfile,
         "X-Requested-With": "UAuth"
     };
+
+    if (accessToken !== null) {
+        if (typeof accessToken !== "string" ||
+            accessToken.length === 0 ||
+            /[\r\n]/.test(accessToken)) {
+            throw new Error("Invalid Resource API access token.");
+        }
+
+        if (requestUrl.protocol !== "https:" &&
+            !["localhost", "127.0.0.1", "[::1]"].includes(requestUrl.hostname)) {
+            throw new Error("Bearer access token requests require HTTPS.");
+        }
+
+        headers["Authorization"] = `Bearer ${accessToken}`;
+    }
 
     let body = null;
 

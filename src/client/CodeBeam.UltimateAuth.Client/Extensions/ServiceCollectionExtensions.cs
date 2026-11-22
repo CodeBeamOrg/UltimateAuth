@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Client.Authentication;
+﻿using CodeBeam.UltimateAuth.Client.Abstractions;
+using CodeBeam.UltimateAuth.Client.Authentication;
 using CodeBeam.UltimateAuth.Client.Device;
 using CodeBeam.UltimateAuth.Client.Devices;
 using CodeBeam.UltimateAuth.Client.Events;
@@ -121,6 +122,8 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IHubCredentialResolver, NoOpHubCredentialResolver>();
         services.TryAddScoped<IHubCapabilities, NoOpHubCapabilities>();
         services.TryAddScoped<IHubFlowReader, NoOpHubFlowReader>();
+
+        services.TryAddScoped<IUAuthTokenStore, InMemoryUAuthTokenStore>();
 
         return services;
     }

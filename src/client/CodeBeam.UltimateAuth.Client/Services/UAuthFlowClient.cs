@@ -12,6 +12,7 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.Extensions.Options;
+using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -27,10 +28,12 @@ internal class UAuthFlowClient : IFlowClient
     private readonly IReturnUrlProvider _returnUrlProvider;
     private readonly UAuthClientOptions _options;
     private readonly UAuthClientDiagnostics _diagnostics;
+    private readonly IUAuthTokenStore _tokenStore;
+
     private DateTimeOffset _refreshNotBefore;
     private RefreshResult? _refreshThrottle;
 
-    public UAuthFlowClient(IUAuthRequestClient post, IUAuthClientEvents events, IClientDeviceProvider clientDeviceProvider, IReturnUrlProvider returnUrlProvider, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics)
+    public UAuthFlowClient(IUAuthRequestClient post, IUAuthClientEvents events, IClientDeviceProvider clientDeviceProvider, IReturnUrlProvider returnUrlProvider, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics, IUAuthTokenStore tokenStore)
     {
         _post = post;
         _events = events;
@@ -38,6 +41,7 @@ internal class UAuthFlowClient : IFlowClient
         _returnUrlProvider = returnUrlProvider;
         _options = options.Value;
         _diagnostics = diagnostics;
+        _tokenStore = tokenStore;
     }
 
     private string Url(string path) => UAuthUrlBuilder.Build(_options.Endpoints.BasePath, path, _options.MultiTenant);
@@ -128,6 +132,7 @@ internal class UAuthFlowClient : IFlowClient
         if (raw.Status is < 200 or >= 300)
             throw new UAuthTransportException("Server logout did not succeed.", (HttpStatusCode)raw.Status);
 
+        _tokenStore.Clear();
         await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.StateEvents.HandlingMode));
     }
 
@@ -160,6 +165,7 @@ internal class UAuthFlowClient : IFlowClient
         // 401 is a normal authentication outcome for refresh.
         if (raw.Status == 401)
         {
+            _tokenStore.Clear();
             _diagnostics.MarkRefreshReauthRequired();
 
             return new RefreshResult
@@ -174,6 +180,23 @@ internal class UAuthFlowClient : IFlowClient
 
         var outcome = RefreshOutcomeParser.Parse(raw.RefreshOutcome);
         var isSuccess = raw.Status is >= 200 and < 300 && raw.Ok;
+
+        if (isSuccess)
+        {
+            var accessToken = ReadAccessToken(raw);
+
+            if (accessToken is not null)
+            {
+                if (accessToken.IsExpired(DateTimeOffset.UtcNow))
+                {
+                    _tokenStore.Clear();
+
+                    throw new UAuthProtocolException("Server returned an expired access token.");
+                }
+
+                _tokenStore.Replace(accessToken);
+            }
+        }
 
         // Never record a successful refresh outcome
         // for a failed HTTP response.
@@ -497,6 +520,61 @@ internal class UAuthFlowClient : IFlowClient
         return UAuthResultMapper.From(raw);
     }
 
+
+    private static AccessToken? ReadAccessToken(UAuthTransportResult raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw.AccessToken))
+            return null;
+
+        if (string.IsNullOrWhiteSpace(raw.AccessTokenExpiresAt) ||
+            !DateTimeOffset.TryParse(
+                raw.AccessTokenExpiresAt,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind,
+                out var expiresAt))
+        {
+            throw new UAuthProtocolException("Access token expiration metadata is invalid.");
+        }
+
+        var format = raw.AccessTokenFormat?.ToLowerInvariant() switch
+        {
+            "jwt" => TokenFormat.Jwt,
+            "opaque" => TokenFormat.Opaque,
+            _ => throw new UAuthProtocolException("Access token format metadata is invalid.")
+        };
+
+        var token = raw.AccessToken;
+
+        switch (raw.AccessTokenHeaderFormat?.ToLowerInvariant())
+        {
+            case "bearer":
+                if (!token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new UAuthProtocolException("Invalid Bearer access token header.");
+                }
+
+                token = token["Bearer ".Length..];
+                break;
+
+            case "raw":
+                break;
+
+            default:
+                throw new UAuthProtocolException("Access token header format metadata is invalid.");
+        }
+
+        if (string.IsNullOrWhiteSpace(token) || token.Contains('\r') || token.Contains('\n'))
+        {
+            throw new UAuthProtocolException("Invalid access token value.");
+        }
+
+        return new AccessToken
+        {
+            Token = token,
+            Format = format,
+            ExpiresAt = expiresAt
+        };
+    }
 
     private void EnsureCanPost()
     {

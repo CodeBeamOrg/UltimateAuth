@@ -150,6 +150,19 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
 
         var decision = _redirectResolver.ResolveSuccess(authFlow, ctx);
 
+        if (ctx.Request.HasFormContentType)
+        {
+            var form = await ctx.GetCachedFormAsync();
+
+            if (form?["__uauth_response_mode"].FirstOrDefault() == "fetch")
+            {
+                return Results.Ok(new
+                {
+                    RedirectUrl = decision.Enabled ? decision.TargetUrl : null
+                });
+            }
+        }
+
         return decision.Enabled
             ? Results.Redirect(decision.TargetUrl!)
             : Results.Ok();

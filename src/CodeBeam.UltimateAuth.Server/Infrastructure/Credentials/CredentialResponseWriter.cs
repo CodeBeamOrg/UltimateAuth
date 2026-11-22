@@ -30,7 +30,34 @@ internal sealed class CredentialResponseWriter : ICredentialResponseWriter
         => WriteInternal(context, kind, sessionId.ToString());
 
     public void Write(HttpContext context, GrantKind kind, AccessToken token)
-        => WriteInternal(context, kind, token.Token);
+    {
+        ArgumentNullException.ThrowIfNull(token);
+
+        WriteInternal(context, kind, token.Token);
+
+        if (kind != GrantKind.AccessToken)
+            return;
+
+        var auth = _authContext.Current;
+        var delivery = auth.Response.AccessTokenDelivery;
+
+        if (delivery.Mode != GrantDeliveryMode.Header)
+            return;
+
+        var headerName = delivery.Name;
+
+        if (string.IsNullOrWhiteSpace(headerName))
+            throw new InvalidOperationException("Access token header name is missing.");
+
+        var headers = context.Response.Headers;
+
+        headers["X-UAuth-Access-Header"] = headerName;
+        headers["X-UAuth-Access-Expires"] = token.ExpiresAt.ToUniversalTime().ToString("O");
+        headers["X-UAuth-Access-Format"] = token.Format.ToString().ToLowerInvariant();
+        headers["X-UAuth-Access-HeaderFormat"] = delivery.HeaderFormat.ToString().ToLowerInvariant();
+
+        headers.CacheControl = "no-store";
+    }
 
     public void Write(HttpContext context, GrantKind kind, RefreshTokenInfo token)
         => WriteInternal(context, kind, token.Token);
