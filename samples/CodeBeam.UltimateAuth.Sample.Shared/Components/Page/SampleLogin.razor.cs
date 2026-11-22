@@ -1,8 +1,10 @@
-﻿using CodeBeam.UltimateAuth.Client.Blazor;
+﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Runtime;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Sample.Shared.Components.Dialogs;
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
 namespace CodeBeam.UltimateAuth.Sample.Shared.Components.Page;
@@ -78,14 +80,37 @@ public partial class SampleLogin : UAuthPageBase
         Snackbar.Add(message, Severity.Error);
     }
 
+    [Inject]
+    private IUAuthStateManager StateManager { get; set; } = default!;
+
     private async Task ProgrammaticLogin()
     {
         var request = new LoginRequest
         {
             Identifier = "admin",
-            Secret = "admin",
+            Secret = "admin"
         };
-        await UAuthClient.Flows.LoginAsync(request, navigate: false, ReturnUrl ?? "/home");
+
+        var result = await UAuthClient.Flows.LoginAsync(
+            request,
+            navigate: false,
+            returnUrl: ReturnUrl ?? "/home");
+
+        if (!result.IsSuccess)
+        {
+            Snackbar.Add("Login failed.", Severity.Error);
+            return;
+        }
+
+        if (!StateManager.State.IsAuthenticated)
+        {
+            Snackbar.Add(
+                "Login succeeded, but authentication state could not be synchronized.",
+                Severity.Warning);
+
+            return;
+        }
+
         Navigation.NavigateTo(ReturnUrl ?? "/home");
     }
 

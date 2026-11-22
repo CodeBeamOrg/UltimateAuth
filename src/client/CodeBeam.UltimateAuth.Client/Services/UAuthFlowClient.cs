@@ -61,6 +61,7 @@ internal class UAuthFlowClient : IFlowClient
         if (navigate)
         {
             await _post.NavigateAsync(url, payload);
+
             return new UAuthResult
             {
                 IsSuccess = true,
@@ -74,25 +75,36 @@ internal class UAuthFlowClient : IFlowClient
 
         EnsureValidHttpStatus(raw);
 
-        if (raw.Ok)
+        if (!raw.Ok)
         {
-            var accessToken = ReadAccessToken(raw);
-
-            if (accessToken is not null)
+            return new UAuthResult
             {
-                if (accessToken.IsExpired(DateTimeOffset.UtcNow))
-                {
-                    throw new UAuthProtocolException(
-                        "Server returned an expired access token.");
-                }
-
-                _tokenStore.Replace(accessToken);
-            }
+                IsSuccess = false,
+                Status = raw.Status
+            };
         }
+
+        var accessToken = ReadAccessToken(raw);
+
+        if (accessToken is not null)
+        {
+            if (accessToken.IsExpired(DateTimeOffset.UtcNow))
+            {
+                throw new UAuthProtocolException(
+                    "Server returned an expired access token.");
+            }
+
+            _tokenStore.Replace(accessToken);
+        }
+
+        await _events.PublishAsync(
+            new UAuthStateEventArgsEmpty(
+                UAuthStateEvent.LoginSucceeded,
+                UAuthStateEventHandlingMode.Validate));
 
         return new UAuthResult
         {
-            IsSuccess = raw.Ok,
+            IsSuccess = true,
             Status = raw.Status
         };
     }
@@ -207,7 +219,13 @@ internal class UAuthFlowClient : IFlowClient
         if (raw.Status == 401)
         {
             _tokenStore.Clear();
+
             _diagnostics.MarkRefreshReauthRequired();
+
+            await _events.PublishAsync(
+                new UAuthStateEventArgsEmpty(
+                    UAuthStateEvent.ReauthenticationRequired,
+                    UAuthStateEventHandlingMode.Patch));
 
             return new RefreshResult
             {

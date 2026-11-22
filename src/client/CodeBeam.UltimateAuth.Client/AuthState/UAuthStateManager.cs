@@ -80,10 +80,19 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
 
     private async Task HandleStateEvent(UAuthStateEventArgs args)
     {
-        if (args.RefreshMode == UAuthStateEventHandlingMode.None)
+        switch (args.Type)
         {
-            return;
+            case UAuthStateEvent.LoginSucceeded:
+                await EnsureAsync(force: true);
+                return;
+
+            case UAuthStateEvent.ReauthenticationRequired:
+                State.Clear();
+                return;
         }
+
+        if (args.RefreshMode == UAuthStateEventHandlingMode.None)
+            return;
 
         switch (args.Type)
         {
@@ -101,15 +110,15 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
                 State.UpdateProfile(profile.Payload);
                 return;
 
-            case UAuthStateEventArgs<ChangeUserStatusSelfRequest> profile:
-                State.UpdateUserStatus(profile.Payload);
+            case UAuthStateEventArgs<ChangeUserStatusSelfRequest> status:
+                State.UpdateUserStatus(status.Payload);
                 return;
         }
 
         switch (args.RefreshMode)
         {
             case UAuthStateEventHandlingMode.Validate:
-                await EnsureAsync(true);
+                await EnsureAsync(force: true);
                 return;
 
             case UAuthStateEventHandlingMode.Patch:
@@ -118,8 +127,7 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
                     State.MarkValidated(_clock.UtcNow);
                     return;
                 }
-                break;
-            default:
+
                 break;
         }
 
@@ -128,8 +136,7 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
 
     public Task OnLoginAsync()
     {
-        State.MarkStale();
-        return Task.CompletedTask;
+        return EnsureAsync(force: true);
     }
 
     public Task OnLogoutAsync()

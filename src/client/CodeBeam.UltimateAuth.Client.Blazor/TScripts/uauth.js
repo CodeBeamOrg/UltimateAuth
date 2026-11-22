@@ -276,6 +276,7 @@ window.uauth.postJson = function (options) {
         payload: options.payload,
         applicationProfile: options.applicationProfile,
         contentType: "json",
+        accessToken: options.accessToken ?? null,
         credentials: "include",
         allowCrossOriginCredentials: true,
         antiforgery: true,
