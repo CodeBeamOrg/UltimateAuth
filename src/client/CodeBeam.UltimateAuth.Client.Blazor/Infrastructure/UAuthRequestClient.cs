@@ -40,29 +40,33 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
         });
     }
 
-    public async Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
+    public Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
+        => SendFormAsync(endpoint, form, accessToken: null, ct);
+
+    public async Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form, string? accessToken, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         await _bootstrapper.EnsureStartedAsync();
 
-        var result = await _js.InvokeAsync<UAuthTransportResult>("uauth.post", ct, new
-        {
-            url = endpoint,
-            mode = "fetch",
-            data = form,
-            applicationProfile = _options.ApplicationProfile.ToString(),
-            trustedOrigin = ResolveTrustedOrigin()
-        });
+        var result = await _js.InvokeAsync<UAuthTransportResult>(
+            "uauth.post",
+            ct,
+            new
+            {
+                url = endpoint,
+                mode = "fetch",
+                data = form,
+                accessToken,
+                applicationProfile = _options.ApplicationProfile.ToString(),
+                trustedOrigin = ResolveTrustedOrigin()
+            });
 
-        if (result == null)
+        if (result is null)
             throw new UAuthProtocolException("Invalid error response format.");
 
         if (result.Status == 0)
             throw new UAuthTransportException("Network error.");
-
-        //if (result.Status >= 500)
-        //    throw new UAuthTransportException($"Server error {result.Status}", (HttpStatusCode)result.Status);
 
         return result;
     }

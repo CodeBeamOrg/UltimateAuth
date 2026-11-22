@@ -57,6 +57,7 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
             return failure.Enabled ? Results.Redirect(failure.TargetUrl!) : Results.Unauthorized();
         }
 
+        var isFetch = ctx.Request.HasFormContentType && (await ctx.GetCachedFormAsync())?["__uauth_response_mode"].FirstOrDefault() == "fetch";
 
         var suppressFailureAttempt = false;
 
@@ -126,6 +127,17 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
 
         if (!result.IsSuccess)
         {
+            if (isFetch)
+            {
+                return Results.Json(new
+                {
+                    IsSuccess = false,
+                    Reason = result.FailureReason,
+                    RemainingAttempts = result.RemainingAttempts,
+                    LockoutUntilUtc = result.LockoutUntilUtc
+                }, statusCode: StatusCodes.Status401Unauthorized);
+            }
+
             var decisionFailure = _redirectResolver.ResolveFailure(authFlow, ctx, result.FailureReason ?? AuthFailureReason.Unknown, result);
 
             return decisionFailure.Enabled

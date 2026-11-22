@@ -32,6 +32,8 @@ public interface IUAuthRequestClient
     Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form, bool navigateOnSuccess, CancellationToken ct = default)
         => SendFormAsync(endpoint, form, ct);
 
+    Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form, string? accessToken, CancellationToken ct = default);
+
     /// <summary>
     /// Sends a JSON payload to the specified endpoint and returns the result of the operation.
     /// </summary>

@@ -85,7 +85,8 @@ public partial class SampleLogin : UAuthPageBase
             Identifier = "admin",
             Secret = "admin",
         };
-        await UAuthClient.Flows.LoginAsync(request, ReturnUrl ?? "/home");
+        await UAuthClient.Flows.LoginAsync(request, navigate: false, ReturnUrl ?? "/home");
+        Navigation.NavigateTo(ReturnUrl ?? "/home");
     }
 
     private async void StartCountdown()

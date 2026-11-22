@@ -46,6 +46,8 @@ public interface IFlowClient
     /// </remarks>
     Task LoginAsync(LoginRequest request, string? returnUrl = null);
 
+    Task<UAuthResult> LoginAsync(LoginRequest request, bool navigate, string? returnUrl = null);
+
     /// <summary>
     /// Attempts to log in and returns a structured result instead of throwing. UltimateAuth suggestion as better UX.
     /// </summary>

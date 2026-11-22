@@ -195,7 +195,8 @@ window.uauth.post = async function (options) {
         mode,
         data,
         applicationProfile,
-        trustedOrigin
+        trustedOrigin,
+        accessToken = null
     } = options;
 
     const validatedUrl = window.uauth.validateAuthUrl(
@@ -255,6 +256,7 @@ window.uauth.post = async function (options) {
         allowCrossOriginCredentials: true,
         antiforgery: true,
         trustedOrigin,
+        accessToken,
         navigateOnSuccess: mode === "logout",
         headers: isLogout
             ? { "X-UAuth-Logout-Mode": "observe" }
@@ -291,6 +293,7 @@ window.uauth.request = async function (options) {
         applicationProfile = "",
         contentType = "json",
         credentials = "same-origin",
+        accessToken = null,
         headers: customHeaders = {}
     } = options;
 
@@ -330,6 +333,31 @@ window.uauth.request = async function (options) {
         "X-UAuth-ApplicationProfile": applicationProfile,
         "X-Requested-With": "UAuth"
     };
+
+    if (accessToken !== null) {
+        if (typeof accessToken !== "string" ||
+            accessToken.length === 0 ||
+            /[\r\n]/.test(accessToken)) {
+            throw new Error("Invalid authentication access token.");
+        }
+
+        if (requestUrl.protocol !== "https:" &&
+            !["localhost", "127.0.0.1", "[::1]"].includes(requestUrl.hostname)) {
+            throw new Error("Bearer access token requests require HTTPS.");
+        }
+
+        // Only send the credential to the validated authentication origin.
+        const trustedUrl = window.uauth.validateAuthUrl(
+            requestUrl.href,
+            options.trustedOrigin
+        );
+
+        if (new URL(trustedUrl).origin !== requestUrl.origin) {
+            throw new Error("Invalid authentication token destination.");
+        }
+
+        headers["Authorization"] = `Bearer ${accessToken}`;
+    }
 
     let body = null;
 
@@ -427,7 +455,7 @@ window.uauth.request = async function (options) {
 
     const accessTokenHeader = response.headers.get("X-UAuth-Access-Header");
 
-    let accessToken = null;
+    let responseAccessToken = null;
     let accessTokenExpiresAt = null;
     let accessTokenFormat = null;
     let accessTokenHeaderFormat = null;
@@ -437,7 +465,7 @@ window.uauth.request = async function (options) {
             throw new Error("Invalid access token header name.");
         }
 
-        accessToken = response.headers.get(accessTokenHeader);
+        responseAccessToken = response.headers.get(accessTokenHeader);
         accessTokenExpiresAt = response.headers.get("X-UAuth-Access-Expires");
         accessTokenFormat = response.headers.get("X-UAuth-Access-Format");
         accessTokenHeaderFormat = response.headers.get("X-UAuth-Access-HeaderFormat");
@@ -448,7 +476,7 @@ window.uauth.request = async function (options) {
         ok: response.ok,
         status: response.status,
         refreshOutcome: response.headers.get("X-UAuth-Refresh"),
-        accessToken,
+        accessToken: responseAccessToken,
         accessTokenExpiresAt,
         accessTokenFormat,
         accessTokenHeaderFormat,

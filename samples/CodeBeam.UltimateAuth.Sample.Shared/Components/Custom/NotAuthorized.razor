@@ -54,6 +54,29 @@
                 </MudButton>
             </div>
 
+            <MudStack Row="true" Spacing="2" Justify="Justify.Center" Class="mt-4">
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Info"
+                           Disabled="@_busy"
+                           OnClick="ValidateAsync">
+                    Validate
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Secondary"
+                           Disabled="@_busy"
+                           OnClick="RefreshAsync">
+                    Refresh
+                </MudButton>
+            </MudStack>
+
+            @if (!string.IsNullOrWhiteSpace(_diagnostic))
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
+                    @_diagnostic
+                </MudAlert>
+            }
+
             <div class="lab-denied-footer">
                 <MudIcon Icon="@Icons.Material.Outlined.VerifiedUser" Size="Size.Small" />
                 <span>Protected by UltimateAuth</span>

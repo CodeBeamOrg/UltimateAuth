@@ -48,12 +48,53 @@ internal class UAuthFlowClient : IFlowClient
 
     public async Task LoginAsync(LoginRequest request, string? returnUrl = null)
     {
+        await LoginAsync(request, navigate: true, returnUrl);
+    }
+
+    public async Task<UAuthResult> LoginAsync(LoginRequest request, bool navigate, string? returnUrl = null)
+    {
         EnsureCanPost();
 
         var payload = BuildPayload(request, returnUrl);
-
         var url = Url(_options.Endpoints.Login);
-        await _post.NavigateAsync(url, payload);
+
+        if (navigate)
+        {
+            await _post.NavigateAsync(url, payload);
+            return new UAuthResult
+            {
+                IsSuccess = true,
+                Status = 200
+            };
+        }
+
+        payload["__uauth_response_mode"] = "fetch";
+
+        var raw = await _post.SendFormAsync(url, payload);
+
+        EnsureValidHttpStatus(raw);
+
+        if (raw.Ok)
+        {
+            var accessToken = ReadAccessToken(raw);
+
+            if (accessToken is not null)
+            {
+                if (accessToken.IsExpired(DateTimeOffset.UtcNow))
+                {
+                    throw new UAuthProtocolException(
+                        "Server returned an expired access token.");
+                }
+
+                _tokenStore.Replace(accessToken);
+            }
+        }
+
+        return new UAuthResult
+        {
+            IsSuccess = raw.Ok,
+            Status = raw.Status
+        };
     }
 
     public async Task<TryLoginResult> TryLoginAsync(LoginRequest request, UAuthSubmitMode mode, string? returnUrl = null)
@@ -247,7 +288,16 @@ internal class UAuthFlowClient : IFlowClient
     public async Task<AuthValidationResult> ValidateAsync()
     {
         var url = Url(_options.Endpoints.Validate);
-        var raw = await _post.SendFormAsync(url);
+
+        var accessToken = _tokenStore.Read();
+
+        if (accessToken is not null && accessToken.IsExpired(DateTimeOffset.UtcNow))
+        {
+            _tokenStore.Clear();
+            accessToken = null;
+        }
+
+        var raw = await _post.SendFormAsync(url, form: null, accessToken: accessToken?.Token);
 
         if (raw.Status == 429) throw UAuthRateLimit.Exception(raw.RetryAfter);
         if (raw.Status == 0)
