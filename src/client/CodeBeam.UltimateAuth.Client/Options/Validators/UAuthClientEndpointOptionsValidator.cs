@@ -25,7 +25,8 @@ public sealed class UAuthClientEndpointOptionsValidator : IValidateOptions<UAuth
         if (string.IsNullOrWhiteSpace(e.Login) ||
             string.IsNullOrWhiteSpace(e.Logout) ||
             string.IsNullOrWhiteSpace(e.Refresh) ||
-            string.IsNullOrWhiteSpace(e.Validate))
+            string.IsNullOrWhiteSpace(e.Validate) ||
+            string.IsNullOrWhiteSpace(e.LoginTransport))
         {
             return ValidateOptionsResult.Fail("One or more required endpoint paths are missing in UAuthClientEndpointOptions.");
         }

@@ -54,4 +54,8 @@ public interface IUAuthRequestClient
     /// <param name="ct"></param>
     /// <returns></returns>
     Task<TTryResult> TryAndCommitAsync<TTryResult>(string tryEndpoint, string commitEndpoint, object request, CancellationToken ct = default);
+
+    Task<UAuthLoginTransportInfo> GetLoginTransportAsync(string endpoint, CancellationToken ct = default);
+
+    Task NavigateToUrlAsync(string url, CancellationToken ct = default);
 }

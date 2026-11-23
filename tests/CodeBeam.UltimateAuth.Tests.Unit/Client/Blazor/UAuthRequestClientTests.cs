@@ -8,6 +8,8 @@ using CodeBeam.UltimateAuth.Core.Options;
 using AwesomeAssertions;
 using Microsoft.Extensions.Options;
 using Moq;
+using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Client.Blazor;
 
@@ -34,7 +36,9 @@ public sealed class UAuthRequestClientTests : BunitContext
         if (basePath is not null)
             options.Endpoints.BasePath = basePath;
 
-        return new UAuthRequestClient(JSInterop.JSRuntime, _bootstrapper.Object, Options.Create(options));
+        var navigation = Services.GetRequiredService<NavigationManager>();
+
+        return new UAuthRequestClient(JSInterop.JSRuntime, _bootstrapper.Object, Options.Create(options), new InMemoryUAuthTokenStore(), navigation);
     }
 
     [Fact]

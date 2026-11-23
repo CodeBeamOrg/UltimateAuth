@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Errors;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
@@ -157,6 +158,18 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
     {
         var auth = _authContext.Current;
 
+        var isFetch = ctx.Request.HasFormContentType && (await ctx.GetCachedFormAsync())?["__uauth_response_mode"].FirstOrDefault() == "fetch";
+
+        if (!isFetch &&
+            (auth.Response.AccessTokenDelivery.Mode == GrantDeliveryMode.Header ||
+             auth.Response.SessionIdDelivery.Mode == GrantDeliveryMode.Header))
+        {
+            return Results.BadRequest(new
+            {
+                error = "fetch_transport_required"
+            });
+        }
+
         var request = await ReadPkceCompleteRequestAsync(ctx);
         if (request is null)
             return Results.BadRequest("Invalid PKCE payload.");
@@ -183,7 +196,15 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
             return Results.Unauthorized();
 
         if (!result.IsSuccess)
-            return await RedirectToLoginWithErrorAsync(ctx, auth, request.HubSessionId, result.FailureReason);
+        {
+            return isFetch
+                ? Results.Unauthorized()
+                : await RedirectToLoginWithErrorAsync(
+                    ctx,
+                    auth,
+                    request.HubSessionId,
+                    result.FailureReason);
+        }
 
         var login = result.LoginResult!;
 
@@ -197,6 +218,16 @@ internal sealed class PkceEndpointHandler : IPkceEndpointHandler
             _credentialResponseWriter.Write(ctx, GrantKind.RefreshToken, login.RefreshToken);
 
         var decision = _redirectResolver.ResolveSuccess(auth, ctx);
+
+        if (isFetch)
+        {
+            return Results.Ok(new
+            {
+                RedirectUrl = decision.Enabled
+                    ? decision.TargetUrl
+                    : null
+            });
+        }
 
         return decision.Enabled
             ? Results.Redirect(decision.TargetUrl!)

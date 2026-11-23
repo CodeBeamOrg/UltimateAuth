@@ -5,6 +5,7 @@ using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 using Moq;
@@ -33,6 +34,7 @@ public class UAuthResourceRequestClientTests
         return new UAuthResourceRequestClient(
             _js.Object,
             _bootstrapper.Object,
+            new InMemoryUAuthTokenStore(),
             options);
     }
 

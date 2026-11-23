@@ -1,4 +1,7 @@
-﻿using CodeBeam.UltimateAuth.Client.Errors;
+﻿using CodeBeam.UltimateAuth.Client.Abstractions;
+using CodeBeam.UltimateAuth.Client.Contracts;
+using CodeBeam.UltimateAuth.Client.Errors;
+using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
@@ -28,6 +31,12 @@ public partial class UAuthLoginForm
 {
     [Inject]
     IDeviceIdProvider DeviceIdProvider { get; set; } = null!;
+
+    [Inject]
+    IUAuthTokenStore TokenStore { get; set; } = null!;
+
+    [Inject]
+    IUAuthClientEvents ClientEvents { get; set; } = null!;
 
     [Inject]
     IHubCredentialResolver HubCredentialResolver { get; set; } = null!;
@@ -70,6 +79,13 @@ public partial class UAuthLoginForm
     /// </summary>
     [Parameter]
     public UAuthSubmitMode SubmitMode { get; set; } = UAuthSubmitMode.TryAndCommit;
+
+    /// <summary>
+    /// Controls login submission transport.
+    /// Auto uses effective server delivery configuration.
+    /// </summary>
+    [Parameter]
+    public UAuthLoginTransport Transport { get; set; } = UAuthLoginTransport.Auto;
 
     /// <summary>
     /// Gets or sets custom form content.
@@ -124,11 +140,9 @@ public partial class UAuthLoginForm
     {
         await base.OnParametersSetAsync();
 
-        if (LoginType == UAuthLoginType.Pkce &&
-            !HubCapabilities.SupportsPkce)
+        if (LoginType == UAuthLoginType.Pkce && !HubCapabilities.SupportsPkce)
         {
-            throw new InvalidOperationException(
-                "PKCE login requires UAuthHub (Blazor Server).");
+            throw new InvalidOperationException("PKCE login requires UAuthHub (Blazor Server).");
         }
 
         await ReloadCredentialsAsync();
@@ -147,22 +161,18 @@ public partial class UAuthLoginForm
 
     protected async Task ReloadCredentialsAsync()
     {
-        if (LoginType != UAuthLoginType.Pkce ||
-            EffectiveHubSessionId is null)
+        if (LoginType != UAuthLoginType.Pkce || EffectiveHubSessionId is null)
             return;
 
-        _credentials = await HubCredentialResolver.ResolveAsync(
-            EffectiveHubSessionId.Value);
+        _credentials = await HubCredentialResolver.ResolveAsync(EffectiveHubSessionId.Value);
     }
 
     protected async Task ReloadStateAsync()
     {
-        if (LoginType != UAuthLoginType.Pkce ||
-            EffectiveHubSessionId is null)
+        if (LoginType != UAuthLoginType.Pkce || EffectiveHubSessionId is null)
             return;
 
-        _flow = await HubFlowReader.GetStateAsync(
-            EffectiveHubSessionId.Value);
+        _flow = await HubFlowReader.GetStateAsync(EffectiveHubSessionId.Value);
     }
 
     /// <summary>
@@ -218,8 +228,38 @@ public partial class UAuthLoginForm
                     commitUrl = ResolvedCommitEndpoint,
                     applicationProfile = ApplicationProfileValue,
                     trustedOrigin = TrustedOrigin,
+                    transport = Transport.ToString(),
+                    transportUrl = BuildEndpoint(Options.Value.Endpoints.LoginTransport),
+                    returnUrl = EffectiveReturnUrl,
                     isPkce = LoginType == UAuthLoginType.Pkce
                 });
+
+            if (result.ValueKind == JsonValueKind.Object && result.TryGetProperty("commit", out var commitElement))
+            {
+                var transportResponse =
+                    commitElement.Deserialize<UAuthTransportResult>(new JsonSerializerOptions(JsonSerializerDefaults.Web))
+                    ?? throw new UAuthProtocolException("Invalid login commit response.");
+
+                var accessTokenRequired = result.TryGetProperty("accessTokenInHeader", out var required) &&
+                    required.ValueKind == JsonValueKind.True;
+
+                await UAuthLoginCompletion.CompleteAsync(transportResponse, accessTokenRequired, TokenStore, ClientEvents);
+
+                var redirectUrl = UAuthLoginCompletion.GetRedirectUrl(transportResponse);
+
+                if (!string.IsNullOrWhiteSpace(redirectUrl) && !string.IsNullOrWhiteSpace(EffectiveReturnUrl))
+                {
+                    var target = Navigation.ToAbsoluteUri(redirectUrl);
+                    var current = new Uri(Navigation.Uri);
+
+                    if (target.Scheme != current.Scheme || target.Authority != current.Authority || !string.IsNullOrEmpty(target.UserInfo))
+                    {
+                        throw new UAuthProtocolException("Fetch login redirect must remain on the application origin.");
+                    }
+
+                    Navigation.NavigateTo(target.ToString(), forceLoad: false);
+                }
+            }
 
             if (SubmitMode == UAuthSubmitMode.DirectCommit)
                 return;
@@ -237,8 +277,7 @@ public partial class UAuthLoginForm
                     ? retry.GetString()
                     : null;
 
-                var delay = UAuthRateLimit.ParseRetryAfter(
-                    retryAfter, DateTimeOffset.UtcNow);
+                var delay = UAuthRateLimit.ParseRetryAfter(retryAfter, DateTimeOffset.UtcNow);
 
                 parsed = LoginType == UAuthLoginType.Pkce
                     ? new TryPkceLoginResult
@@ -256,8 +295,7 @@ public partial class UAuthLoginForm
             }
             else
             {
-                var options = new JsonSerializerOptions(
-                    JsonSerializerDefaults.Web);
+                var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 
                 parsed = LoginType == UAuthLoginType.Pkce
                     ? result.Deserialize<TryPkceLoginResult>(options)

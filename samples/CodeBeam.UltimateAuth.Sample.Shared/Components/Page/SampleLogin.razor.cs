@@ -91,21 +91,13 @@ public partial class SampleLogin : UAuthPageBase
             Secret = "admin"
         };
 
-        var result = await UAuthClient.Flows.LoginAsync(request, navigate: false, returnUrl: ReturnUrl ?? "/home");
+        var result = await UAuthClient.Flows.LoginAsync(request, returnUrl: ReturnUrl ?? "/home");
 
         if (!result.IsSuccess)
         {
             Snackbar.Add("Login failed.", Severity.Error);
             return;
         }
-
-        if (!StateManager.State.IsAuthenticated)
-        {
-            Snackbar.Add("Login succeeded, but authentication state could not be synchronized.", Severity.Warning);
-            return;
-        }
-
-        Navigation.NavigateTo(ReturnUrl ?? "/home");
     }
 
     private async void StartCountdown()

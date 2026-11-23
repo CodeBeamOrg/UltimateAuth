@@ -713,6 +713,59 @@ window.uauth.validateAuthUrl = function (url, trustedOrigin = null) {
     return target.href;
 };
 
+window.uauth.commitLoginForm = async function (
+    form,
+    commitUrl,
+    applicationProfile,
+    trustedOrigin
+) {
+    const fields = new FormData(form);
+    const payload = Object.create(null);
+
+    for (const [key, value] of fields.entries()) {
+        if (typeof value !== "string") {
+            throw new Error("File values are not supported in login forms.");
+        }
+
+        if (Object.hasOwn(payload, key)) {
+            throw new Error(`Duplicate login form field: ${key}.`);
+        }
+
+        payload[key] = value;
+    }
+
+    if (Object.hasOwn(payload, "__uauth_response_mode")) {
+        throw new Error("Reserved UAuth form field.");
+    }
+
+    payload.__uauth_response_mode = "fetch";
+
+    return window.uauth.post({
+        url: commitUrl,
+        mode: "fetch",
+        data: payload,
+        applicationProfile,
+        trustedOrigin
+    });
+};
+
+window.uauth.getLoginTransport = function (options) {
+    const url = window.uauth.validateAuthUrl(
+        options.url,
+        options.trustedOrigin
+    );
+
+    return window.uauth.request({
+        url,
+        method: "GET",
+        applicationProfile: options.applicationProfile,
+        credentials: "include",
+        allowCrossOriginCredentials: true,
+        antiforgery: false,
+        trustedOrigin: options.trustedOrigin
+    });
+};
+
 window.uauth.antiforgery = {
     tokenUrl: null,
 
@@ -812,7 +865,10 @@ window.uauth.submitLoginForm = async function (form, options) {
         commitUrl,
         applicationProfile,
         trustedOrigin,
-        isPkce
+        isPkce,
+        transport = "Auto",
+        transportUrl,
+        returnUrl
     } = options;
 
     if (!["TryOnly", "TryAndCommit", "DirectCommit"].includes(mode)) {
@@ -884,9 +940,62 @@ window.uauth.submitLoginForm = async function (form, options) {
         form.action = validatedCommitUrl;
     }
 
+    const commit = async () => {
+        if (!["Auto", "Fetch", "Navigation"].includes(transport)) {
+            throw new Error("Unsupported login transport.");
+        }
+
+        const capabilitiesResponse = await window.uauth.getLoginTransport({
+            url: transportUrl,
+            applicationProfile,
+            trustedOrigin
+        });
+
+        if (!capabilitiesResponse?.ok ||
+            !capabilitiesResponse.body?.supported) {
+            throw new Error("Login transport is unavailable or unsupported.");
+        }
+
+        const info = capabilitiesResponse.body;
+
+        const selected = transport === "Auto"
+            ? info.navigationSupported && Boolean(returnUrl)
+                ? "Navigation"
+                : "Fetch"
+            : transport;
+
+        if (selected === "Navigation") {
+            if (!info.navigationSupported) {
+                throw new Error(
+                    "Navigation is incompatible with header-based credential delivery."
+                );
+            }
+
+            await window.uauth.submitForm(form, trustedOrigin);
+            return null;
+        }
+
+        const response = await window.uauth.commitLoginForm(
+            form,
+            form.action,
+            applicationProfile,
+            trustedOrigin
+        );
+
+        if (!response?.ok) {
+            throw new Error(
+                `Login commit failed: HTTP ${response?.status ?? 0}.`
+            );
+        }
+
+        return {
+            commit: response,
+            accessTokenInHeader: info.accessTokenInHeader
+        };
+    };
+
     if (mode === "DirectCommit") {
-        await window.uauth.submitForm(form, trustedOrigin);
-        return null;
+        return await commit();
     }
 
     const payload = {
@@ -965,7 +1074,14 @@ window.uauth.submitLoginForm = async function (form, options) {
             receipt.value = result.previewReceipt;
         }
 
-        await window.uauth.submitForm(form, trustedOrigin);
+        const completion = await commit();
+
+        if (completion) {
+            return {
+                ...result,
+                ...completion
+            };
+        }
     }
 
     // Only the non-credential authentication result crosses JS interop.

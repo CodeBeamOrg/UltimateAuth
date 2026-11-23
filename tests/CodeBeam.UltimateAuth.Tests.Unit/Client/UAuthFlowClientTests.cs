@@ -60,7 +60,8 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             deviceProvider.Object,
             returnUrlProvider.Object,
             options,
-            diagnostics ?? new UAuthClientDiagnostics());
+            diagnostics ?? new UAuthClientDiagnostics(),
+            new InMemoryUAuthTokenStore());
     }
 
     private static UAuthTransportResult TryLoginResponse(bool success, AuthFailureReason? reason = null)
@@ -218,7 +219,8 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             Mock.Of<IClientDeviceProvider>(),
             Mock.Of<IReturnUrlProvider>(),
             options,
-            new UAuthClientDiagnostics());
+            new UAuthClientDiagnostics(),
+            new InMemoryUAuthTokenStore());
 
         Func<Task> act = async () => await client.TryLoginAsync(new LoginRequest(), UAuthSubmitMode.TryOnly);
         await act.Should().ThrowAsync<InvalidOperationException>();
@@ -298,25 +300,40 @@ public class UAuthFlowClientTests : UAuthClientTestBase
     {
         var mock = new Mock<IUAuthRequestClient>();
 
+        mock.Setup(x => x.GetLoginTransportAsync(
+                "/auth/login/transport",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthLoginTransportInfo
+            {
+                Supported = true,
+                NavigationSupported = true,
+                AccessTokenInHeader = false
+            });
+
         mock.Setup(x => x.NavigateAsync(
-            It.IsAny<string>(),
-            It.IsAny<IDictionary<string, string>>(),
-            It.IsAny<CancellationToken>()))
+                It.IsAny<string>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var client = CreateFlowClient(mock);
 
-        await client.LoginAsync(new LoginRequest
-        {
-            Identifier = "user",
-            Secret = "pass"
-        });
+        await client.LoginAsync(
+            new LoginRequest
+            {
+                Identifier = "user",
+                Secret = "pass"
+            },
+            transport: UAuthLoginTransport.Navigation);
 
-        mock.Verify(x => x.NavigateAsync("/auth/login",
+        mock.Verify(x => x.NavigateAsync(
+                "/auth/login",
                 It.Is<IDictionary<string, string>>(d =>
                     d["Identifier"] == "user" &&
-                    d["Secret"] == "pass"),
-                It.IsAny<CancellationToken>()), Times.Once);
+                    d["Secret"] == "pass" &&
+                    d["__uauth_return_url"] == "/home"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -486,7 +503,8 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             Mock.Of<IClientDeviceProvider>(),
             Mock.Of<IReturnUrlProvider>(),
             options,
-            new UAuthClientDiagnostics());
+            new UAuthClientDiagnostics(),
+            new InMemoryUAuthTokenStore());
 
         Func<Task> act = async () => await client.BeginPkceAsync();
         await act.Should().ThrowAsync<InvalidOperationException>();
@@ -592,7 +610,8 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             Mock.Of<IClientDeviceProvider>(),
             Mock.Of<IReturnUrlProvider>(),
             options,
-            new UAuthClientDiagnostics());
+            new UAuthClientDiagnostics(),
+            new InMemoryUAuthTokenStore());
 
         await client.BeginPkceAsync();
         mock.Verify(x => x.NavigateAsync("/auth/hub/login", It.IsAny<IDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -742,7 +761,8 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             Mock.Of<IClientDeviceProvider>(),
             Mock.Of<IReturnUrlProvider>(),
             options,
-            new UAuthClientDiagnostics());
+            new UAuthClientDiagnostics(),
+            new InMemoryUAuthTokenStore());
 
         Func<Task> act = async () => await client.CompletePkceLoginAsync(new PkceCompleteRequest
         {

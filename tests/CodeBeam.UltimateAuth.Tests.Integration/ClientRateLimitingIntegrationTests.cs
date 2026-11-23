@@ -116,12 +116,35 @@ public sealed class ClientRateLimitingIntegrationTests
             using var response = await CsrfTestClient.PostAsync(http, endpoint, form is null ? null : new FormUrlEncodedContent(form));
             return await Read(response, ct);
         }
+        public async Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form = null, string? accessToken = null, CancellationToken ct = default)
+        {
+            Count++;
+
+            using var response = await CsrfTestClient.PostAsync(http, endpoint, form is null ? null : new FormUrlEncodedContent(form));
+            return await Read(response, ct);
+        }
         public async Task<UAuthTransportResult> SendJsonAsync(string endpoint, object? payload = null, CancellationToken ct = default)
         {
             Count++;
             using var response = await CsrfTestClient.PostJsonAsync(http, endpoint, payload);
             return await Read(response, ct);
         }
+
+        public Task<UAuthLoginTransportInfo> GetLoginTransportAsync(string endpoint, CancellationToken ct = default)
+        {
+            return Task.FromResult(new UAuthLoginTransportInfo
+            {
+                Supported = true,
+                NavigationSupported = true,
+                AccessTokenInHeader = false
+            });
+        }
+
+        public Task NavigateToUrlAsync(string url, CancellationToken ct = default)
+        {
+            throw new NotSupportedException();
+        }
+
         private static async Task<UAuthTransportResult> Read(HttpResponseMessage response, CancellationToken ct)
         {
             var body = await response.Content.ReadAsStringAsync(ct);

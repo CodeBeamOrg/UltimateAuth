@@ -39,14 +39,10 @@ namespace CodeBeam.UltimateAuth.Client.Services;
 public interface IFlowClient
 {
     /// <summary>
-    /// Performs a login operation.
+    /// Logs in using the effective transport configuration.
+    /// When a return URL is supplied, successful fetch logins navigate after the authentication state has been updated.
     /// </summary>
-    /// <remarks>
-    /// This method triggers redirects depending on the application profile and configuration.
-    /// </remarks>
-    Task LoginAsync(LoginRequest request, string? returnUrl = null);
-
-    Task<UAuthResult> LoginAsync(LoginRequest request, bool navigate, string? returnUrl = null);
+    Task<UAuthResult> LoginAsync(LoginRequest request, string? returnUrl = null, UAuthLoginTransport transport = UAuthLoginTransport.Auto);
 
     /// <summary>
     /// Attempts to log in and returns a structured result instead of throwing. UltimateAuth suggestion as better UX.
@@ -55,7 +51,7 @@ public interface IFlowClient
     /// Redirects only on successful login if mode is TryAndCommit. In TryOnly mode, it returns the result without redirecting.
     /// DirectCommit mode behaves same as LoginAsync.
     /// </remarks>
-    Task<TryLoginResult> TryLoginAsync(LoginRequest request, UAuthSubmitMode mode, string? returnUrl = null);
+    Task<TryLoginResult> TryLoginAsync(LoginRequest request, UAuthSubmitMode mode, string? returnUrl = null, UAuthLoginTransport transport = UAuthLoginTransport.Auto);
 
     /// <summary>
     /// Logs out the current user.

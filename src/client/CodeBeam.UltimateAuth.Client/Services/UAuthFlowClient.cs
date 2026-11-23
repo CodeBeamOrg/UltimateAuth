@@ -46,32 +46,64 @@ internal class UAuthFlowClient : IFlowClient
 
     private string Url(string path) => UAuthUrlBuilder.Build(_options.Endpoints.BasePath, path, _options.MultiTenant);
 
-    public async Task LoginAsync(LoginRequest request, string? returnUrl = null)
+    public async Task<UAuthResult> LoginAsync(LoginRequest request, string? returnUrl = null, UAuthLoginTransport transport = UAuthLoginTransport.Auto)
     {
-        await LoginAsync(request, navigate: true, returnUrl);
-    }
+        ArgumentNullException.ThrowIfNull(request);
 
-    public async Task<UAuthResult> LoginAsync(LoginRequest request, bool navigate, string? returnUrl = null)
-    {
         EnsureCanPost();
 
-        var payload = BuildPayload(request, returnUrl);
-        var url = Url(_options.Endpoints.Login);
+        var resolvedReturnUrl =
+            returnUrl
+            ?? _options.Login.ReturnUrl
+            ?? _options.DefaultReturnUrl;
 
-        if (navigate)
+        var payload = BuildPayload(request, resolvedReturnUrl);
+
+        var info = await _post.GetLoginTransportAsync(Url(_options.Endpoints.LoginTransport));
+
+        if (!info.Supported)
         {
-            await _post.NavigateAsync(url, payload);
+            throw new NotSupportedException("The effective credential delivery is not supported by this UltimateAuth client.");
+        }
 
+        var selected = transport switch
+        {
+            UAuthLoginTransport.Auto =>
+                info.NavigationSupported && !string.IsNullOrWhiteSpace(resolvedReturnUrl)
+                    ? UAuthLoginTransport.Navigation
+                    : UAuthLoginTransport.Fetch,
+
+            UAuthLoginTransport.Fetch =>
+                UAuthLoginTransport.Fetch,
+
+            UAuthLoginTransport.Navigation =>
+                UAuthLoginTransport.Navigation,
+
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(transport))
+        };
+
+        if (selected == UAuthLoginTransport.Navigation)
+        {
+            if (!info.NavigationSupported)
+            {
+                throw new InvalidOperationException("Navigation transport is incompatible with header-based credential delivery.");
+            }
+
+            await _post.NavigateAsync(Url(_options.Endpoints.Login), payload);
+
+            // The browser now owns the native POST.
+            // HTTP authentication success cannot be observed here.
             return new UAuthResult
             {
                 IsSuccess = true,
-                Status = 200
+                Status = 202
             };
         }
 
         payload["__uauth_response_mode"] = "fetch";
 
-        var raw = await _post.SendFormAsync(url, payload);
+        var raw = await _post.SendFormAsync(Url(_options.Endpoints.Login), payload);
 
         EnsureValidHttpStatus(raw);
 
@@ -84,23 +116,17 @@ internal class UAuthFlowClient : IFlowClient
             };
         }
 
-        var accessToken = ReadAccessToken(raw);
+        await UAuthLoginCompletion.CompleteAsync(raw, info.AccessTokenInHeader, _tokenStore, _events);
 
-        if (accessToken is not null)
+        if (!string.IsNullOrWhiteSpace(resolvedReturnUrl))
         {
-            if (accessToken.IsExpired(DateTimeOffset.UtcNow))
+            var redirectUrl = UAuthLoginCompletion.GetRedirectUrl(raw);
+
+            if (!string.IsNullOrWhiteSpace(redirectUrl))
             {
-                throw new UAuthProtocolException(
-                    "Server returned an expired access token.");
+                await _post.NavigateToUrlAsync(redirectUrl);
             }
-
-            _tokenStore.Replace(accessToken);
         }
-
-        await _events.PublishAsync(
-            new UAuthStateEventArgsEmpty(
-                UAuthStateEvent.LoginSucceeded,
-                UAuthStateEventHandlingMode.Validate));
 
         return new UAuthResult
         {
@@ -109,7 +135,7 @@ internal class UAuthFlowClient : IFlowClient
         };
     }
 
-    public async Task<TryLoginResult> TryLoginAsync(LoginRequest request, UAuthSubmitMode mode, string? returnUrl = null)
+    public async Task<TryLoginResult> TryLoginAsync(LoginRequest request, UAuthSubmitMode mode, string? returnUrl = null, UAuthLoginTransport transport = UAuthLoginTransport.Auto)
     {
         EnsureCanPost();
 
@@ -155,22 +181,51 @@ internal class UAuthFlowClient : IFlowClient
 
             case UAuthSubmitMode.DirectCommit:
                 {
-                    await _post.NavigateAsync(commitUrl, payload);
-                    return new TryLoginResult { IsSuccess = true };
+                    var commit = await LoginAsync(
+                        request,
+                        returnUrl,
+                        transport);
+
+                    return new TryLoginResult
+                    {
+                        IsSuccess = commit.IsSuccess,
+                        Status = commit.Status
+                    };
                 }
 
             case UAuthSubmitMode.TryAndCommit:
             default:
                 {
-                    TryLoginResult result;
-                    try { result = await _post.TryAndCommitAsync<TryLoginResult>(tryUrl, commitUrl, payload); }
-                    catch (UAuthTransportException ex) when (ex.StatusCode == HttpStatusCode.TooManyRequests)
-                    { return new TryLoginResult { Status = 429, ErrorCode = "rate_limited", RetryAfter = ex.RetryAfter }; }
+                    var preview = await TryLoginAsync(
+                        request,
+                        UAuthSubmitMode.TryOnly,
+                        returnUrl,
+                        transport);
 
-                    if (result is null)
-                        throw new UAuthProtocolException("Invalid try-login result.");
+                    if (!preview.IsSuccess)
+                        return preview;
 
-                    return result;
+                    var commitRequest = request with
+                    {
+                        PreviewReceipt = preview.PreviewReceipt
+                    };
+
+                    var commit = await LoginAsync(
+                        commitRequest,
+                        returnUrl,
+                        transport);
+
+                    if (!commit.IsSuccess)
+                    {
+                        return new TryLoginResult
+                        {
+                            IsSuccess = false,
+                            Status = commit.Status,
+                            ErrorCode = "commit_failed"
+                        };
+                    }
+
+                    return preview;
                 }
         }
     }
@@ -242,7 +297,7 @@ internal class UAuthFlowClient : IFlowClient
 
         if (isSuccess)
         {
-            var accessToken = ReadAccessToken(raw);
+            var accessToken = UAuthLoginCompletion.ReadAccessToken(raw);
 
             if (accessToken is not null)
             {
@@ -588,61 +643,6 @@ internal class UAuthFlowClient : IFlowClient
         return UAuthResultMapper.From(raw);
     }
 
-
-    private static AccessToken? ReadAccessToken(UAuthTransportResult raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw.AccessToken))
-            return null;
-
-        if (string.IsNullOrWhiteSpace(raw.AccessTokenExpiresAt) ||
-            !DateTimeOffset.TryParse(
-                raw.AccessTokenExpiresAt,
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.RoundtripKind,
-                out var expiresAt))
-        {
-            throw new UAuthProtocolException("Access token expiration metadata is invalid.");
-        }
-
-        var format = raw.AccessTokenFormat?.ToLowerInvariant() switch
-        {
-            "jwt" => TokenFormat.Jwt,
-            "opaque" => TokenFormat.Opaque,
-            _ => throw new UAuthProtocolException("Access token format metadata is invalid.")
-        };
-
-        var token = raw.AccessToken;
-
-        switch (raw.AccessTokenHeaderFormat?.ToLowerInvariant())
-        {
-            case "bearer":
-                if (!token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-                {
-                    throw new UAuthProtocolException("Invalid Bearer access token header.");
-                }
-
-                token = token["Bearer ".Length..];
-                break;
-
-            case "raw":
-                break;
-
-            default:
-                throw new UAuthProtocolException("Access token header format metadata is invalid.");
-        }
-
-        if (string.IsNullOrWhiteSpace(token) || token.Contains('\r') || token.Contains('\n'))
-        {
-            throw new UAuthProtocolException("Invalid access token value.");
-        }
-
-        return new AccessToken
-        {
-            Token = token,
-            Format = format,
-            ExpiresAt = expiresAt
-        };
-    }
 
     private void EnsureCanPost()
     {

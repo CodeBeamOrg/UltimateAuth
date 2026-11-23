@@ -120,35 +120,47 @@ public class UAuthStateManagerTests
     }
 
     [Fact]
-    public async Task OnLogin_Should_Mark_Authenticated_State_Stale()
+    public async Task OnLogin_Should_Revalidate_Authenticated_State()
     {
         var (manager, flows, _, _) = CreateManager();
+
         using (manager)
         {
             SetupValidSnapshot(flows);
 
-            await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
+            await manager.EnsureAsync(
+                ct: TestContext.Current.CancellationToken);
 
             manager.State.IsAuthenticated.Should().BeTrue();
             manager.State.IsStale.Should().BeFalse();
 
             await manager.OnLoginAsync();
 
-            manager.State.IsStale.Should().BeTrue();
-            manager.NeedsValidation.Should().BeTrue();
+            manager.State.IsAuthenticated.Should().BeTrue();
+            manager.State.IsStale.Should().BeFalse();
+            manager.NeedsValidation.Should().BeFalse();
+
+            flows.Verify(
+                x => x.ValidateAsync(),
+                Times.Exactly(2));
         }
     }
 
     [Fact]
-    public async Task OnLogin_When_Anonymous_Should_Still_Require_Validation()
+    public async Task OnLogin_When_Anonymous_Should_Attempt_Validation()
     {
-        var (manager, _, _, _) = CreateManager();
+        var (manager, flows, _, _) = CreateManager();
+
         using (manager)
         {
             await manager.OnLoginAsync();
 
             manager.State.IsAuthenticated.Should().BeFalse();
             manager.NeedsValidation.Should().BeTrue();
+
+            flows.Verify(
+                x => x.ValidateAsync(),
+                Times.Once);
         }
     }
 

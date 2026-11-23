@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
@@ -58,6 +59,14 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
         }
 
         var isFetch = ctx.Request.HasFormContentType && (await ctx.GetCachedFormAsync())?["__uauth_response_mode"].FirstOrDefault() == "fetch";
+
+        if (!isFetch && (authFlow.Response.AccessTokenDelivery.Mode == GrantDeliveryMode.Header || authFlow.Response.SessionIdDelivery.Mode == GrantDeliveryMode.Header))
+        {
+            return Results.BadRequest(new
+            {
+                error = "fetch_transport_required"
+            });
+        }
 
         var suppressFailureAttempt = false;
 

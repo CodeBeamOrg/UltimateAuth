@@ -3,10 +3,9 @@ using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
-using CodeBeam.UltimateAuth.Core.Contracts;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
-using System.Net;
 using System.Text.Json;
 
 // TODO: Add fluent helper API like RequiredOk
@@ -18,17 +17,20 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
     private readonly IUAuthClientBootstrapper _bootstrapper;
     private readonly IUAuthTokenStore _tokenStore;
     private readonly UAuthClientOptions _options;
+    private readonly NavigationManager _navigation;
 
     public UAuthRequestClient(
         IJSRuntime js,
         IUAuthClientBootstrapper bootstrapper,
         IOptions<UAuthClientOptions> options,
-        IUAuthTokenStore tokenStore)
+        IUAuthTokenStore tokenStore,
+        NavigationManager navigation)
     {
         _js = js;
         _bootstrapper = bootstrapper;
         _options = options.Value;
         _tokenStore = tokenStore;
+        _navigation = navigation;
     }
 
     public async Task NavigateAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
@@ -160,6 +162,59 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
         }
         catch (JsonException ex) { throw new UAuthProtocolException("Invalid tryAndCommit response.", ex); }
     }
+
+    public async Task<UAuthLoginTransportInfo> GetLoginTransportAsync(string endpoint, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        await _bootstrapper.EnsureStartedAsync(ct);
+
+        var response = await _js.InvokeAsync<UAuthTransportResult>(
+            "uauth.getLoginTransport",
+            ct,
+            new
+            {
+                url = endpoint,
+                applicationProfile = _options.ApplicationProfile.ToString(),
+                trustedOrigin = ResolveTrustedOrigin()
+            });
+
+        if (response is null || !response.Ok || response.Body is null)
+        {
+            throw new UAuthProtocolException("Unable to resolve effective login transport.");
+        }
+
+        return response.Body.Value.Deserialize<UAuthLoginTransportInfo>(new JsonSerializerOptions(JsonSerializerDefaults.Web))
+            ?? throw new UAuthProtocolException("Invalid login transport response.");
+    }
+
+    public Task NavigateToUrlAsync(string url, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (string.IsNullOrWhiteSpace(url))
+            throw new ArgumentException("Navigation URL is required.", nameof(url));
+
+        if (url.StartsWith("//", StringComparison.Ordinal) || url.StartsWith(@"\\", StringComparison.Ordinal))
+        {
+            throw new UAuthProtocolException("Invalid login redirect URL.");
+        }
+
+        var target = _navigation.ToAbsoluteUri(url);
+        var current = new Uri(_navigation.Uri);
+
+        if (target.Scheme != current.Scheme || target.Authority != current.Authority ||
+            !string.IsNullOrEmpty(target.UserInfo))
+        {
+            throw new UAuthProtocolException("Fetch login navigation must remain on the application origin.");
+        }
+
+        // Keep the Blazor Server circuit and its scoped token store.
+        _navigation.NavigateTo(target.ToString(), forceLoad: false);
+
+        return Task.CompletedTask;
+    }
+
 
     private string? GetAccessToken()
     {
