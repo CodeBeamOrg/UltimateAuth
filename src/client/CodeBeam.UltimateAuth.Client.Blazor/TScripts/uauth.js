@@ -395,7 +395,7 @@ window.uauth.request = async function (options) {
             throw new Error("UAuth antiforgery token origin differs from request origin.");
         }
 
-        const token = await window.uauth.antiforgery.getToken(options.trustedOrigin);
+        const token = await window.uauth.antiforgery.getToken(options.trustedOrigin, accessToken, applicationProfile);
         headers[token.headerName] = token.requestToken;
     }
 
@@ -727,7 +727,7 @@ window.uauth.antiforgery = {
         );
     },
 
-    getToken: async function (trustedOrigin) {
+    getToken: async function (trustedOrigin, accessToken = null, applicationProfile = "") {
         if (!this.tokenUrl) {
             throw new Error("UAuth antiforgery is not configured.");
         }
@@ -737,18 +737,40 @@ window.uauth.antiforgery = {
             trustedOrigin
         );
 
+        const headers = {
+            "X-UDID": window.uauth.deviceId,
+            "X-UAuth-ApplicationProfile": applicationProfile
+        };
+
+        if (accessToken !== null) {
+            if (typeof accessToken !== "string" ||
+                accessToken.length === 0 ||
+                /[\r\n]/.test(accessToken)) {
+                throw new Error("Invalid UAuth access token.");
+            }
+
+            const target = new URL(url);
+
+            if (target.protocol !== "https:" &&
+                !["localhost", "127.0.0.1", "[::1]"].includes(target.hostname)) {
+                throw new Error("Bearer access token requests require HTTPS.");
+            }
+
+            headers["Authorization"] = `Bearer ${accessToken}`;
+        }
+
         const response = await fetch(url, {
             method: "GET",
             credentials: "include",
             cache: "no-store",
             redirect: "error",
-            headers: {
-                "X-UDID": window.uauth.deviceId
-            }
+            headers
         });
 
         if (!response.ok) {
-            throw new Error(`Unable to obtain UAuth antiforgery token: HTTP ${response.status}.`);
+            throw new Error(
+                `Unable to obtain UAuth antiforgery token: HTTP ${response.status}.`
+            );
         }
 
         const token = await response.json();

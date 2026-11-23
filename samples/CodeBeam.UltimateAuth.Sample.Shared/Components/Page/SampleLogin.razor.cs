@@ -91,10 +91,7 @@ public partial class SampleLogin : UAuthPageBase
             Secret = "admin"
         };
 
-        var result = await UAuthClient.Flows.LoginAsync(
-            request,
-            navigate: false,
-            returnUrl: ReturnUrl ?? "/home");
+        var result = await UAuthClient.Flows.LoginAsync(request, navigate: false, returnUrl: ReturnUrl ?? "/home");
 
         if (!result.IsSuccess)
         {
@@ -104,10 +101,7 @@ public partial class SampleLogin : UAuthPageBase
 
         if (!StateManager.State.IsAuthenticated)
         {
-            Snackbar.Add(
-                "Login succeeded, but authentication state could not be synchronized.",
-                Severity.Warning);
-
+            Snackbar.Add("Login succeeded, but authentication state could not be synchronized.", Severity.Warning);
             return;
         }
 
