@@ -178,21 +178,20 @@ Applications should not assume that per-tenant options customization exists auto
 
 The default `EffectiveAuthModeResolver` maps application profiles to authentication modes.
 
-| Application profile | Resolved mode |
+| Application Profile | Default Mode |
 |---|---|
 | `BlazorServer` | `PureOpaque` |
 | `WebServer` | `Hybrid` |
 | `BlazorWasm` | `Hybrid` |
 | `Maui` | `Hybrid` |
-| `ResourceApi` | `PureJwt` |
-| `Api` | `PureJwt` |
+| `UAuthHub` | `Hybrid` |
+| `ResourceApi` | `Hybrid` |
+| `Api` | `Hybrid` |
 | Other / unknown | `Hybrid` |
 
 These mappings describe the current default resolver.
 
 They do not imply that every resolved mode is fully supported in the current release.
-
-In particular, the current server options validator rejects explicit activation of `SemiHybrid` and `PureJwt` through `AllowedModes`.
 
 Applications should verify that their application profiles resolve to a supported authentication mode before deploying.
 
@@ -344,14 +343,6 @@ Token.RefreshTokenLifetime = TimeSpan.FromDays(7);
 ```
 
 Hybrid also configures refresh-token delivery through a cookie.
-
-### Unsupported Modes
-
-Although default templates exist for `SemiHybrid` and `PureJwt`, their presence does not mean those modes are ready for production use.
-
-The server's current validator explicitly rejects these modes when they are enabled through `AllowedModes`.
-
-Only use modes supported by the current release.
 
 ## 7. Inspect Effective Options
 

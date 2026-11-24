@@ -118,7 +118,7 @@ They should not necessarily use identical credential storage, transport, or auth
 
 UltimateAuth separates the common authentication model from client-specific integration.
 
-<escape>```text
+```text
             Your .NET Applications
 
     Blazor Server      Blazor WebAssembly
@@ -138,7 +138,7 @@ UltimateAuth separates the common authentication model from client-specific inte
                     ▼
              Shared Security
                  Lifecycle
-```</escape>
+```
 
 The architecture also provides foundations for .NET MAUI, traditional ASP.NET Core applications, and API-oriented integrations.
 

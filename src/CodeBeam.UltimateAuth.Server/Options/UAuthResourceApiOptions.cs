@@ -126,10 +126,12 @@ public sealed class UAuthResourceDeviceOptions
 public sealed class UAuthResourceHubOptions
 {
     public string BaseUrl { get; set; } = string.Empty;
+    public string SessionCookieName { get; set; } = "uas";
 
     internal UAuthResourceHubOptions Clone() => new()
     {
-        BaseUrl = BaseUrl
+        BaseUrl = BaseUrl,
+        SessionCookieName = SessionCookieName
     };
 }
 

@@ -126,15 +126,6 @@ No access token or refresh token is issued. The existing session ID remains the 
 
 The order is important: **session touch happens before token rotation** in the current implementation. These operations are not presented as one cross-store transaction. If rotation subsequently fails, the refresh response fails, although a preceding session touch may already have been persisted. This should not be described as an all-or-nothing operation.
 
-### SemiHybrid and PureJwt: implementation branches
-
-The current service includes branches for two additional modes:
-
-- `SemiHybrid` requires a session ID and refresh token, validates the session and rotates the token, but does not touch the session.
-- `PureJwt` uses the refresh token for rotation without a session touch step in `RefreshFlowService`.
-
-These describe the existing code paths, **not a promise of v0.1.0 production support**. Configuration validation and supported-mode documentation remain authoritative for which modes applications can enable.
-
 ## Request resolution and response delivery
 
 The refresh endpoint uses the server's `AuthFlowContext`. It obtains the session ID from `flow.Session`, the device from `flow.Device`, and the refresh token through `RefreshTokenResolver`.
@@ -150,8 +141,6 @@ The explicit header takes precedence. Header values may be supplied with a `Bear
 On success, the endpoint chooses a **primary credential** according to the refresh response policy, rather than automatically writing every credential returned by the flow. The refresh token is written separately when permitted by the response policy and when a replacement exists. Actual cookie/header placement is determined by the effective response configuration and application profile.
 
 The HTTP endpoint returns **`204 No Content`** on successful refresh and **`401 Unauthorized`** when continuation fails. Clients should obtain credentials from the configured response delivery mechanism rather than expecting a JSON token payload. When `Diagnostics.EnableRefreshDetails` is enabled, the endpoint also writes the refresh outcome through its diagnostic response writer.
-
-> Response delivery customization is not fully independent in v0.1.0: mode templates and application-profile adaptation constrain the effective behavior. Do not assume every configured credential-delivery override is honored.
 
 ## Outcomes and client expectations
 

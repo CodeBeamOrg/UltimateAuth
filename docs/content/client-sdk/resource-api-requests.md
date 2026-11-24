@@ -591,13 +591,45 @@ Likewise, configuring a Resource API URL in the client SDK does not automaticall
 
 ### Credential Delivery
 
-The client and Resource API must agree on how the credential is transported.
+The client and Resource API must agree on the credential used for authentication and its transport.
 
-For header delivery, the API must read the configured access-token header and format.
+#### Session-based Resource APIs
 
-For cookie delivery, the API must read the configured access-token cookie. Browser origin, cookie scope, SameSite, Secure, and CORS settings must permit the credential to reach the API.
+PureOpaque and Hybrid Resource APIs use opaque session credentials.
 
-The Resource API must independently validate the credential and enforce authorization policies.
+Cookie delivery is the default for incoming session credentials.
+
+The Resource API validates the selected session through UAuthHub using the configured Hub address.
+
+The browser must be able to send the session cookie to the Resource API.
+
+#### JWT-based Resource APIs
+
+PureJwt Resource APIs use JWT access tokens.
+
+The default Blazor Resource Client attaches the current access token using:
+
+```http
+Authorization: Bearer <access-token>
+```
+
+For a Resource API that exclusively uses header-based JWT authentication, browser cookies can be omitted:
+
+```csharp
+options.Resource.Credentials = UAuthResourceCredentialsMode.Omit;
+```
+
+Omitting browser cookies does not prevent the client from attaching its access-token authorization header.
+
+This option affects Resource API requests, not authentication or refresh requests sent to UAuthHub.
+
+#### Credential compatibility
+
+A JWT issued in Hybrid mode is not interchangeable with a PureJwt access token.
+
+Hybrid-aware JWT validation in separate Resource APIs is not currently implemented.
+
+Authentication mode selection and credential compatibility remain explicit configuration responsibilities.
 
 ### PureJwt and UAuthHub Connectivity
 
