@@ -1,6 +1,5 @@
-using System.Net;
-using System.Text.Json;
 using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Authentication;
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
@@ -11,6 +10,7 @@ using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Client.Services;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
@@ -18,6 +18,8 @@ using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using Moq;
+using System.Net;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -95,7 +97,7 @@ public sealed class ClientRateLimitingTests : UAuthClientTestBase
                     })
             });
 
-        using var manager = new UAuthStateManager(
+        using var manager = NewManager(
             CreateClient(flows: CreateFlowClient()),
             Events.Object,
             clock);
@@ -242,5 +244,16 @@ public sealed class ClientRateLimitingTests : UAuthClientTestBase
         await coordinator.TickAsync();
         Assert.True(diagnostics.IsTerminated);
         flows.Verify(x => x.RefreshAsync(true), Times.Exactly(2));
+    }
+
+    private static UAuthStateManager NewManager(IUAuthClient client, IUAuthClientEvents events, IClock clock)
+    {
+        return new UAuthStateManager(
+            client,
+            events,
+            clock,
+            new Mock<IUAuthTokenStore>().Object,
+            new Mock<IUAuthRequestClient>().Object,
+            Options.Create(new UAuthClientOptions()));
     }
 }

@@ -97,7 +97,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IApplicationProfileDetector, UAuthApplicationProfileDetector>();
         services.AddSingleton<IPostConfigureOptions<UAuthClientOptions>, UAuthClientOptionsPostConfigure>();
         services.TryAddSingleton<IClock, ClientClock>();
-        services.AddSingleton<IUAuthClientEvents, UAuthClientEvents>();
+        services.AddScoped<IUAuthClientEvents, UAuthClientEvents>();
 
         services.PostConfigure<UAuthClientOptions>(o =>
         {

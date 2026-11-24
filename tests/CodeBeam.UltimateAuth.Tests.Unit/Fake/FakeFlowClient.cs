@@ -122,6 +122,11 @@ internal sealed class FakeFlowClient : IFlowClient
         throw new NotImplementedException();
     }
 
+    public Task<RefreshResult> RecoverAsync()
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<RefreshResult> RefreshAsync(bool isAuto = false)
     {
         var outcome = _outcomes.Count > 0

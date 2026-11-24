@@ -1,13 +1,17 @@
 ﻿using AwesomeAssertions;
 using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Authentication;
 using CodeBeam.UltimateAuth.Client.Events;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
+using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Client.Services;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Users.Contracts;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
@@ -43,7 +47,7 @@ public class UAuthStateManagerTests
         var clock = new Mock<IClock>();
         clock.Setup(x => x.UtcNow).Returns(DateTimeOffset.UtcNow);
 
-        var manager = new UAuthStateManager(client.Object, events.Object, clock.Object);
+        var manager = NewManager(client.Object, events.Object, clock.Object);
 
         await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
         await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
@@ -114,7 +118,7 @@ public class UAuthStateManagerTests
                 State = SessionState.Invalid
             });
 
-        var manager = new UAuthStateManager(client.Object, events.Object, clock.Object);
+        var manager = NewManager(client.Object, events.Object, clock.Object);
         await manager.EnsureAsync(ct: TestContext.Current.CancellationToken);
         manager.State.IsAuthenticated.Should().BeFalse();
     }
@@ -570,12 +574,7 @@ public class UAuthStateManagerTests
         };
     }
 
-    private static (
-        UAuthStateManager Manager,
-        Mock<IFlowClient> Flows,
-        UAuthClientEvents Events,
-        Mock<IClock> Clock)
-        CreateManager()
+    private static (UAuthStateManager Manager, Mock<IFlowClient> Flows, UAuthClientEvents Events, Mock<IClock> Clock) CreateManager()
     {
         var flows = new Mock<IFlowClient>();
 
@@ -588,16 +587,34 @@ public class UAuthStateManagerTests
         clock.SetupGet(x => x.UtcNow)
             .Returns(new DateTimeOffset(2026, 10, 26, 12, 0, 0, TimeSpan.Zero));
 
-        return (
-            new UAuthStateManager(client.Object, events, clock.Object),
-            flows,
-            events,
-            clock);
+        return (NewManager(client.Object, events, clock.Object), flows, events, clock);
     }
 
-    private static void SetupValidSnapshot(
-        Mock<IFlowClient> flows,
-        AuthStateSnapshot? snapshot = null)
+    private static UAuthStateManager NewManager(IUAuthClient client, IUAuthClientEvents events, IClock clock)
+    {
+        var requestClient = new Mock<IUAuthRequestClient>();
+
+        requestClient
+            .Setup(x => x.GetLoginTransportAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthLoginTransportInfo
+            {
+                Supported = true,
+                NavigationSupported = true,
+                AccessTokenInHeader = false
+            });
+
+        return new UAuthStateManager(
+            client,
+            events,
+            clock,
+            new InMemoryUAuthTokenStore(),
+            requestClient.Object,
+            Options.Create(new UAuthClientOptions()));
+    }
+
+    private static void SetupValidSnapshot(Mock<IFlowClient> flows, AuthStateSnapshot? snapshot = null)
     {
         flows.Setup(x => x.ValidateAsync())
             .ReturnsAsync(new AuthValidationResult

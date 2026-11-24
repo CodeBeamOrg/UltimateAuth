@@ -135,4 +135,6 @@ public interface IFlowClient
     /// Logs out all sessions for a user.
     /// </summary>
     Task<UAuthResult> LogoutAllUserDevicesAsync(UserKey userKey);
+
+    Task<RefreshResult> RecoverAsync();
 }

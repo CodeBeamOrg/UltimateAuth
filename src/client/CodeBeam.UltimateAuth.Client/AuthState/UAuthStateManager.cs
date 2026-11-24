@@ -216,7 +216,7 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
             return false;
         }
 
-        var refresh = await _client.Flows.RefreshAsync(isAuto: true);
+        var refresh = await _client.Flows.RecoverAsync();
 
         if (refresh.Status == 429)
         {

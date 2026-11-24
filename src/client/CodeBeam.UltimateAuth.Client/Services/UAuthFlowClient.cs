@@ -244,113 +244,124 @@ internal class UAuthFlowClient : IFlowClient
         await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.StateEvents.HandlingMode));
     }
 
-    public async Task<RefreshResult> RefreshAsync(bool isAuto = false)
+    //public async Task<RefreshResult> RefreshAsync(bool isAuto = false)
+    //{
+    //    if (!isAuto)
+    //    {
+    //        _diagnostics.MarkManualRefresh();
+    //    }
+
+    //    var now = DateTimeOffset.UtcNow;
+    //    if (_refreshThrottle is not null && now < _refreshNotBefore)
+    //        return _refreshThrottle with { RetryAfter = _refreshNotBefore - now };
+    //    var raw = await _post.SendFormAsync(Url(_options.Endpoints.Refresh));
+    //    if (raw.Status == 429)
+    //    {
+    //        _refreshThrottle = new RefreshResult
+    //        {
+    //            Status = 429,
+    //            IsSuccess = false,
+    //            Outcome = RefreshOutcome.None,
+    //            ErrorCode = "rate_limited",
+    //            RetryAfter = UAuthRateLimit.ParseRetryAfter(raw.RetryAfter, DateTimeOffset.UtcNow)
+    //        };
+    //        _refreshNotBefore = UAuthRateLimit.NotBefore(DateTimeOffset.UtcNow, _refreshThrottle.RetryAfter);
+    //        return _refreshThrottle;
+    //    }
+    //    _refreshThrottle = null;
+
+    //    // 401 is a normal authentication outcome for refresh.
+    //    if (raw.Status == 401)
+    //    {
+    //        _tokenStore.Clear();
+
+    //        _diagnostics.MarkRefreshReauthRequired();
+
+    //        await _events.PublishAsync(
+    //            new UAuthStateEventArgsEmpty(
+    //                UAuthStateEvent.ReauthenticationRequired,
+    //                UAuthStateEventHandlingMode.Patch));
+
+    //        return new RefreshResult
+    //        {
+    //            IsSuccess = false,
+    //            Status = 401,
+    //            Outcome = RefreshOutcome.ReauthRequired
+    //        };
+    //    }
+
+    //    EnsureValidHttpStatus(raw);
+
+    //    var outcome = RefreshOutcomeParser.Parse(raw.RefreshOutcome);
+    //    var isSuccess = raw.Status is >= 200 and < 300 && raw.Ok;
+
+    //    if (isSuccess)
+    //    {
+    //        var accessToken = UAuthLoginCompletion.ReadAccessToken(raw);
+
+    //        if (accessToken is not null)
+    //        {
+    //            if (accessToken.IsExpired(DateTimeOffset.UtcNow))
+    //            {
+    //                _tokenStore.Clear();
+
+    //                throw new UAuthProtocolException("Server returned an expired access token.");
+    //            }
+
+    //            _tokenStore.Replace(accessToken);
+    //        }
+    //    }
+
+    //    // Never record a successful refresh outcome
+    //    // for a failed HTTP response.
+    //    if (isSuccess)
+    //    {
+    //        switch (outcome)
+    //        {
+    //            case RefreshOutcome.NoOp:
+    //                _diagnostics.MarkRefreshNoOp();
+    //                break;
+
+    //            case RefreshOutcome.Touched:
+    //                _diagnostics.MarkRefreshTouched();
+    //                break;
+
+    //            case RefreshOutcome.Rotated:
+    //                _diagnostics.MarkRefreshRotated();
+    //                break;
+
+    //            case RefreshOutcome.ReauthRequired:
+    //                _diagnostics.MarkRefreshReauthRequired();
+    //                break;
+
+    //            case RefreshOutcome.Success:
+    //                _diagnostics.MarkRefreshSuccess();
+    //                break;
+    //        }
+    //    }
+    //    else if (outcome == RefreshOutcome.ReauthRequired)
+    //    {
+    //        _diagnostics.MarkRefreshReauthRequired();
+    //    }
+
+    //    return new RefreshResult
+    //    {
+    //        IsSuccess = isSuccess,
+    //        Status = raw.Status,
+    //        Outcome = outcome
+    //    };
+    //}
+
+    public Task<RefreshResult> RefreshAsync(bool isAuto = false)
     {
-        if (!isAuto)
-        {
-            _diagnostics.MarkManualRefresh();
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        if (_refreshThrottle is not null && now < _refreshNotBefore)
-            return _refreshThrottle with { RetryAfter = _refreshNotBefore - now };
-        var raw = await _post.SendFormAsync(Url(_options.Endpoints.Refresh));
-        if (raw.Status == 429)
-        {
-            _refreshThrottle = new RefreshResult
-            {
-                Status = 429,
-                IsSuccess = false,
-                Outcome = RefreshOutcome.None,
-                ErrorCode = "rate_limited",
-                RetryAfter = UAuthRateLimit.ParseRetryAfter(raw.RetryAfter, DateTimeOffset.UtcNow)
-            };
-            _refreshNotBefore = UAuthRateLimit.NotBefore(DateTimeOffset.UtcNow, _refreshThrottle.RetryAfter);
-            return _refreshThrottle;
-        }
-        _refreshThrottle = null;
-
-        // 401 is a normal authentication outcome for refresh.
-        if (raw.Status == 401)
-        {
-            _tokenStore.Clear();
-
-            _diagnostics.MarkRefreshReauthRequired();
-
-            await _events.PublishAsync(
-                new UAuthStateEventArgsEmpty(
-                    UAuthStateEvent.ReauthenticationRequired,
-                    UAuthStateEventHandlingMode.Patch));
-
-            return new RefreshResult
-            {
-                IsSuccess = false,
-                Status = 401,
-                Outcome = RefreshOutcome.ReauthRequired
-            };
-        }
-
-        EnsureValidHttpStatus(raw);
-
-        var outcome = RefreshOutcomeParser.Parse(raw.RefreshOutcome);
-        var isSuccess = raw.Status is >= 200 and < 300 && raw.Ok;
-
-        if (isSuccess)
-        {
-            var accessToken = UAuthLoginCompletion.ReadAccessToken(raw);
-
-            if (accessToken is not null)
-            {
-                if (accessToken.IsExpired(DateTimeOffset.UtcNow))
-                {
-                    _tokenStore.Clear();
-
-                    throw new UAuthProtocolException("Server returned an expired access token.");
-                }
-
-                _tokenStore.Replace(accessToken);
-            }
-        }
-
-        // Never record a successful refresh outcome
-        // for a failed HTTP response.
-        if (isSuccess)
-        {
-            switch (outcome)
-            {
-                case RefreshOutcome.NoOp:
-                    _diagnostics.MarkRefreshNoOp();
-                    break;
-
-                case RefreshOutcome.Touched:
-                    _diagnostics.MarkRefreshTouched();
-                    break;
-
-                case RefreshOutcome.Rotated:
-                    _diagnostics.MarkRefreshRotated();
-                    break;
-
-                case RefreshOutcome.ReauthRequired:
-                    _diagnostics.MarkRefreshReauthRequired();
-                    break;
-
-                case RefreshOutcome.Success:
-                    _diagnostics.MarkRefreshSuccess();
-                    break;
-            }
-        }
-        else if (outcome == RefreshOutcome.ReauthRequired)
-        {
-            _diagnostics.MarkRefreshReauthRequired();
-        }
-
-        return new RefreshResult
-        {
-            IsSuccess = isSuccess,
-            Status = raw.Status,
-            Outcome = outcome
-        };
+        return RefreshCoreAsync(isAuto, isRecovery: false);
     }
+
+    public Task<RefreshResult> RecoverAsync()
+    {
+        return RefreshCoreAsync(isAuto: true, isRecovery: true);
+    }
+
 
     //public async Task ReauthAsync()
     //{
@@ -643,6 +654,115 @@ internal class UAuthFlowClient : IFlowClient
         return UAuthResultMapper.From(raw);
     }
 
+
+    private async Task<RefreshResult> RefreshCoreAsync(bool isAuto, bool isRecovery)
+    {
+        if (!isAuto)
+            _diagnostics.MarkManualRefresh();
+
+        var now = DateTimeOffset.UtcNow;
+
+        if (_refreshThrottle is not null && now < _refreshNotBefore)
+            return _refreshThrottle with { RetryAfter = _refreshNotBefore - now };
+
+        var raw = await _post.SendFormAsync(Url(_options.Endpoints.Refresh));
+        if (raw.Status == 429)
+        {
+            _refreshThrottle = new RefreshResult
+            {
+                Status = 429,
+                IsSuccess = false,
+                Outcome = RefreshOutcome.None,
+                ErrorCode = "rate_limited",
+                RetryAfter = UAuthRateLimit.ParseRetryAfter(raw.RetryAfter, DateTimeOffset.UtcNow)
+            };
+            _refreshNotBefore = UAuthRateLimit.NotBefore(DateTimeOffset.UtcNow, _refreshThrottle.RetryAfter);
+            return _refreshThrottle;
+        }
+        _refreshThrottle = null;
+
+        if (raw.Status == 401)
+        {
+            if (!isRecovery)
+            {
+                _tokenStore.Clear();
+                _diagnostics.MarkRefreshReauthRequired();
+
+                await _events.PublishAsync(
+                    new UAuthStateEventArgsEmpty(
+                        UAuthStateEvent.ReauthenticationRequired,
+                        UAuthStateEventHandlingMode.Patch));
+            }
+
+            return new RefreshResult
+            {
+                IsSuccess = false,
+                Status = 401,
+                Outcome = RefreshOutcome.ReauthRequired
+            };
+        }
+
+        EnsureValidHttpStatus(raw);
+
+        var outcome = RefreshOutcomeParser.Parse(raw.RefreshOutcome);
+        var isSuccess = raw.Status is >= 200 and < 300 && raw.Ok;
+
+        if (isSuccess)
+        {
+            var accessToken = UAuthLoginCompletion.ReadAccessToken(raw);
+
+            if (accessToken is not null)
+            {
+                if (accessToken.IsExpired(DateTimeOffset.UtcNow))
+                {
+                    _tokenStore.Clear();
+
+                    throw new UAuthProtocolException("Server returned an expired access token.");
+                }
+
+                _tokenStore.Replace(accessToken);
+            }
+        }
+
+        // Never record a successful refresh outcome
+        // for a failed HTTP response.
+        if (isSuccess)
+        {
+            switch (outcome)
+            {
+                case RefreshOutcome.NoOp:
+                    _diagnostics.MarkRefreshNoOp();
+                    break;
+
+                case RefreshOutcome.Touched:
+                    _diagnostics.MarkRefreshTouched();
+                    break;
+
+                case RefreshOutcome.Rotated:
+                    _diagnostics.MarkRefreshRotated();
+                    break;
+
+                case RefreshOutcome.ReauthRequired:
+                    _diagnostics.MarkRefreshReauthRequired();
+                    break;
+
+                case RefreshOutcome.Success:
+                    _diagnostics.MarkRefreshSuccess();
+                    break;
+            }
+        }
+        else if (outcome == RefreshOutcome.ReauthRequired)
+        {
+            _diagnostics.MarkRefreshReauthRequired();
+        }
+
+        return new RefreshResult
+        {
+            IsSuccess = isSuccess,
+            Status = raw.Status,
+            Outcome = outcome
+        };
+    }
 
     private void EnsureCanPost()
     {
