@@ -243,18 +243,60 @@ public partial class UAuthLoginForm
                 var accessTokenRequired = result.TryGetProperty("accessTokenInHeader", out var required) &&
                     required.ValueKind == JsonValueKind.True;
 
-                await UAuthLoginCompletion.CompleteAsync(transportResponse, accessTokenRequired, TokenStore, ClientEvents);
+                var redirectUrl =
+                    UAuthLoginCompletion.GetRedirectUrl(transportResponse);
 
-                var redirectUrl = UAuthLoginCompletion.GetRedirectUrl(transportResponse);
+                var isHubHandoff =
+                    LoginType == UAuthLoginType.Pkce &&
+                    EffectiveHubSessionId is not null;
 
-                if (!string.IsNullOrWhiteSpace(redirectUrl) && !string.IsNullOrWhiteSpace(EffectiveReturnUrl))
+                if (isHubHandoff)
+                {
+                    if (!transportResponse.Ok ||
+                        transportResponse.Status is < 200 or >= 300)
+                    {
+                        throw new UAuthProtocolException(
+                            "PKCE completion failed.");
+                    }
+
+                    var expectedReturnUrl = _flow?.ReturnUrl;
+
+                    if (string.IsNullOrWhiteSpace(redirectUrl) ||
+                        string.IsNullOrWhiteSpace(expectedReturnUrl) ||
+                        !Uri.TryCreate(redirectUrl, UriKind.Absolute, out var target) ||
+                        !Uri.TryCreate(expectedReturnUrl, UriKind.Absolute, out var expected) ||
+                        target != expected ||
+                        target.Scheme is not ("https" or "http") ||
+                        !string.IsNullOrEmpty(target.UserInfo))
+                    {
+                        throw new UAuthProtocolException(
+                            "Invalid PKCE handoff redirect.");
+                    }
+
+                    // The issued credentials belong to the initiating application.
+                    // Do not store them in the Hub's local authentication state.
+                    Navigation.NavigateTo(target.AbsoluteUri, forceLoad: true);
+
+                    return;
+                }
+
+                await UAuthLoginCompletion.CompleteAsync(
+                    transportResponse,
+                    accessTokenRequired,
+                    TokenStore,
+                    ClientEvents);
+
+                if (!string.IsNullOrWhiteSpace(redirectUrl))
                 {
                     var target = Navigation.ToAbsoluteUri(redirectUrl);
                     var current = new Uri(Navigation.Uri);
 
-                    if (target.Scheme != current.Scheme || target.Authority != current.Authority || !string.IsNullOrEmpty(target.UserInfo))
+                    if (target.Scheme != current.Scheme ||
+                        target.Authority != current.Authority ||
+                        !string.IsNullOrEmpty(target.UserInfo))
                     {
-                        throw new UAuthProtocolException("Fetch login redirect must remain on the application origin.");
+                        throw new UAuthProtocolException(
+                            "Fetch login redirect must remain on the application origin.");
                     }
 
                     Navigation.NavigateTo(target.ToString(), forceLoad: false);

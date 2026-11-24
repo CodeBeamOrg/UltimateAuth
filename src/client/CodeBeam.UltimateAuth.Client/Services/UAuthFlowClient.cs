@@ -12,7 +12,6 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
 using Microsoft.Extensions.Options;
-using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -244,114 +243,6 @@ internal class UAuthFlowClient : IFlowClient
         await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.LogoutVariant, _options.StateEvents.HandlingMode));
     }
 
-    //public async Task<RefreshResult> RefreshAsync(bool isAuto = false)
-    //{
-    //    if (!isAuto)
-    //    {
-    //        _diagnostics.MarkManualRefresh();
-    //    }
-
-    //    var now = DateTimeOffset.UtcNow;
-    //    if (_refreshThrottle is not null && now < _refreshNotBefore)
-    //        return _refreshThrottle with { RetryAfter = _refreshNotBefore - now };
-    //    var raw = await _post.SendFormAsync(Url(_options.Endpoints.Refresh));
-    //    if (raw.Status == 429)
-    //    {
-    //        _refreshThrottle = new RefreshResult
-    //        {
-    //            Status = 429,
-    //            IsSuccess = false,
-    //            Outcome = RefreshOutcome.None,
-    //            ErrorCode = "rate_limited",
-    //            RetryAfter = UAuthRateLimit.ParseRetryAfter(raw.RetryAfter, DateTimeOffset.UtcNow)
-    //        };
-    //        _refreshNotBefore = UAuthRateLimit.NotBefore(DateTimeOffset.UtcNow, _refreshThrottle.RetryAfter);
-    //        return _refreshThrottle;
-    //    }
-    //    _refreshThrottle = null;
-
-    //    // 401 is a normal authentication outcome for refresh.
-    //    if (raw.Status == 401)
-    //    {
-    //        _tokenStore.Clear();
-
-    //        _diagnostics.MarkRefreshReauthRequired();
-
-    //        await _events.PublishAsync(
-    //            new UAuthStateEventArgsEmpty(
-    //                UAuthStateEvent.ReauthenticationRequired,
-    //                UAuthStateEventHandlingMode.Patch));
-
-    //        return new RefreshResult
-    //        {
-    //            IsSuccess = false,
-    //            Status = 401,
-    //            Outcome = RefreshOutcome.ReauthRequired
-    //        };
-    //    }
-
-    //    EnsureValidHttpStatus(raw);
-
-    //    var outcome = RefreshOutcomeParser.Parse(raw.RefreshOutcome);
-    //    var isSuccess = raw.Status is >= 200 and < 300 && raw.Ok;
-
-    //    if (isSuccess)
-    //    {
-    //        var accessToken = UAuthLoginCompletion.ReadAccessToken(raw);
-
-    //        if (accessToken is not null)
-    //        {
-    //            if (accessToken.IsExpired(DateTimeOffset.UtcNow))
-    //            {
-    //                _tokenStore.Clear();
-
-    //                throw new UAuthProtocolException("Server returned an expired access token.");
-    //            }
-
-    //            _tokenStore.Replace(accessToken);
-    //        }
-    //    }
-
-    //    // Never record a successful refresh outcome
-    //    // for a failed HTTP response.
-    //    if (isSuccess)
-    //    {
-    //        switch (outcome)
-    //        {
-    //            case RefreshOutcome.NoOp:
-    //                _diagnostics.MarkRefreshNoOp();
-    //                break;
-
-    //            case RefreshOutcome.Touched:
-    //                _diagnostics.MarkRefreshTouched();
-    //                break;
-
-    //            case RefreshOutcome.Rotated:
-    //                _diagnostics.MarkRefreshRotated();
-    //                break;
-
-    //            case RefreshOutcome.ReauthRequired:
-    //                _diagnostics.MarkRefreshReauthRequired();
-    //                break;
-
-    //            case RefreshOutcome.Success:
-    //                _diagnostics.MarkRefreshSuccess();
-    //                break;
-    //        }
-    //    }
-    //    else if (outcome == RefreshOutcome.ReauthRequired)
-    //    {
-    //        _diagnostics.MarkRefreshReauthRequired();
-    //    }
-
-    //    return new RefreshResult
-    //    {
-    //        IsSuccess = isSuccess,
-    //        Status = raw.Status,
-    //        Outcome = outcome
-    //    };
-    //}
-
     public Task<RefreshResult> RefreshAsync(bool isAuto = false)
     {
         return RefreshCoreAsync(isAuto, isRecovery: false);
@@ -487,98 +378,82 @@ internal class UAuthFlowClient : IFlowClient
         }
     }
 
-    public async Task<TryPkceLoginResult> TryCompletePkceLoginAsync(PkceCompleteRequest request, UAuthSubmitMode mode)
+    public async Task<TryPkceLoginResult> TryCompletePkceLoginAsync(
+        PkceCompleteRequest request,
+        UAuthSubmitMode mode)
     {
-        if (mode == UAuthSubmitMode.DirectCommit)
-        {
-            await CompletePkceLoginAsync(request);
-            return new TryPkceLoginResult { IsSuccess = true };
-        }
-
-        if (request is null)
-            throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
 
         if (!_options.Pkce.Enabled)
             throw new InvalidOperationException("PKCE login is disabled.");
 
-        var tryUrl = Url(_options.Endpoints.PkceTryComplete);
-        var commitUrl = Url(_options.Endpoints.PkceComplete);
-
-        var payload = new Dictionary<string, string>
+        if (mode == UAuthSubmitMode.DirectCommit)
         {
-            ["authorization_code"] = request.AuthorizationCode,
-            ["code_verifier"] = request.CodeVerifier,
-            ["Identifier"] = request.Identifier ?? string.Empty,
-            ["Secret"] = request.Secret ?? string.Empty,
-            ["hub_session_id"] = request.HubSessionId ?? string.Empty
-        };
+            await CompletePkceLoginAsync(request);
 
-        if (!string.IsNullOrWhiteSpace(request.ReturnUrl))
-        {
-            payload[UAuthConstants.Form.ReturnUrl] = request.ReturnUrl;
+            return new TryPkceLoginResult
+            {
+                IsSuccess = true
+            };
         }
 
-        switch (mode)
+        var raw = await _post.SendJsonAsync(
+            Url(_options.Endpoints.PkceTryComplete),
+            request);
+
+        if (raw.Status == 429)
         {
-            case UAuthSubmitMode.TryOnly:
-                {
-                    var raw = await _post.SendJsonAsync(tryUrl, request);
-                    if (raw.Status == 429) return new TryPkceLoginResult { Status = 429, ErrorCode = "rate_limited", RetryAfter = UAuthRateLimit.ParseRetryAfter(raw.RetryAfter, DateTimeOffset.UtcNow) };
-
-                    EnsureValidHttpStatus(raw);
-
-                    if (raw.Status is >= 400 and < 500)
-                    {
-                        throw new UAuthProtocolException($"Unexpected client error during PKCE try-login: {raw.Status}.");
-                    }
-
-                    if (raw.Body is null || raw.Body.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
-                    {
-                        throw new UAuthProtocolException("Empty PKCE try-login response body.");
-                    }
-
-                    try
-                    {
-                        var parsed = raw.Body.Value.Deserialize<TryPkceLoginResult>(
-                            new JsonSerializerOptions
-                            {
-                                PropertyNameCaseInsensitive = true
-                            });
-
-                        return parsed ?? throw new UAuthProtocolException("Invalid PKCE try-login result.");
-                    }
-                    catch (JsonException ex)
-                    {
-                        throw new UAuthProtocolException("Invalid PKCE try-login result.", ex);
-                    }
-                }
-
-            case UAuthSubmitMode.TryAndCommit:
-            default:
-                {
-                    TryPkceLoginResult result;
-                    try { result = await _post.TryAndCommitAsync<TryPkceLoginResult>(tryUrl, commitUrl, payload); }
-                    catch (UAuthTransportException ex) when (ex.StatusCode == HttpStatusCode.TooManyRequests)
-                    { return new TryPkceLoginResult { Status = 429, ErrorCode = "rate_limited", RetryAfter = ex.RetryAfter }; }
-
-                    if (result is null)
-                        throw new UAuthProtocolException("Invalid PKCE try result.");
-
-                    return result;
-                }
+            return new TryPkceLoginResult
+            {
+                Status = 429,
+                RetryAfter = UAuthRateLimit.ParseRetryAfter(
+                    raw.RetryAfter,
+                    DateTimeOffset.UtcNow),
+                ErrorCode = "rate_limited"
+            };
         }
+
+        EnsureValidHttpStatus(raw);
+
+        if (raw.Body is null ||
+            raw.Body.Value.ValueKind is
+                JsonValueKind.Null or JsonValueKind.Undefined)
+        {
+            throw new UAuthProtocolException(
+                "Empty PKCE try-login response body.");
+        }
+
+        TryPkceLoginResult preview;
+
+        try
+        {
+            preview = raw.Body.Value.Deserialize<TryPkceLoginResult>(
+                new JsonSerializerOptions(JsonSerializerDefaults.Web))
+                ?? throw new UAuthProtocolException(
+                    "Invalid PKCE try-login result.");
+        }
+        catch (JsonException ex)
+        {
+            throw new UAuthProtocolException(
+                "Invalid PKCE try-login result.", ex);
+        }
+
+        if (mode == UAuthSubmitMode.TryOnly || !preview.IsSuccess)
+            return preview;
+
+        await CompletePkceLoginAsync(request);
+
+        return preview;
     }
 
-    public async Task CompletePkceLoginAsync(PkceCompleteRequest request)
+    public async Task CompletePkceLoginAsync(
+        PkceCompleteRequest request)
     {
-        if (request is null)
-            throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
 
         if (!_options.Pkce.Enabled)
-        {
-            throw new InvalidOperationException("PKCE login is disabled by configuration, but a PKCE completion was attempted. " +
-                "This usually indicates a misconfiguration or an unexpected redirect flow.");
-        }
+            throw new InvalidOperationException(
+                "PKCE login is disabled.");
 
         var url = Url(_options.Endpoints.PkceComplete);
 
@@ -586,15 +461,57 @@ internal class UAuthFlowClient : IFlowClient
         {
             ["authorization_code"] = request.AuthorizationCode,
             ["code_verifier"] = request.CodeVerifier,
-            [UAuthConstants.Form.ReturnUrl] = request.ReturnUrl ?? string.Empty,
-
+            [UAuthConstants.Form.ReturnUrl] =
+                request.ReturnUrl ?? string.Empty,
             ["Identifier"] = request.Identifier ?? string.Empty,
             ["Secret"] = request.Secret ?? string.Empty,
-
-            ["hub_session_id"] = request.HubSessionId ?? string.Empty,
+            ["hub_session_id"] = request.HubSessionId ?? string.Empty
         };
 
-        await _post.NavigateAsync(url, payload);
+        var info = await _post.GetLoginTransportAsync(
+            Url(_options.Endpoints.LoginTransport));
+
+        if (!info.Supported)
+            throw new NotSupportedException(
+                "PKCE credential delivery is not supported.");
+
+        if (info.NavigationSupported)
+        {
+            await _post.NavigateAsync(url, payload);
+            return;
+        }
+
+        payload["__uauth_response_mode"] = "fetch";
+
+        var raw = await _post.SendFormAsync(url, payload);
+
+        EnsureValidHttpStatus(raw);
+
+        if (!raw.Ok)
+            throw new UAuthProtocolException($"PKCE completion failed: HTTP {raw.Status}.");
+
+        var redirectUrl = UAuthLoginCompletion.GetRedirectUrl(raw);
+
+        if (!string.IsNullOrWhiteSpace(request.HubSessionId))
+        {
+            if (string.IsNullOrWhiteSpace(redirectUrl) ||
+                string.IsNullOrWhiteSpace(request.ReturnUrl))
+            {
+                throw new UAuthProtocolException("Missing PKCE handoff redirect.");
+            }
+
+            // Do not authenticate the Hub using the initiating application's access token.
+            await _post.NavigateToPkceReturnUrlAsync(redirectUrl, request.ReturnUrl);
+
+            return;
+        }
+
+        await UAuthLoginCompletion.CompleteAsync(raw, info.AccessTokenInHeader, _tokenStore, _events);
+
+        if (!string.IsNullOrWhiteSpace(redirectUrl))
+        {
+            await _post.NavigateToUrlAsync(redirectUrl);
+        }
     }
 
     public async Task<UAuthResult<RevokeResult>> LogoutMyDeviceAsync(LogoutDeviceRequest request)

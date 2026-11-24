@@ -58,4 +58,6 @@ public interface IUAuthRequestClient
     Task<UAuthLoginTransportInfo> GetLoginTransportAsync(string endpoint, CancellationToken ct = default);
 
     Task NavigateToUrlAsync(string url, CancellationToken ct = default);
+
+    Task NavigateToPkceReturnUrlAsync(string redirectUrl, string expectedReturnUrl, CancellationToken ct = default);
 }

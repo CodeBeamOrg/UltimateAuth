@@ -215,6 +215,36 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
         return Task.CompletedTask;
     }
 
+    public Task NavigateToPkceReturnUrlAsync(string redirectUrl, string expectedReturnUrl, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (!Uri.TryCreate(
+                expectedReturnUrl,
+                UriKind.Absolute,
+                out var expected) ||
+            !Uri.TryCreate(
+                redirectUrl,
+                UriKind.Absolute,
+                out var target) ||
+            target != expected ||
+            target.Scheme is not ("https" or "http") ||
+            !string.IsNullOrEmpty(target.UserInfo))
+        {
+            throw new UAuthProtocolException("PKCE return URL is invalid or does not match the expected destination.");
+        }
+
+        var current = new Uri(_navigation.Uri);
+
+        var crossOrigin =
+            target.Scheme != current.Scheme ||
+            target.Authority != current.Authority;
+
+        _navigation.NavigateTo(target.ToString(), forceLoad: crossOrigin);
+
+        return Task.CompletedTask;
+    }
+
 
     private string? GetAccessToken()
     {
