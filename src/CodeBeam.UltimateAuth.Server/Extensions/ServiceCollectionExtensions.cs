@@ -470,6 +470,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+
     public static IServiceCollection AddUAuthHub(this IServiceCollection services, Action<UAuthHubOptions>? configure = null)
     {
         services.PostConfigure<UAuthServerOptions>(options =>
@@ -483,28 +484,9 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IHubFlowReader, HubFlowReader>();
         services.TryAddScoped<IHubCredentialResolver, HubCredentialResolver>();
 
-        services.AddCors(options =>
-        {
-            options.AddPolicy("UAuthHub", policy =>
-            {
-                var sp = services.BuildServiceProvider();
-                var serverOptions = sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+        services.AddCors();
 
-                var origins = serverOptions.Hub.AllowedClientOrigins
-                    .Select(OriginHelper.Normalize)
-                    .ToArray();
-
-                if (origins.Length > 0)
-                {
-                    policy
-                        .WithOrigins(origins)
-                        .AllowAnyHeader()
-                        .AllowAnyMethod()
-                        .AllowCredentials()
-                        .WithExposedHeaders("X-UAuth-Refresh");
-                }
-            });
-        });
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CorsOptions>, UAuthHubCorsOptionsSetup>());
 
         return services;
     }
