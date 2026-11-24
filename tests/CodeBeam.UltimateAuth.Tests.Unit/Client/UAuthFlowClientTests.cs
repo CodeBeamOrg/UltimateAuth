@@ -91,6 +91,49 @@ public class UAuthFlowClientTests : UAuthClientTestBase
         };
     }
 
+    private static Mock<IUAuthRequestClient> CreatePkceFetchRequestMock(
+    UAuthTransportResult response)
+    {
+        var mock = new Mock<IUAuthRequestClient>();
+
+        mock.Setup(x => x.GetLoginTransportAsync(
+                "/auth/login/transport",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthLoginTransportInfo
+            {
+                Supported = true,
+                NavigationSupported = false,
+                AccessTokenInHeader = true
+            });
+
+        mock.Setup(x => x.SendFormAsync(
+                "/auth/pkce/complete",
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
+
+        return mock;
+    }
+
+    private static UAuthTransportResult CreatePkceFetchResponse(
+        string? redirectUrl = null)
+    {
+        return new UAuthTransportResult
+        {
+            Ok = true,
+            Status = 200,
+            AccessToken = "Bearer pkce-jwt",
+            AccessTokenFormat = "jwt",
+            AccessTokenHeaderFormat = "bearer",
+            AccessTokenExpiresAt =
+                DateTimeOffset.UtcNow.AddMinutes(10).ToString("O"),
+            Body = JsonSerializer.SerializeToElement(new
+            {
+                redirectUrl
+            })
+        };
+    }
+
     [Fact]
     public async Task TryLogin_Should_Call_TryLogin_Endpoint()
     {
@@ -1557,5 +1600,310 @@ public class UAuthFlowClientTests : UAuthClientTestBase
 
             diagnostics.RefreshReauthRequiredCount.Should().Be(1);
         }
+    }
+
+    [Fact]
+    public async Task CompletePkce_FetchHandoff_PreservesHubAuthenticationState()
+    {
+        const string returnUrl = "https://client.example.com/home";
+
+        var mock = CreatePkceFetchRequestMock(
+            CreatePkceFetchResponse(returnUrl));
+
+        var store = new InMemoryUAuthTokenStore();
+        var existing = CreateStoredToken();
+        store.Replace(existing);
+
+        var events = new UAuthClientEvents();
+        var published = new List<UAuthStateEvent>();
+
+        events.StateChanged += args =>
+        {
+            published.Add(args.Type);
+            return Task.CompletedTask;
+        };
+
+        var client = CreateClient(
+            mock,
+            tokenStore: store,
+            clientEvents: events);
+
+        await client.CompletePkceLoginAsync(new PkceCompleteRequest
+        {
+            Identifier = "user",
+            Secret = "pass",
+            AuthorizationCode = "code",
+            CodeVerifier = "verifier",
+            HubSessionId = "hub-session",
+            ReturnUrl = returnUrl
+        });
+
+        mock.Verify(x => x.SendFormAsync(
+            "/auth/pkce/complete",
+            It.Is<IDictionary<string, string>>(d =>
+                d["__uauth_response_mode"] == "fetch" &&
+                d["authorization_code"] == "code" &&
+                d["code_verifier"] == "verifier" &&
+                d["hub_session_id"] == "hub-session"),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        mock.Verify(x => x.NavigateToPkceReturnUrlAsync(
+            returnUrl,
+            returnUrl,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        mock.Verify(x => x.NavigateToUrlAsync(
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        store.Read().Should().BeSameAs(existing);
+        published.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(null, "https://client.example.com/home")]
+    [InlineData("", "https://client.example.com/home")]
+    [InlineData(" ", "https://client.example.com/home")]
+    [InlineData("https://client.example.com/home", null)]
+    [InlineData("https://client.example.com/home", "")]
+    [InlineData("https://client.example.com/home", " ")]
+    public async Task CompletePkce_FetchHandoff_RejectsMissingRedirect(
+    string? redirectUrl,
+    string? returnUrl)
+    {
+        var mock = CreatePkceFetchRequestMock(
+            CreatePkceFetchResponse(redirectUrl));
+
+        var store = new InMemoryUAuthTokenStore();
+
+        var client = CreateClient(mock, tokenStore: store);
+
+        Func<Task> act = () => client.CompletePkceLoginAsync(
+            new PkceCompleteRequest
+            {
+                Identifier = "user",
+                Secret = "pass",
+                AuthorizationCode = "code",
+                CodeVerifier = "verifier",
+                HubSessionId = "hub-session",
+                ReturnUrl = returnUrl
+            });
+
+        await act.Should()
+            .ThrowAsync<UAuthProtocolException>()
+            .WithMessage("Missing PKCE handoff redirect.");
+
+        store.Read().Should().BeNull();
+
+        mock.Verify(x => x.NavigateToPkceReturnUrlAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        mock.Verify(x => x.NavigateToUrlAsync(
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("/home")]
+    public async Task CompletePkce_FetchWithoutHandoff_StoresTokenAndPublishesLogin(
+    string? redirectUrl)
+    {
+        var mock = CreatePkceFetchRequestMock(
+            CreatePkceFetchResponse(redirectUrl));
+
+        var store = new InMemoryUAuthTokenStore();
+        var events = new UAuthClientEvents();
+        var published = new List<UAuthStateEvent>();
+
+        events.StateChanged += args =>
+        {
+            published.Add(args.Type);
+            return Task.CompletedTask;
+        };
+
+        var client = CreateClient(
+            mock,
+            tokenStore: store,
+            clientEvents: events);
+
+        await client.CompletePkceLoginAsync(new PkceCompleteRequest
+        {
+            Identifier = "user",
+            Secret = "pass",
+            AuthorizationCode = "code",
+            CodeVerifier = "verifier",
+            ReturnUrl = redirectUrl
+        });
+
+        var token = store.Read();
+
+        token.Should().NotBeNull();
+        token!.Token.Should().Be("pkce-jwt");
+        token.Format.Should().Be(TokenFormat.Jwt);
+
+        published.Should().Equal(UAuthStateEvent.LoginSucceeded);
+
+        mock.Verify(x => x.NavigateToUrlAsync(
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()),
+            redirectUrl is null ? Times.Never() : Times.Once());
+
+        if (redirectUrl is not null)
+        {
+            mock.Verify(x => x.NavigateToUrlAsync(
+                redirectUrl,
+                It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        mock.Verify(x => x.NavigateToPkceReturnUrlAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CompletePkce_FetchFailure_PreservesExistingToken()
+    {
+        var mock = CreatePkceFetchRequestMock(
+            new UAuthTransportResult
+            {
+                Ok = false,
+                Status = 401
+            });
+
+        var store = new InMemoryUAuthTokenStore();
+        var existing = CreateStoredToken();
+        store.Replace(existing);
+
+        var events = new UAuthClientEvents();
+        var published = new List<UAuthStateEvent>();
+
+        events.StateChanged += args =>
+        {
+            published.Add(args.Type);
+            return Task.CompletedTask;
+        };
+
+        var client = CreateClient(
+            mock,
+            tokenStore: store,
+            clientEvents: events);
+
+        Func<Task> act = () => client.CompletePkceLoginAsync(
+            new PkceCompleteRequest
+            {
+                Identifier = "user",
+                Secret = "pass",
+                AuthorizationCode = "code",
+                CodeVerifier = "verifier"
+            });
+
+        await act.Should()
+            .ThrowAsync<UAuthProtocolException>()
+            .WithMessage("PKCE completion failed: HTTP 401.");
+
+        store.Read().Should().BeSameAs(existing);
+        published.Should().BeEmpty();
+
+        mock.Verify(x => x.NavigateToUrlAsync(
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        mock.Verify(x => x.NavigateToPkceReturnUrlAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CompletePkce_FetchWithoutRequiredToken_RejectsCompletion()
+    {
+        var mock = CreatePkceFetchRequestMock(
+            new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200,
+                Body = JsonSerializer.SerializeToElement(new
+                {
+                    redirectUrl = "/home"
+                })
+            });
+
+        var store = new InMemoryUAuthTokenStore();
+
+        var client = CreateClient(mock, tokenStore: store);
+
+        Func<Task> act = () => client.CompletePkceLoginAsync(
+            new PkceCompleteRequest
+            {
+                Identifier = "user",
+                Secret = "pass",
+                AuthorizationCode = "code",
+                CodeVerifier = "verifier"
+            });
+
+        await act.Should().ThrowAsync<UAuthProtocolException>();
+
+        store.Read().Should().BeNull();
+
+        mock.Verify(x => x.NavigateToUrlAsync(
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CompletePkce_UnsupportedTransport_DoesNotSubmitCredentials()
+    {
+        var mock = new Mock<IUAuthRequestClient>();
+
+        mock.Setup(x => x.GetLoginTransportAsync(
+                "/auth/login/transport",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthLoginTransportInfo
+            {
+                Supported = false,
+                NavigationSupported = false,
+                AccessTokenInHeader = false
+            });
+
+        var client = CreateClient(mock);
+
+        Func<Task> act = () => client.CompletePkceLoginAsync(
+            new PkceCompleteRequest
+            {
+                Identifier = "user",
+                Secret = "pass",
+                AuthorizationCode = "code",
+                CodeVerifier = "verifier"
+            });
+
+        await act.Should()
+            .ThrowAsync<NotSupportedException>()
+            .WithMessage("PKCE credential delivery is not supported.");
+
+        mock.Verify(x => x.SendFormAsync(
+            It.IsAny<string>(),
+            It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        mock.Verify(x => x.NavigateAsync(
+            It.IsAny<string>(),
+            It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

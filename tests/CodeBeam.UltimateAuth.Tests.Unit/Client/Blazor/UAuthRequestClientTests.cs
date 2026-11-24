@@ -1,15 +1,16 @@
-﻿using Bunit;
+﻿using AwesomeAssertions;
+using Bunit;
+using Bunit.TestDoubles;
 using CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Options;
-using AwesomeAssertions;
-using Microsoft.Extensions.Options;
-using Moq;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Moq;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Client.Blazor;
 
@@ -367,6 +368,89 @@ public sealed class UAuthRequestClientTests : BunitContext
 
         GetProperty<string?>(argument, "accessToken")
             .Should().Be("jwt-value");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task NavigateToPkceReturnUrlAsync_UsesExpectedNavigationMode(
+    bool crossOrigin)
+    {
+        var navigation = Services.GetRequiredService<NavigationManager>();
+
+        var target = crossOrigin
+            ? "https://client.example.com/home"
+            : new Uri(new Uri(navigation.BaseUri), "home").AbsoluteUri;
+
+        var sut = CreateSut();
+
+        await sut.NavigateToPkceReturnUrlAsync(
+            target,
+            target,
+            Xunit.TestContext.Current.CancellationToken);
+
+        navigation.Uri.Should().Be(target);
+
+        var fakeNavigation = (BunitNavigationManager)navigation;
+
+        var entry = Assert.Single(fakeNavigation.History);
+
+        entry.Options.ForceLoad.Should().Be(crossOrigin);
+    }
+
+    [Theory]
+    [InlineData("/home", "/home")]
+    [InlineData("https://client.example.com/home", "/home")]
+    [InlineData("/home", "https://client.example.com/home")]
+    [InlineData("https://evil.example.com/home", "https://client.example.com/home")]
+    [InlineData("https://client.example.com/other", "https://client.example.com/home")]
+    [InlineData("https://client.example.com/home?x=1", "https://client.example.com/home")]
+    [InlineData("http://client.example.com/home", "https://client.example.com/home")]
+    [InlineData("https://client.example.com:8443/home", "https://client.example.com/home")]
+    [InlineData("ftp://client.example.com/home", "ftp://client.example.com/home")]
+    [InlineData("https://user@client.example.com/home", "https://user@client.example.com/home")]
+    public async Task NavigateToPkceReturnUrlAsync_RejectsInvalidDestination(
+    string redirectUrl,
+    string expectedReturnUrl)
+    {
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        var originalUri = navigation.Uri;
+
+        var sut = CreateSut();
+
+        Func<Task> act = () => sut.NavigateToPkceReturnUrlAsync(
+            redirectUrl,
+            expectedReturnUrl);
+
+        await act.Should()
+            .ThrowAsync<UAuthProtocolException>()
+            .WithMessage(
+                "PKCE return URL is invalid or does not match the expected destination.");
+
+        navigation.Uri.Should().Be(originalUri);
+    }
+
+    [Fact]
+    public async Task NavigateToPkceReturnUrlAsync_WhenCancelled_DoesNotNavigate()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        var originalUri = navigation.Uri;
+
+        const string target = "https://client.example.com/home";
+
+        var sut = CreateSut();
+
+        Func<Task> act = () => sut.NavigateToPkceReturnUrlAsync(
+            target,
+            target,
+            cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+
+        navigation.Uri.Should().Be(originalUri);
     }
 
 
