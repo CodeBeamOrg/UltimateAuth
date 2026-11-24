@@ -2,6 +2,7 @@
 using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Authentication;
+using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
@@ -557,6 +558,124 @@ public class UAuthStateManagerTests
             manager.State.IsStale.Should().BeTrue();
             manager.State.NeedsValidation.Should().BeTrue();
         }
+    }
+
+    [Fact]
+    public async Task InitialValidation_NotFound_RecoversToken_AndRevalidates()
+    {
+        var flows = new Mock<IFlowClient>();
+
+        flows.SetupSequence(x => x.ValidateAsync())
+            .ReturnsAsync(new AuthValidationResult
+            {
+                State = SessionState.NotFound
+            })
+            .ReturnsAsync(new AuthValidationResult
+            {
+                State = SessionState.Active,
+                Snapshot = CreateSnapshot()
+            });
+
+        var store = new InMemoryUAuthTokenStore();
+
+        flows.Setup(x => x.RecoverAsync())
+            .Callback(() => store.Replace(new AccessToken
+            {
+                Token = "recovered-jwt",
+                Format = TokenFormat.Jwt,
+                ExpiresAt = DateTimeOffset.UtcNow.AddHours(1)
+            }))
+            .ReturnsAsync(new RefreshResult
+            {
+                IsSuccess = true,
+                Status = 200,
+                Outcome = RefreshOutcome.Success
+            });
+
+        var client = new Mock<IUAuthClient>();
+        client.SetupGet(x => x.Flows).Returns(flows.Object);
+
+        var transport = new Mock<IUAuthRequestClient>();
+        transport.Setup(x => x.GetLoginTransportAsync(
+                It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthLoginTransportInfo
+            {
+                Supported = true,
+                AccessTokenInHeader = true
+            });
+
+        var clock = new Mock<IClock>();
+        clock.SetupGet(x => x.UtcNow)
+            .Returns(DateTimeOffset.UtcNow);
+
+        using var manager = new UAuthStateManager(
+            client.Object,
+            new UAuthClientEvents(),
+            clock.Object,
+            store,
+            transport.Object,
+            Options.Create(new UAuthClientOptions()));
+
+        await manager.EnsureAsync(
+            ct: TestContext.Current.CancellationToken);
+
+        manager.State.IsAuthenticated.Should().BeTrue();
+        store.Read()!.Token.Should().Be("recovered-jwt");
+
+        flows.Verify(x => x.RecoverAsync(), Times.Once);
+        flows.Verify(x => x.ValidateAsync(), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task InitialValidation_WithExistingToken_DoesNotRecover()
+    {
+        var flows = new Mock<IFlowClient>();
+
+        flows.Setup(x => x.ValidateAsync())
+            .ReturnsAsync(new AuthValidationResult
+            {
+                State = SessionState.NotFound
+            });
+
+        var client = new Mock<IUAuthClient>();
+        client.SetupGet(x => x.Flows).Returns(flows.Object);
+
+        var store = new InMemoryUAuthTokenStore();
+
+        store.Replace(new AccessToken
+        {
+            Token = "existing-jwt",
+            Format = TokenFormat.Jwt,
+            ExpiresAt = DateTimeOffset.UtcNow.AddHours(1)
+        });
+
+        var transport = new Mock<IUAuthRequestClient>();
+        transport.Setup(x => x.GetLoginTransportAsync(
+                It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthLoginTransportInfo
+            {
+                Supported = true,
+                AccessTokenInHeader = true
+            });
+
+        var clock = new Mock<IClock>();
+        clock.SetupGet(x => x.UtcNow)
+            .Returns(DateTimeOffset.UtcNow);
+
+        using var manager = new UAuthStateManager(
+            client.Object,
+            new UAuthClientEvents(),
+            clock.Object,
+            store,
+            transport.Object,
+            Options.Create(new UAuthClientOptions()));
+
+        await manager.EnsureAsync(
+            ct: TestContext.Current.CancellationToken);
+
+        flows.Verify(x => x.RecoverAsync(), Times.Never);
+
+        manager.State.IsAuthenticated.Should().BeFalse();
     }
 
 

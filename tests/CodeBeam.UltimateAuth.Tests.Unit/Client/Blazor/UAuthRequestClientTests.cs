@@ -215,6 +215,161 @@ public sealed class UAuthRequestClientTests : BunitContext
             .Should().Be(expectedOrigin);
     }
 
+
+    [Theory]
+    [InlineData(true, "logout")]
+    [InlineData(false, "logout-observe")]
+    public async Task LogoutTransport_UsesExpectedJavascriptMode(bool navigate, string expectedMode)
+    {
+        var expected = new UAuthTransportResult
+        {
+            Ok = true,
+            Status = 200
+        };
+
+        JSInterop
+            .Setup<UAuthTransportResult>("uauth.post", _ => true)
+            .SetResult(expected);
+
+        var result = await CreateSut().SendFormAsync(
+            "/auth/logout",
+            null,
+            navigateOnSuccess: navigate, Xunit.TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+
+        var invocation = JSInterop.Invocations
+            .Single(x => x.Identifier == "uauth.post");
+
+        GetProperty<string>(
+            invocation.Arguments.Single()!, "mode")
+            .Should().Be(expectedMode);
+    }
+
+    [Fact]
+    public async Task LogoutTransport_RejectsNullJavascriptResponse()
+    {
+        JSInterop
+            .Setup<UAuthTransportResult>("uauth.post", _ => true)
+            .SetResult(null!);
+
+        var act = () => CreateSut().SendFormAsync(
+            "/auth/logout",
+            null,
+            navigateOnSuccess: false);
+
+        await act.Should().ThrowAsync<UAuthProtocolException>()
+            .WithMessage("*logout transport response*");
+    }
+
+    [Fact]
+    public async Task LogoutTransport_RejectsUnconfirmedNetworkResult()
+    {
+        JSInterop
+            .Setup<UAuthTransportResult>("uauth.post", _ => true)
+            .SetResult(new UAuthTransportResult
+            {
+                Status = 0
+            });
+
+        var act = () => CreateSut().SendFormAsync(
+            "/auth/logout",
+            null,
+            navigateOnSuccess: true);
+
+        await act.Should()
+            .ThrowAsync<UAuthTransportException>()
+            .WithMessage("Could not confirm server logout.");
+    }
+
+    [Fact]
+    public async Task GetLoginTransportAsync_DeserializesCapabilities()
+    {
+        JSInterop
+            .Setup<UAuthTransportResult>("uauth.getLoginTransport", _ => true)
+            .SetResult(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200,
+                Body = System.Text.Json.JsonSerializer.SerializeToElement(
+                    new
+                    {
+                        supported = true,
+                        navigationSupported = false,
+                        accessTokenInHeader = true
+                    })
+            });
+
+        var result = await CreateSut().GetLoginTransportAsync("/auth/login/transport", Xunit.TestContext.Current.CancellationToken);
+
+        result.Supported.Should().BeTrue();
+        result.NavigationSupported.Should().BeFalse();
+        result.AccessTokenInHeader.Should().BeTrue();
+
+        JSInterop.VerifyInvoke("uauth.getLoginTransport", 1);
+    }
+
+    [Theory]
+    [InlineData(false, 200)]
+    [InlineData(true, 401)]
+    public async Task GetLoginTransportAsync_RejectsFailedResponse(bool ok, int status)
+    {
+        JSInterop
+            .Setup<UAuthTransportResult>("uauth.getLoginTransport", _ => true)
+            .SetResult(new UAuthTransportResult
+            {
+                Ok = ok,
+                Status = status
+            });
+
+        var act = () => CreateSut().GetLoginTransportAsync(
+            "/auth/login/transport");
+
+        await act.Should().ThrowAsync<UAuthProtocolException>();
+    }
+
+    [Theory]
+    [InlineData("https://evil.example/")]
+    [InlineData("//evil.example/")]
+    [InlineData(@"\\evil.example\")]
+    public async Task NavigateToUrlAsync_RejectsUnsafeDestination(
+        string destination)
+    {
+        var act = () => CreateSut()
+            .NavigateToUrlAsync(destination);
+
+        await act.Should().ThrowAsync<UAuthProtocolException>();
+    }
+
+    [Fact]
+    public async Task SendFormAsync_WithExplicitToken_ForwardsTokenToJavascript()
+    {
+        JSInterop
+            .Setup<UAuthTransportResult>("uauth.post", _ => true)
+            .SetResult(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200
+            });
+
+        await CreateSut().SendFormAsync(
+            "/auth/validate",
+            form: null,
+            accessToken: "jwt-value", Xunit.TestContext.Current.CancellationToken);
+
+        var invocation = JSInterop.Invocations
+            .Single(x => x.Identifier == "uauth.post");
+
+        var argument = invocation.Arguments.Single()!;
+
+        GetProperty<string>(argument, "mode")
+            .Should().Be("fetch");
+
+        GetProperty<string?>(argument, "accessToken")
+            .Should().Be("jwt-value");
+    }
+
+
     private sealed class TestTryResult
     {
     }

@@ -1,8 +1,8 @@
-﻿using System.Text;
-using System.Text.Json;
+﻿using AwesomeAssertions;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Endpoints;
@@ -11,10 +11,11 @@ using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Moq;
+using System.Text;
+using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Server;
 
@@ -775,6 +776,135 @@ public sealed class PkceEndpointHandlerTests
         Assert.Equal(
             HubErrorCode.DeviceLimitExceeded,
             hub.Error);
+    }
+
+    [Fact]
+    public async Task CompleteAsync_HeaderDeliveryWithoutFetch_ReturnsBadRequest()
+    {
+        var response = new EffectiveAuthResponse(
+            EffectiveGrantDelivery.Disabled(GrantKind.Session),
+            new EffectiveGrantDelivery(
+                GrantKind.AccessToken,
+                TokenFormat.Jwt,
+                GrantDeliveryMode.Header,
+                name: "uat"),
+            EffectiveGrantDelivery.Disabled(GrantKind.RefreshToken),
+            EffectiveRedirectResponse.Disabled);
+
+        var fixture = CreateFixture(
+            AuthFlowTestFactory.New(response: response));
+
+        fixture.HttpContext.Request.ContentType =
+            "application/x-www-form-urlencoded";
+
+        fixture.HttpContext.Request.Form = new FormCollection(
+            new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>
+            {
+                ["authorization_code"] = "code",
+                ["code_verifier"] = "verifier"
+            });
+
+        var result = await fixture.Sut.CompleteAsync(fixture.HttpContext);
+
+        ((IStatusCodeHttpResult)result).StatusCode
+            .Should().Be(StatusCodes.Status400BadRequest);
+
+        fixture.PkceService.VerifyNoOtherCalls();
+        fixture.CredentialWriter.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task CompleteAsync_FetchFailure_Returns401WithoutRedirect()
+    {
+        var fixture = CreateFixture();
+
+        fixture.HttpContext.Request.ContentType =
+            "application/x-www-form-urlencoded";
+
+        fixture.HttpContext.Request.Form = new FormCollection(
+            new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>
+            {
+                ["authorization_code"] = "code",
+                ["code_verifier"] = "verifier",
+                ["__uauth_response_mode"] = "fetch"
+            });
+
+        fixture.PkceService
+            .Setup(x => x.CompleteAsync(
+                fixture.Flow,
+                It.IsAny<PkceCompleteRequest>(),
+                fixture.HttpContext.RequestAborted))
+            .ReturnsAsync(new PkceCompleteResult
+            {
+                IsSuccess = false,
+                InvalidPkce = false
+            });
+
+        var result = await fixture.Sut.CompleteAsync(
+            fixture.HttpContext);
+
+        ((IStatusCodeHttpResult)result).StatusCode
+            .Should().Be(StatusCodes.Status401Unauthorized);
+
+        fixture.CredentialWriter.VerifyNoOtherCalls();
+        fixture.RedirectResolver.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task CompleteAsync_SuccessfulFetch_ReturnsRedirectInBody()
+    {
+        var fixture = CreateFixture();
+
+        fixture.HttpContext.Request.ContentType =
+            "application/x-www-form-urlencoded";
+
+        fixture.HttpContext.Request.Form = new FormCollection(
+            new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>
+            {
+                ["authorization_code"] = "code",
+                ["code_verifier"] = "verifier",
+                ["__uauth_response_mode"] = "fetch"
+            });
+
+        var sessionId = TestIds.Session("pkce-session");
+
+        fixture.PkceService
+            .Setup(x => x.CompleteAsync(
+                fixture.Flow,
+                It.IsAny<PkceCompleteRequest>(),
+                fixture.HttpContext.RequestAborted))
+            .ReturnsAsync(new PkceCompleteResult
+            {
+                IsSuccess = true,
+                LoginResult = LoginResult.Success(sessionId)
+            });
+
+        fixture.CredentialWriter.Setup(x => x.Write(
+            fixture.HttpContext,
+            GrantKind.Session,
+            sessionId));
+
+        fixture.RedirectResolver.Setup(x => x.ResolveSuccess(
+                fixture.Flow,
+                fixture.HttpContext))
+            .Returns(RedirectDecision.To("/home"));
+
+        var result = await fixture.Sut.CompleteAsync(
+            fixture.HttpContext);
+
+        ((IStatusCodeHttpResult)result).StatusCode.Should().Be(StatusCodes.Status200OK);
+
+        var json = JsonSerializer.SerializeToElement(
+            ((IValueHttpResult)result).Value,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+        json.GetProperty("redirectUrl")
+            .GetString().Should().Be("/home");
+
+        fixture.CredentialWriter.Verify(x => x.Write(
+            fixture.HttpContext,
+            GrantKind.Session,
+            sessionId), Times.Once);
     }
 
     // ---------------------------------------------------------------------

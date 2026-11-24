@@ -22,7 +22,11 @@ public class UAuthFlowClientTests : UAuthClientTestBase
 {
     private readonly Mock<IUAuthRequestClient> _mockRequest = new();
 
-    private UAuthFlowClient CreateClient(Mock<IUAuthRequestClient>? requestMock = null, UAuthClientDiagnostics? diagnostics = null)
+    private UAuthFlowClient CreateClient(
+        Mock<IUAuthRequestClient>? requestMock = null,
+        UAuthClientDiagnostics? diagnostics = null,
+        IUAuthTokenStore? tokenStore = null,
+        IUAuthClientEvents? clientEvents = null)
     {
         var request = requestMock ?? new Mock<IUAuthRequestClient>();
 
@@ -56,12 +60,22 @@ public class UAuthFlowClientTests : UAuthClientTestBase
 
         return new UAuthFlowClient(
             request.Object,
-            events.Object,
+            clientEvents ?? events.Object,
             deviceProvider.Object,
             returnUrlProvider.Object,
             options,
             diagnostics ?? new UAuthClientDiagnostics(),
-            new InMemoryUAuthTokenStore());
+            tokenStore ?? new InMemoryUAuthTokenStore());
+    }
+
+    private static AccessToken CreateStoredToken()
+    {
+        return new AccessToken
+        {
+            Token = "existing-jwt",
+            Format = TokenFormat.Jwt,
+            ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(10)
+        };
     }
 
     private static UAuthTransportResult TryLoginResponse(bool success, AuthFailureReason? reason = null)
@@ -1110,5 +1124,438 @@ public class UAuthFlowClientTests : UAuthClientTestBase
 
         diagnostics.RefreshSuccessCount.Should().Be(0);
         diagnostics.RefreshRotatedCount.Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    public async Task Login_Auto_UsesFetch_WhenNavigationIsUnavailableOrNoReturnUrl(
+        bool navigationSupported,
+        bool accessTokenRequired)
+    {
+        var request = new Mock<IUAuthRequestClient>();
+
+        request.Setup(x => x.GetLoginTransportAsync(
+                "/auth/login/transport",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthLoginTransportInfo
+            {
+                Supported = true,
+                NavigationSupported = navigationSupported,
+                AccessTokenInHeader = accessTokenRequired
+            });
+
+        request.Setup(x => x.SendFormAsync(
+                "/auth/login",
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200
+            });
+
+        var client = CreateClient(request);
+
+        var result = await client.LoginAsync(
+            new LoginRequest { Identifier = "alice", Secret = "secret" },
+            returnUrl: navigationSupported ? null : "/home");
+
+        result.IsSuccess.Should().BeTrue();
+        result.Status.Should().Be(200);
+
+        request.Verify(x => x.SendFormAsync(
+            "/auth/login",
+            It.Is<IDictionary<string, string>>(data =>
+                data["__uauth_response_mode"] == "fetch"),
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        request.Verify(x => x.NavigateAsync(
+            It.IsAny<string>(),
+            It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Login_Auto_UsesNavigation_WhenSupportedAndReturnUrlExists()
+    {
+        var request = new Mock<IUAuthRequestClient>();
+
+        request.Setup(x => x.GetLoginTransportAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthLoginTransportInfo
+            {
+                Supported = true,
+                NavigationSupported = true
+            });
+
+        request.Setup(x => x.NavigateAsync(
+                It.IsAny<string>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var result = await CreateClient(request).LoginAsync(
+            new LoginRequest { Identifier = "alice", Secret = "secret" },
+            returnUrl: "/home");
+
+        result.IsSuccess.Should().BeTrue();
+        result.Status.Should().Be(202);
+
+        request.Verify(x => x.NavigateAsync(
+            "/auth/login",
+            It.Is<IDictionary<string, string>>(data =>
+                data["__uauth_return_url"] == "/home"),
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        request.Verify(x => x.SendFormAsync(
+            It.IsAny<string>(),
+            It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Login_ExplicitNavigation_RejectsHeaderDelivery()
+    {
+        var request = new Mock<IUAuthRequestClient>();
+
+        request.Setup(x => x.GetLoginTransportAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthLoginTransportInfo
+            {
+                Supported = true,
+                NavigationSupported = false,
+                AccessTokenInHeader = true
+            });
+
+        var client = CreateClient(request);
+
+        var act = () => client.LoginAsync(
+            new LoginRequest { Identifier = "alice", Secret = "secret" },
+            "/home",
+            UAuthLoginTransport.Navigation);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*incompatible*");
+
+        request.Verify(x => x.NavigateAsync(
+            It.IsAny<string>(),
+            It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Login_UnsupportedTransport_DoesNotSubmitCredentials()
+    {
+        var request = new Mock<IUAuthRequestClient>();
+
+        request.Setup(x => x.GetLoginTransportAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthLoginTransportInfo
+            {
+                Supported = false
+            });
+
+        var client = CreateClient(request);
+
+        var act = () => client.LoginAsync(
+            new LoginRequest { Identifier = "alice", Secret = "secret" });
+
+        await act.Should().ThrowAsync<NotSupportedException>();
+
+        request.Verify(x => x.SendFormAsync(
+            It.IsAny<string>(),
+            It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Login_Fetch_RejectsMissingRequiredAccessToken()
+    {
+        var request = new Mock<IUAuthRequestClient>();
+
+        request.Setup(x => x.GetLoginTransportAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthLoginTransportInfo
+            {
+                Supported = true,
+                NavigationSupported = false,
+                AccessTokenInHeader = true
+            });
+
+        request.Setup(x => x.SendFormAsync(
+                It.IsAny<string>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200
+            });
+
+        var client = CreateClient(request);
+
+        var act = () => client.LoginAsync(
+            new LoginRequest { Identifier = "alice", Secret = "secret" });
+
+        await act.Should().ThrowAsync<UAuthProtocolException>()
+            .WithMessage("*required access token*");
+    }
+
+    [Fact]
+    public async Task Login_Fetch_RejectedResponse_DoesNotNavigate()
+    {
+        var request = new Mock<IUAuthRequestClient>();
+
+        request.Setup(x => x.GetLoginTransportAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthLoginTransportInfo
+            {
+                Supported = true,
+                NavigationSupported = false
+            });
+
+        request.Setup(x => x.SendFormAsync(
+                It.IsAny<string>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = false,
+                Status = 401
+            });
+
+        var result = await CreateClient(request).LoginAsync(
+            new LoginRequest { Identifier = "alice", Secret = "wrong" },
+            returnUrl: "/home");
+
+        result.IsSuccess.Should().BeFalse();
+        result.Status.Should().Be(401);
+
+        request.Verify(x => x.NavigateToUrlAsync(
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Logout_Success_ClearsTokenAndPublishesEvent(bool navigate)
+    {
+        var request = new Mock<IUAuthRequestClient>();
+        var store = new InMemoryUAuthTokenStore();
+        var events = new UAuthClientEvents();
+        var published = new List<UAuthStateEvent>();
+
+        store.Replace(CreateStoredToken());
+
+        events.StateChanged += args =>
+        {
+            published.Add(args.Type);
+            return Task.CompletedTask;
+        };
+
+        request.Setup(x => x.SendFormAsync(
+                "/auth/logout",
+                null,
+                navigate,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200
+            });
+
+        var client = CreateClient(
+            request,
+            tokenStore: store,
+            clientEvents: events);
+
+        await client.LogoutAsync(navigate);
+
+        store.Read().Should().BeNull();
+        published.Should().Equal(UAuthStateEvent.LogoutVariant);
+    }
+
+    [Theory]
+    [InlineData(401)]
+    [InlineData(403)]
+    [InlineData(500)]
+    public async Task Logout_Failure_PreservesTokenAndDoesNotPublishLogout(int status)
+    {
+        var request = new Mock<IUAuthRequestClient>();
+        var store = new InMemoryUAuthTokenStore();
+        var events = new UAuthClientEvents();
+        var published = new List<UAuthStateEvent>();
+
+        var existing = CreateStoredToken();
+        store.Replace(existing);
+
+        events.StateChanged += args =>
+        {
+            published.Add(args.Type);
+            return Task.CompletedTask;
+        };
+
+        request.Setup(x => x.SendFormAsync(
+                "/auth/logout",
+                null,
+                false,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = false,
+                Status = status
+            });
+
+        var client = CreateClient(
+            request,
+            tokenStore: store,
+            clientEvents: events);
+
+        var act = () => client.LogoutAsync(navigate: false);
+
+        await act.Should().ThrowAsync<UAuthTransportException>();
+
+        store.Read().Should().BeSameAs(existing);
+        published.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Refresh_Success_ReplacesExistingAccessToken()
+    {
+        var request = new Mock<IUAuthRequestClient>();
+        var store = new InMemoryUAuthTokenStore();
+
+        var existing = CreateStoredToken();
+        store.Replace(existing);
+
+        var expires = DateTimeOffset.UtcNow.AddMinutes(20);
+
+        request.Setup(x => x.SendFormAsync(
+                "/auth/refresh",
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200,
+                RefreshOutcome = "rotated",
+                AccessToken = "Bearer rotated-jwt",
+                AccessTokenFormat = "jwt",
+                AccessTokenHeaderFormat = "bearer",
+                AccessTokenExpiresAt = expires.ToString("O")
+            });
+
+        var client = CreateClient(request, tokenStore: store);
+
+        var result = await client.RefreshAsync();
+
+        result.IsSuccess.Should().BeTrue();
+        result.Outcome.Should().Be(RefreshOutcome.Rotated);
+
+        var token = store.Read();
+
+        token.Should().NotBeNull();
+        token.Should().NotBeSameAs(existing);
+        token!.Token.Should().Be("rotated-jwt");
+        token.Format.Should().Be(TokenFormat.Jwt);
+        token.ExpiresAt.Should().Be(expires);
+    }
+
+    [Fact]
+    public async Task Refresh_NoOp_WithoutNewToken_PreservesExistingToken()
+    {
+        var request = new Mock<IUAuthRequestClient>();
+        var store = new InMemoryUAuthTokenStore();
+
+        var existing = CreateStoredToken();
+        store.Replace(existing);
+
+        request.Setup(x => x.SendFormAsync(
+                "/auth/refresh",
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200,
+                RefreshOutcome = "no-op"
+            });
+
+        var client = CreateClient(request, tokenStore: store);
+
+        var result = await client.RefreshAsync();
+
+        result.IsSuccess.Should().BeTrue();
+        result.Outcome.Should().Be(RefreshOutcome.NoOp);
+
+        store.Read().Should().BeSameAs(existing);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Refresh_Unauthorized_OnlyRegularRefreshTriggersReauthentication(bool recovery)
+    {
+        var request = new Mock<IUAuthRequestClient>();
+        var store = new InMemoryUAuthTokenStore();
+        var diagnostics = new UAuthClientDiagnostics();
+        var events = new UAuthClientEvents();
+        var published = new List<UAuthStateEvent>();
+
+        var existing = CreateStoredToken();
+        store.Replace(existing);
+
+        events.StateChanged += args =>
+        {
+            published.Add(args.Type);
+            return Task.CompletedTask;
+        };
+
+        request.Setup(x => x.SendFormAsync(
+                "/auth/refresh",
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Ok = false,
+                Status = 401
+            });
+
+        var client = CreateClient(
+            request,
+            diagnostics,
+            store,
+            events);
+
+        var result = recovery
+            ? await client.RecoverAsync()
+            : await client.RefreshAsync();
+
+        result.IsSuccess.Should().BeFalse();
+        result.Status.Should().Be(401);
+        result.Outcome.Should().Be(RefreshOutcome.ReauthRequired);
+
+        if (recovery)
+        {
+            store.Read().Should().BeSameAs(existing);
+            published.Should().BeEmpty();
+            diagnostics.RefreshReauthRequiredCount.Should().Be(0);
+        }
+        else
+        {
+            store.Read().Should().BeNull();
+
+            published.Should()
+                .Equal(UAuthStateEvent.ReauthenticationRequired);
+
+            diagnostics.RefreshReauthRequiredCount.Should().Be(1);
+        }
     }
 }
