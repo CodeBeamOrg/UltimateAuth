@@ -39,6 +39,7 @@ public sealed class UAuthTokenIssuer : ITokenIssuer
 
         return flow.EffectiveMode switch
         {
+            // TODO: Hybrid should issue opaque session id and JWT access token with session id claim. This may be inconsistent with current AuthResponseResolver behavior.
             UAuthMode.PureOpaque or UAuthMode.Hybrid =>
                 Task.FromResult(IssueOpaqueAccessToken(expires, context.SessionId)),
 
