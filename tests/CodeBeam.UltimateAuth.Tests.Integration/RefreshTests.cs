@@ -1,9 +1,11 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Tests.Integration.Infrastructure;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
@@ -2442,26 +2444,34 @@ public class RefreshTests : IClassFixture<AuthServerFactory>
     [Fact]
     public async Task Refresh_Hybrid_Maui_HeaderCredentials_ShouldSupportConsecutiveRefreshes()
     {
-        _factory.Clock.Reset();
+        using var factory = AuthServerFactory.Create(options =>
+        {
+            options.AuthMode = UAuthMode.Hybrid;
+            options.GrantDelivery.Default = GrantDeliveryMode.Header;
+        });
 
-        var user = await _factory.CreateLoginUserAsync(ct: TestContext.Current.CancellationToken);
+        factory.Clock.Reset();
+
+        var user = await factory.CreateLoginUserAsync(
+            ct: TestContext.Current.CancellationToken);
 
         using var client = CreateClient(
+            factory,
             $"maui-refresh-{Guid.NewGuid():N}");
 
         SetApplicationProfile(client, "Maui");
 
-        // Login with CSRF protection.
-        using var login = await CsrfTestClient.PostJsonAsync(
+        using var login = await CsrfTestClient.PostAsync(
             client,
             "/auth/login",
-            new
+            new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                identifier = user.Identifier,
-                secret = user.Secret
-            });
+                ["Identifier"] = user.Identifier,
+                ["Secret"] = user.Secret,
+                ["__uauth_response_mode"] = "fetch"
+            }));
 
-        login.StatusCode.Should().Be(HttpStatusCode.Found);
+        login.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var sessionId = ReadCredential(login, "uas");
         var refreshToken = ReadCredential(login, "uar");

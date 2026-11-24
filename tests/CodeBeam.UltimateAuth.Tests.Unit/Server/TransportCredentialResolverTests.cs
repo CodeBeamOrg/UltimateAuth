@@ -126,9 +126,7 @@ public sealed class TransportCredentialResolverTests
     [Theory]
     [InlineData(HeaderTokenFormat.Bearer, "Bearer valid-jwt")]
     [InlineData(HeaderTokenFormat.Raw, "valid-jwt")]
-    public async Task ResolveAsync_PureJwt_UsesConfiguredHeader(
-        HeaderTokenFormat format,
-        string value)
+    public async Task ResolveAsync_PureJwt_UsesConfiguredHeader(HeaderTokenFormat format, string value)
     {
         var fixture = CreateFixture("uas=old-session");
         fixture.Context.Request.Headers["X-UAuth-Access"] = value;
@@ -138,14 +136,27 @@ public sealed class TransportCredentialResolverTests
             headerName: "X-UAuth-Access",
             headerFormat: format);
 
+        fixture.Context.Request.Headers.TryGetValue("X-UAuth-Access",out var header).Should().BeTrue();
+
+        header.ToString().Should().Be(value);
+
+        response.AccessTokenDelivery.Mode
+            .Should().Be(GrantDeliveryMode.Header);
+
+        response.AccessTokenDelivery.Name
+            .Should().Be("X-UAuth-Access");
+
+        response.AccessTokenDelivery.HeaderFormat
+            .Should().Be(format);
+
         var credential = await fixture.Sut.ResolveAsync(
             fixture.Context,
             UAuthMode.PureJwt,
             response);
 
         credential.Should().NotBeNull();
-        credential!.Kind.Should()
-            .Be(TransportCredentialKind.AccessToken);
+        credential!.Kind.Should().Be(TransportCredentialKind.AccessToken);
+
         credential.Value.Should().Be("valid-jwt");
     }
 

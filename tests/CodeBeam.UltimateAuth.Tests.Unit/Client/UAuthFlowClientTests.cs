@@ -161,6 +161,16 @@ public class UAuthFlowClientTests : UAuthClientTestBase
     {
         var mock = new Mock<IUAuthRequestClient>();
 
+        mock.Setup(x => x.GetLoginTransportAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthLoginTransportInfo
+            {
+                Supported = true,
+                NavigationSupported = true,
+                AccessTokenInHeader = false
+            });
+
         mock.Setup(x => x.NavigateAsync(
                 It.IsAny<string>(),
                 It.IsAny<IDictionary<string, string>>(),
@@ -169,35 +179,75 @@ public class UAuthFlowClientTests : UAuthClientTestBase
 
         var client = CreateClient(mock);
 
-        var request = new LoginRequest
-        {
-            Identifier = "admin",
-            Secret = "admin"
-        };
+        var result = await client.TryLoginAsync(
+            new LoginRequest
+            {
+                Identifier = "admin",
+                Secret = "admin"
+            },
+            UAuthSubmitMode.DirectCommit,
+            transport: UAuthLoginTransport.Navigation);
 
-        var result = await client.TryLoginAsync(request, UAuthSubmitMode.DirectCommit);
         result.IsSuccess.Should().BeTrue();
 
-        mock.Verify(x => x.NavigateAsync("/auth/login",
-            It.Is<IDictionary<string, string>>(d => d["Identifier"] == "admin" && d["Secret"] == "admin"), It.IsAny<CancellationToken>()),
+        mock.Verify(x => x.NavigateAsync(
+            "/auth/login",
+            It.Is<IDictionary<string, string>>(d =>
+                d["Identifier"] == "admin" &&
+                d["Secret"] == "admin"),
+            It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task TryLogin_TryAndCommit_Should_Call_TryAndCommit()
+    public async Task TryLogin_TryAndCommit_Should_Try_Then_Commit()
     {
         var mock = new Mock<IUAuthRequestClient>();
 
-        mock.Setup(x => x.TryAndCommitAsync<TryLoginResult>(
+        mock.Setup(x => x.SendJsonAsync(
+                "/auth/try-login",
+                It.IsAny<object>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TryLoginResponse(true));
+
+        mock.Setup(x => x.GetLoginTransportAsync(
                 It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthLoginTransportInfo
+            {
+                Supported = true,
+                NavigationSupported = true,
+                AccessTokenInHeader = false
+            });
+
+        mock.Setup(x => x.NavigateAsync(
                 It.IsAny<string>(),
-                It.IsAny<object>()))
-            .ReturnsAsync(new TryLoginResult { IsSuccess = true });
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var client = CreateClient(mock);
-        var result = await client.TryLoginAsync(new LoginRequest(), UAuthSubmitMode.TryAndCommit);
+
+        var result = await client.TryLoginAsync(
+            new LoginRequest
+            {
+                Identifier = "admin",
+                Secret = "admin"
+            },
+            UAuthSubmitMode.TryAndCommit,
+            transport: UAuthLoginTransport.Navigation);
 
         result.IsSuccess.Should().BeTrue();
+
+        mock.Verify(x => x.SendJsonAsync(
+            "/auth/try-login",
+            It.IsAny<object>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        mock.Verify(x => x.NavigateAsync(
+            "/auth/login",
+            It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -277,17 +327,19 @@ public class UAuthFlowClientTests : UAuthClientTestBase
         var mock = new Mock<IUAuthRequestClient>();
 
         mock.Setup(x => x.SendFormAsync(
-                It.IsAny<string>(),
-                It.IsAny<IDictionary<string, string>>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new UAuthTransportResult
-            {
-                Status = 200,
-                Body = JsonSerializer.SerializeToElement(new AuthValidationResult
+            It.IsAny<string>(),
+            It.IsAny<IDictionary<string, string>?>(),
+            It.IsAny<string?>(),
+            It.IsAny<CancellationToken>()))
+        .ReturnsAsync(new UAuthTransportResult
+        {
+            Status = 200,
+            Body = JsonSerializer.SerializeToElement(
+                new AuthValidationResult
                 {
                     State = SessionState.Active
                 })
-            });
+        });
 
         var client = CreateClient(mock);
         var result = await client.ValidateAsync();
@@ -324,6 +376,7 @@ public class UAuthFlowClientTests : UAuthClientTestBase
                 Identifier = "user",
                 Secret = "pass"
             },
+            returnUrl: "/home",
             transport: UAuthLoginTransport.Navigation);
 
         mock.Verify(x => x.NavigateAsync(
@@ -411,6 +464,21 @@ public class UAuthFlowClientTests : UAuthClientTestBase
 
         request.Setup(x => x.SendFormAsync(
             It.IsAny<string>(),
+            It.IsAny<IDictionary<string, string>?>(),
+            It.IsAny<string?>(),
+            It.IsAny<CancellationToken>()))
+        .ReturnsAsync(new UAuthTransportResult
+        {
+            Status = 200,
+            Body = JsonSerializer.SerializeToElement(
+                new AuthValidationResult
+                {
+                    State = SessionState.Active
+                })
+        });
+
+        request.Setup(x => x.SendFormAsync(
+            It.IsAny<string>(),
             It.IsAny<IDictionary<string, string>>(),
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(new UAuthTransportResult
@@ -434,12 +502,13 @@ public class UAuthFlowClientTests : UAuthClientTestBase
 
         mock.Setup(x => x.SendFormAsync(
             It.IsAny<string>(),
-            It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<IDictionary<string, string>?>(),
+            It.IsAny<string?>(),
             It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new UAuthTransportResult
-            {
-                Status = 0
-            });
+        .ReturnsAsync(new UAuthTransportResult
+        {
+            Status = 0
+        });
 
         var client = CreateFlowClient(mock);
         Func<Task> act = async () => await client.ValidateAsync();

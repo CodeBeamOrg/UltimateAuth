@@ -1,10 +1,10 @@
-using System.Reflection;
-using System.Security.Claims;
 using Bunit;
 using CodeBeam.UltimateAuth.Authorization;
 using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
+using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Client.Services;
 using CodeBeam.UltimateAuth.Core.Abstractions;
@@ -27,6 +27,8 @@ using Moq;
 using MudBlazor;
 using MudBlazor.Services;
 using MudExtensions.Services;
+using System.Reflection;
+using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Tests.Rendering;
 
@@ -67,6 +69,8 @@ internal sealed partial class PageRenderContext : BunitContext
         Services.AddSingleton(Mock.Of<IHubCredentialResolver>());
         Services.AddSingleton(Mock.Of<IHubFlowReader>());
         Services.AddSingleton(Mock.Of<IHubCapabilities>());
+        Services.AddSingleton(Mock.Of<IUAuthTokenStore>());
+        Services.AddSingleton(Mock.Of<IUAuthClientEvents>());
     }
 
     public IRenderedComponent<T> RenderPage<T>(UAuthState? state = null) where T : IComponent

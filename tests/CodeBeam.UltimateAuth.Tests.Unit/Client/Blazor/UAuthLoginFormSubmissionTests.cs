@@ -1,7 +1,10 @@
 ﻿using AwesomeAssertions;
 using Bunit;
 using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Blazor;
+using CodeBeam.UltimateAuth.Client.Events;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
@@ -29,6 +32,8 @@ public sealed class UAuthLoginFormSubmissionTests : BunitContext
         Services.AddSingleton(_flows.Object);
         Services.AddSingleton(_capabilities.Object);
         Services.AddSingleton<IOptions<UAuthClientOptions>>(Options.Create(new UAuthClientOptions()));
+        Services.AddSingleton<IUAuthTokenStore, InMemoryUAuthTokenStore>();
+        Services.AddSingleton<IUAuthClientEvents, UAuthClientEvents>();
     }
 
     private static JsonElement Json(string value) => JsonDocument.Parse(value).RootElement.Clone();

@@ -153,6 +153,12 @@ public class UAuthStateManagerTests
 
         using (manager)
         {
+            flows.Setup(x => x.ValidateAsync())
+                .ReturnsAsync(new AuthValidationResult
+                {
+                    State = SessionState.NotFound
+                });
+
             await manager.OnLoginAsync();
 
             manager.State.IsAuthenticated.Should().BeFalse();

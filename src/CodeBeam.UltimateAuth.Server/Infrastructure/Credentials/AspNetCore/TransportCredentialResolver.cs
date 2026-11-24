@@ -28,28 +28,15 @@ internal sealed class TransportCredentialResolver : ITransportCredentialResolver
         };
     }
 
-    private static async ValueTask<TransportCredential?> ResolveDeliveryAsync(
-        HttpContext context,
-        EffectiveGrantDelivery delivery,
-        TransportCredentialKind kind)
+    private static async ValueTask<TransportCredential?> ResolveDeliveryAsync(HttpContext context, EffectiveGrantDelivery delivery, TransportCredentialKind kind)
     {
         string? value = delivery.Mode switch
         {
             GrantDeliveryMode.Cookie =>
                 ReadCookie(context, delivery.Cookie?.Name),
 
-            GrantDeliveryMode.Header
-                when kind == TransportCredentialKind.AccessToken =>
-                ReadHeader(
-                    context,
-                    "Authorization",
-                    HeaderTokenFormat.Bearer),
-
             GrantDeliveryMode.Header =>
-                ReadHeader(
-                    context,
-                    delivery.Name,
-                    delivery.HeaderFormat),
+                ReadHeader(context, delivery.Name, delivery.HeaderFormat),
 
             _ => null
         };

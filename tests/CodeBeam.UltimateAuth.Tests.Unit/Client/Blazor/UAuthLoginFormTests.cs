@@ -1,12 +1,15 @@
-﻿using Bunit;
+﻿using AwesomeAssertions;
+using Bunit;
 using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Blazor;
+using CodeBeam.UltimateAuth.Client.Events;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -34,6 +37,8 @@ public sealed class UAuthLoginFormTests : BunitContext
         Services.AddSingleton(_hubCredentialResolver.Object);
         Services.AddSingleton(_hubFlowReader.Object);
         Services.AddSingleton(_hubCapabilities.Object);
+        Services.AddSingleton<IUAuthTokenStore, InMemoryUAuthTokenStore>();
+        Services.AddSingleton<IUAuthClientEvents, UAuthClientEvents>();
 
         _deviceIdProvider
             .Setup(x => x.GetOrCreateAsync(
