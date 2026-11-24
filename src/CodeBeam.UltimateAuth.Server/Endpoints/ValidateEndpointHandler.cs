@@ -143,11 +143,24 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
         );
     }
 
-    private static async Task<IResult> ValidatePureJwtAsync(HttpContext context)
+    private static async Task<IResult> ValidatePureJwtAsync(
+    HttpContext context)
     {
-        var result = await context.AuthenticateAsync(UAuthConstants.SchemeDefaults.GlobalScheme);
+        var result = await context.AuthenticateAsync(
+            UAuthConstants.SchemeDefaults.GlobalScheme);
 
-        if (!result.Succeeded || result.Principal?.Identity?.IsAuthenticated != true)
+        if (result.None)
+        {
+            return Results.Json(
+                new AuthValidationResult
+                {
+                    State = SessionState.NotFound
+                },
+                statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        if (!result.Succeeded ||
+            result.Principal?.Identity?.IsAuthenticated != true)
         {
             return Results.Json(
                 new AuthValidationResult
@@ -159,7 +172,8 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
 
         var principal = result.Principal;
 
-        var subject = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var subject = principal
+            .FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (!UserKey.TryParse(subject, null, out var userKey))
         {
@@ -171,7 +185,10 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
                 statusCode: StatusCodes.Status401Unauthorized);
         }
 
-        var snapshot = PureJwtSnapshotFactory.Create(principal, userKey, context.GetTenant());
+        var snapshot = PureJwtSnapshotFactory.Create(
+            principal,
+            userKey,
+            context.GetTenant());
 
         return Results.Ok(new AuthValidationResult
         {

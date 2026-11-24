@@ -35,8 +35,18 @@ internal sealed class TransportCredentialResolver : ITransportCredentialResolver
             GrantDeliveryMode.Cookie =>
                 ReadCookie(context, delivery.Cookie?.Name),
 
+            GrantDeliveryMode.Header
+                when kind == TransportCredentialKind.AccessToken =>
+                ReadHeader(
+                    context,
+                    "Authorization",
+                    HeaderTokenFormat.Bearer),
+
             GrantDeliveryMode.Header =>
-                ReadHeader(context, delivery.Name, delivery.HeaderFormat),
+                ReadHeader(
+                    context,
+                    delivery.Name,
+                    delivery.HeaderFormat),
 
             _ => null
         };

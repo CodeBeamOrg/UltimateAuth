@@ -1,29 +1,46 @@
-﻿using CodeBeam.UltimateAuth.Client.Events;
+﻿using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Errors;
+using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
-using System.Net;
+using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Abstractions;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Users.Contracts;
+using Microsoft.Extensions.Options;
+using System.Net;
 
 namespace CodeBeam.UltimateAuth.Client.Authentication;
 
 internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
 {
-    private Task? _ensureTask;
-    private DateTimeOffset _validationNotBefore;
-    private readonly object _ensureLock = new();
-
     private readonly IUAuthClient _client;
     private readonly IUAuthClientEvents _events;
     private readonly IClock _clock;
+    private readonly IUAuthTokenStore _tokenStore;
+    private readonly IUAuthRequestClient _requestClient;
+    private readonly UAuthClientOptions _options;
+
+    private Task? _ensureTask;
+    private DateTimeOffset _validationNotBefore;
+    private readonly object _ensureLock = new();
+    private bool _initialRecoveryCompleted;
 
     public UAuthState State { get; } = UAuthState.Anonymous();
 
-    public UAuthStateManager(IUAuthClient client, IUAuthClientEvents events, IClock clock)
+    public UAuthStateManager(
+        IUAuthClient client,
+        IUAuthClientEvents events,
+        IClock clock,
+        IUAuthTokenStore tokenStore,
+        IUAuthRequestClient requestClient,
+        IOptions<UAuthClientOptions> options)
     {
         _client = client;
         _events = events;
         _clock = clock;
+        _tokenStore = tokenStore;
+        _requestClient = requestClient;
+        _options = options.Value;
 
         _events.StateChanged += HandleStateEvent;
     }
@@ -51,6 +68,22 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
         {
             var result = await _client.Flows.ValidateAsync();
 
+            if (!_initialRecoveryCompleted)
+            {
+                if (result.State == SessionState.NotFound)
+                {
+                    var recovered =
+                        await TryRecoverAuthenticationAsync(ct);
+
+                    if (recovered)
+                    {
+                        result = await _client.Flows.ValidateAsync();
+                    }
+                }
+
+                _initialRecoveryCompleted = true;
+            }
+
             if (!result.IsValid)
             {
                 State.Clear();
@@ -65,9 +98,12 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
 
             State.ApplySnapshot(result.Snapshot, _clock.UtcNow);
         }
-        catch (UAuthTransportException ex) when (ex.StatusCode == HttpStatusCode.TooManyRequests)
+        catch (UAuthTransportException ex)
+            when (ex.StatusCode == HttpStatusCode.TooManyRequests)
         {
-            _validationNotBefore = UAuthRateLimit.NotBefore(_clock.UtcNow, ex.RetryAfter);
+            _validationNotBefore = UAuthRateLimit.NotBefore(
+                _clock.UtcNow,
+                ex.RetryAfter);
         }
         finally
         {
@@ -161,4 +197,42 @@ internal sealed class UAuthStateManager : IUAuthStateManager, IDisposable
     }
 
     public bool NeedsValidation => !State.IsAuthenticated || State.IsStale;
+
+    private async Task<bool> TryRecoverAuthenticationAsync(CancellationToken ct)
+    {
+        var existingToken = _tokenStore.Read();
+
+        if (existingToken is not null && !existingToken.IsExpired(_clock.UtcNow))
+        {
+            return false;
+        }
+
+        var transportUrl = UAuthUrlBuilder.Build(_options.Endpoints.BasePath, _options.Endpoints.LoginTransport, _options.MultiTenant);
+
+        var transport = await _requestClient.GetLoginTransportAsync(transportUrl, ct);
+
+        if (!transport.Supported || !transport.AccessTokenInHeader)
+        {
+            return false;
+        }
+
+        var refresh = await _client.Flows.RefreshAsync(isAuto: true);
+
+        if (refresh.Status == 429)
+        {
+            throw UAuthRateLimit.Exception(
+                refresh.RetryAfter is { } retryAfter
+                    ? Math.Ceiling(retryAfter.TotalSeconds).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    : null);
+        }
+
+        if (!refresh.IsSuccess)
+        {
+            return false;
+        }
+
+        var recoveredToken = _tokenStore.Read();
+
+        return recoveredToken is not null && !recoveredToken.IsExpired(_clock.UtcNow);
+    }
 }
