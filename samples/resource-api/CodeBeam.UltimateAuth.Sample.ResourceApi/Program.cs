@@ -1,3 +1,4 @@
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Extensions;
@@ -30,10 +31,10 @@ builder.Services.AddUltimateAuthResourceApi(o =>
                 Key = Convert.ToBase64String(Encoding.UTF8.GetBytes("UltimateAuth-Development-JWT-Signing-Key-2026-Only"))
             });
 
-        o.Auth.AccessToken.DeliveryMode = GrantDeliveryMode.Cookie;
+        //o.Auth.Mode = UAuthMode.PureJwt;
 
         // TODO: Make multiple UAuthHub support via resolver, then different client apps can use different UAuthHub instances if needed.
-        //o.Hub.BaseUrl = "https://localhost:6110"; // PureJwt auth mode doesn't need UAuthHub, but other auth modes do. This is the URL of the UAuthHub instance that this resource API trusts.
+        o.Hub.BaseUrl = "https://localhost:6110"; // PureJwt auth mode doesn't need UAuthHub, but other auth modes do. This is the URL of the UAuthHub instance that this resource API trusts.
         // o.UAuthHubBaseUrl = "https://localhost:7213"; // Comment upper line and uncomment this if you want to try blazor server sample.
 
         // Standalone WASM
