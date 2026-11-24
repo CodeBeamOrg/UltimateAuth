@@ -145,6 +145,11 @@ public sealed class ClientRateLimitingIntegrationTests
             throw new NotSupportedException();
         }
 
+        public Task NavigateToPkceReturnUrlAsync(string redirectUrl, string expectedReturnUrl, CancellationToken ct = default)
+        {
+            throw new NotSupportedException();
+        }
+
         private static async Task<UAuthTransportResult> Read(HttpResponseMessage response, CancellationToken ct)
         {
             var body = await response.Content.ReadAsStringAsync(ct);

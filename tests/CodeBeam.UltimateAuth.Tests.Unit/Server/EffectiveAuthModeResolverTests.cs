@@ -13,7 +13,8 @@ public class EffectiveAuthModeResolverTests
     [InlineData(UAuthApplicationProfile.BlazorServer, UAuthMode.PureOpaque)]
     [InlineData(UAuthApplicationProfile.BlazorWasm, UAuthMode.Hybrid)]
     [InlineData(UAuthApplicationProfile.Maui, UAuthMode.Hybrid)]
-    [InlineData(UAuthApplicationProfile.Api, UAuthMode.PureJwt)]
+    [InlineData(UAuthApplicationProfile.Api, UAuthMode.Hybrid)]
+    [InlineData(UAuthApplicationProfile.ResourceApi, UAuthMode.Hybrid)]
     public void Default_Mode_Is_Derived_From_ApplicationProfile(UAuthApplicationProfile profile, UAuthMode expected)
     {
         var context = new AuthModeResolutionContext() { ApplicationProfile = profile, Tenant = TenantKey.Single };

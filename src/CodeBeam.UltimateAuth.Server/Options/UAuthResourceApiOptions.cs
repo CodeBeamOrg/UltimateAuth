@@ -37,7 +37,7 @@ public sealed class UAuthResourceAuthOptions
     /// </summary>
     /// <remarks>
     /// When null, the registered authentication mode resolver determines the mode using the ResourceApi application profile.
-    /// The built-in resolver selects PureJwt.
+    /// The built-in resolver selects Hybrid.
     /// The resolved mode is fixed for this Resource API runtime.
     /// </remarks>
     public UAuthMode? Mode { get; set; }
@@ -74,7 +74,7 @@ public sealed class UAuthResourceAuthOptions
 /// </summary>
 public sealed class UAuthResourceSessionOptions
 {
-    public GrantDeliveryMode DeliveryMode { get; set; } = GrantDeliveryMode.Header;
+    public GrantDeliveryMode DeliveryMode { get; set; } = GrantDeliveryMode.Cookie;
 
     public string CookieName { get; set; } = "uas";
 

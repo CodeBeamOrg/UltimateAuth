@@ -800,7 +800,7 @@ public class LoginOrchestratorTests
     [Fact]
     public async Task PureJwt_login_should_issue_jwt_and_refresh_token_without_session()
     {
-        var runtime = new TestAuthRuntime<UserKey>();
+        var runtime = CreatePureJwtRuntime();
         var flow = await CreatePureJwtFlowAsync(runtime);
         var orchestrator = runtime.GetLoginOrchestrator();
 
@@ -831,7 +831,7 @@ public class LoginOrchestratorTests
         var sessionOrchestrator =
             new Moq.Mock<ISessionOrchestrator>(Moq.MockBehavior.Strict);
 
-        var runtime = new TestAuthRuntime<UserKey>(
+        var runtime = CreatePureJwtRuntime(
             configureServices: services =>
             {
                 services.Replace(
@@ -861,7 +861,7 @@ public class LoginOrchestratorTests
     [Fact]
     public async Task PureJwt_preview_should_not_issue_credentials()
     {
-        var runtime = new TestAuthRuntime<UserKey>();
+        var runtime = CreatePureJwtRuntime();
         var flow = await CreatePureJwtFlowAsync(runtime);
 
         var orchestrator = runtime.Services.GetRequiredService<IInternalLoginOrchestrator>();
@@ -884,7 +884,7 @@ public class LoginOrchestratorTests
     [Fact]
     public async Task PureJwt_invalid_password_should_not_issue_credentials()
     {
-        var runtime = new TestAuthRuntime<UserKey>();
+        var runtime = CreatePureJwtRuntime();
         var flow = await CreatePureJwtFlowAsync(runtime);
         var orchestrator = runtime.GetLoginOrchestrator();
 
@@ -904,7 +904,7 @@ public class LoginOrchestratorTests
     {
         UserLoggedInContext? captured = null;
 
-        var runtime = new TestAuthRuntime<UserKey>(
+        var runtime = CreatePureJwtRuntime(
             configureServer: options =>
             {
                 options.Events.OnUserLoggedIn = context =>
@@ -931,7 +931,7 @@ public class LoginOrchestratorTests
     [Fact]
     public async Task PureJwt_commit_without_token_request_should_reject_early()
     {
-        var runtime = new TestAuthRuntime<UserKey>();
+        var runtime = CreatePureJwtRuntime();
         var flow = await CreatePureJwtFlowAsync(runtime);
         var orchestrator = runtime.GetLoginOrchestrator();
 
@@ -1017,6 +1017,18 @@ public class LoginOrchestratorTests
         flow.EffectiveMode.Should().Be(UAuthMode.PureJwt);
 
         return flow;
+    }
+
+    private static TestAuthRuntime<UserKey> CreatePureJwtRuntime(Action<UAuthServerOptions>? configureServer = null, Action<IServiceCollection>? configureServices = null)
+    {
+        return new TestAuthRuntime<UserKey>(
+            configureServer: options =>
+            {
+                options.AuthMode = UAuthMode.PureJwt;
+
+                configureServer?.Invoke(options);
+            },
+            configureServices: configureServices);
     }
 
     private static LoginRequest PureJwtRequest(string secret = "user", bool requestTokens = true)

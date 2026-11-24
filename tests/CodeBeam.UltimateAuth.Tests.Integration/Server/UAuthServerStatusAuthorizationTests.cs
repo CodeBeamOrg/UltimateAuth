@@ -171,8 +171,11 @@ public sealed class UAuthServerStatusAuthorizationTests
         restored.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
-    [Fact]
-    public async Task ResourceApi_PureOpaque_WithoutSessionValidation_ShouldForbid()
+    [Theory]
+    [InlineData(UAuthMode.PureOpaque)]
+    [InlineData(UAuthMode.Hybrid)]
+    [InlineData(UAuthMode.SemiHybrid)]
+    public async Task ResourceApi_SessionMode_WithoutSessionValidation_ShouldForbid(UAuthMode mode)
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
@@ -182,7 +185,7 @@ public sealed class UAuthServerStatusAuthorizationTests
             {
                 Auth = new UAuthResourceAuthOptions
                 {
-                    Mode = UAuthMode.PureOpaque
+                    Mode = mode
                 }
             }));
 
@@ -244,13 +247,18 @@ public sealed class UAuthServerStatusAuthorizationTests
     }
 
     [Fact]
-    public async Task ResourceApi_DefaultPureJwt_ShouldAuthorizeWithoutSessionValidation()
+    public async Task ResourceApi_PureJwt_ShouldAuthorizeWithoutSessionValidation()
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
 
-        // Resource API mode is intentionally not explicitly configured.
-        var resourceOptions = new UAuthResourceApiOptions();
+        var resourceOptions = new UAuthResourceApiOptions
+        {
+            Auth = new UAuthResourceAuthOptions
+            {
+                Mode = UAuthMode.PureJwt
+            }
+        };
 
         builder.Services.AddSingleton<IOptions<UAuthResourceApiOptions>>(
             Options.Create(resourceOptions));

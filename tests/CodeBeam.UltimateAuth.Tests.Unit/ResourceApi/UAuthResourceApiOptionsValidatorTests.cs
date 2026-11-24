@@ -26,22 +26,24 @@ public sealed class UAuthResourceApiOptionsValidatorTests
     }
 
     [Fact]
-    public void DefaultResourceProfile_WithJwtConfiguration_ShouldSucceed()
+    public void DefaultResourceProfile_WithoutJwt_ShouldSucceed()
     {
-        var options = ValidOptions(UAuthMode.PureJwt);
+        var options = ValidOptions(UAuthMode.Hybrid);
         options.Auth.Mode = null;
+        options.Auth.Jwt = null;
 
         AssertValid(options);
     }
 
     [Fact]
-    public void DefaultResourceProfile_WithoutJwt_ShouldFail()
+    public void DefaultResourceProfile_WithoutHubBaseUrl_ShouldFail()
     {
-        var options = ValidOptions(UAuthMode.PureJwt);
+        var options = ValidOptions(UAuthMode.Hybrid);
         options.Auth.Mode = null;
         options.Auth.Jwt = null;
+        options.Hub.BaseUrl = string.Empty;
 
-        AssertInvalid(options, "Auth.Jwt is required in PureJwt mode.");
+        AssertInvalid(options, "Hub.BaseUrl is required for remote session validation.");
     }
 
     [Fact]
@@ -576,8 +578,7 @@ public sealed class UAuthResourceApiOptionsValidatorTests
             resolver.Object);
     }
 
-    private static UAuthResourceApiOptions ValidOptions(
-        UAuthMode mode = UAuthMode.PureOpaque)
+    private static UAuthResourceApiOptions ValidOptions(UAuthMode mode = UAuthMode.PureOpaque)
     {
         return new UAuthResourceApiOptions
         {

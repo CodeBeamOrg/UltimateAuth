@@ -20,25 +20,17 @@ public sealed class UAuthResourceApiOptionsTests
         Assert.Null(options.Auth.Mode);
         Assert.Null(options.Auth.Jwt);
 
-        Assert.Equal(
-            GrantDeliveryMode.Header,
-            options.Auth.Session.DeliveryMode);
+        Assert.Equal(GrantDeliveryMode.Cookie, options.Auth.Session.DeliveryMode);
 
         Assert.Equal("uas", options.Auth.Session.CookieName);
 
-        Assert.Equal(
-            GrantDeliveryMode.Header,
-            options.Auth.AccessToken.DeliveryMode);
+        Assert.Equal(GrantDeliveryMode.Header, options.Auth.AccessToken.DeliveryMode);
 
         Assert.Equal("uat", options.Auth.AccessToken.CookieName);
         Assert.Equal("Authorization", options.Auth.AccessToken.HeaderName);
-        Assert.Equal(
-            HeaderTokenFormat.Bearer,
-            options.Auth.AccessToken.HeaderFormat);
+        Assert.Equal(HeaderTokenFormat.Bearer, options.Auth.AccessToken.HeaderFormat);
 
-        Assert.Equal(
-            DeviceMismatchBehavior.Reject,
-            options.Auth.Device.MismatchBehavior);
+        Assert.Equal(DeviceMismatchBehavior.Reject, options.Auth.Device.MismatchBehavior);
 
         Assert.Equal(string.Empty, options.Hub.BaseUrl);
         Assert.Equal("UAuthResource", options.Cors.PolicyName);

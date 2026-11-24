@@ -37,7 +37,7 @@ public class EffectiveServerOptionsProviderTests
         var ctx = TestHttpContext.Create();
         var effective = provider.GetEffective(ctx, UAuthApplicationProfile.Api);
 
-        Assert.Equal(UAuthMode.PureJwt, effective.Mode);
+        Assert.Equal(UAuthMode.Hybrid, effective.Mode);
     }
 
     [Fact]

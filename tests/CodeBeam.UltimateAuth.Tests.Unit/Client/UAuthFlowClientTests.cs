@@ -717,15 +717,39 @@ public class UAuthFlowClientTests : UAuthClientTestBase
     }
 
     [Fact]
-    public async Task TryCompletePkce_Should_Call_TryAndCommit()
+    public async Task TryCompletePkce_Should_Try_And_Navigate_When_Supported()
     {
         var mock = new Mock<IUAuthRequestClient>();
 
-        mock.Setup(x => x.TryAndCommitAsync<TryPkceLoginResult>(
-                It.IsAny<string>(),
+        mock.Setup(x => x.SendJsonAsync(
                 It.IsAny<string>(),
                 It.IsAny<object>()))
-            .ReturnsAsync(new TryPkceLoginResult { IsSuccess = true });
+            .ReturnsAsync(new UAuthTransportResult
+            {
+                Status = 200,
+                Ok = true,
+                Body = JsonSerializer.SerializeToElement(
+                    new TryPkceLoginResult
+                    {
+                        IsSuccess = true
+                    })
+            });
+
+        mock.Setup(x => x.GetLoginTransportAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthLoginTransportInfo
+            {
+                Supported = true,
+                NavigationSupported = true,
+                AccessTokenInHeader = false
+            });
+
+        mock.Setup(x => x.NavigateAsync(
+                It.IsAny<string>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var client = CreateFlowClient(mock);
 
@@ -740,6 +764,24 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             UAuthSubmitMode.TryAndCommit);
 
         result.IsSuccess.Should().BeTrue();
+
+        mock.Verify(x => x.SendJsonAsync(
+            "/auth/pkce/try-complete",
+            It.IsAny<object>()),
+            Times.Once);
+
+        mock.Verify(x => x.GetLoginTransportAsync(
+            "/auth/login/transport",
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        mock.Verify(x => x.NavigateAsync(
+            "/auth/pkce/complete",
+            It.Is<IDictionary<string, string>>(d =>
+                d["authorization_code"] == "code" &&
+                d["code_verifier"] == "verifier"),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
