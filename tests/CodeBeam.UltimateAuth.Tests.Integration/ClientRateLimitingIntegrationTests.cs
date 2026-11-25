@@ -80,7 +80,7 @@ public sealed class ClientRateLimitingIntegrationTests
         var http = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = false });
         http.DefaultRequestHeaders.Add("Origin", "https://localhost:6130");
         http.DefaultRequestHeaders.Add("X-UDID", "client-rate-device-123456789");
-        http.DefaultRequestHeaders.Add("X-UAuth-ClientProfile", "BlazorServer");
+        http.DefaultRequestHeaders.Add("X-UAuth-ApplicationProfile", "BlazorServer");
         var login = await CsrfTestClient.PostJsonAsync(http, "/auth/login", new { identifier = user.Identifier, secret = user.Secret });
         Assert.True(login.Headers.TryGetValues("Set-Cookie", out var cookies));
         http.DefaultRequestHeaders.Add("Cookie", string.Join("; ", cookies!.Select(c => c.Split(';')[0])));
@@ -92,7 +92,7 @@ public sealed class ClientRateLimitingIntegrationTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
-        services.AddUltimateAuthClient(o => { o.ClientProfile = UAuthClientProfile.BlazorServer; o.AutoDetectClientProfile = false; });
+        services.AddUltimateAuthClient(o => { o.ApplicationProfile = UAuthApplicationProfile.BlazorServer; o.AutoDetectApplicationProfile = false; });
         services.AddSingleton<UAuthClientDiagnostics>();
         services.AddSingleton<IClock>(factory.Clock);
         services.AddSingleton<IUAuthRequestClient>(transport);
@@ -116,12 +116,40 @@ public sealed class ClientRateLimitingIntegrationTests
             using var response = await CsrfTestClient.PostAsync(http, endpoint, form is null ? null : new FormUrlEncodedContent(form));
             return await Read(response, ct);
         }
+        public async Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form = null, string? accessToken = null, CancellationToken ct = default)
+        {
+            Count++;
+
+            using var response = await CsrfTestClient.PostAsync(http, endpoint, form is null ? null : new FormUrlEncodedContent(form));
+            return await Read(response, ct);
+        }
         public async Task<UAuthTransportResult> SendJsonAsync(string endpoint, object? payload = null, CancellationToken ct = default)
         {
             Count++;
             using var response = await CsrfTestClient.PostJsonAsync(http, endpoint, payload);
             return await Read(response, ct);
         }
+
+        public Task<UAuthLoginTransportInfo> GetLoginTransportAsync(string endpoint, CancellationToken ct = default)
+        {
+            return Task.FromResult(new UAuthLoginTransportInfo
+            {
+                Supported = true,
+                NavigationSupported = true,
+                AccessTokenInHeader = false
+            });
+        }
+
+        public Task NavigateToUrlAsync(string url, CancellationToken ct = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task NavigateToPkceReturnUrlAsync(string redirectUrl, string expectedReturnUrl, CancellationToken ct = default)
+        {
+            throw new NotSupportedException();
+        }
+
         private static async Task<UAuthTransportResult> Read(HttpResponseMessage response, CancellationToken ct)
         {
             var body = await response.Content.ReadAsStringAsync(ct);

@@ -115,12 +115,10 @@ public interface ICredentialClient
 
 
     /// <summary>
-    /// Retrieves the effective public password policy for the
-    /// current tenant and client profile.
+    /// Retrieves the effective public password policy for the current tenant and application profile.
     /// </summary>
     /// <remarks>
-    /// Available without authentication when the server
-    /// exposes the credentials endpoints.
+    /// Available without authentication when the server exposes the credentials endpoints.
     /// The response contains no password history or user data.
     /// </remarks>
     Task<UAuthResult<UAuthPasswordPolicyInfo>> GetPasswordPolicyAsync(CancellationToken ct = default);

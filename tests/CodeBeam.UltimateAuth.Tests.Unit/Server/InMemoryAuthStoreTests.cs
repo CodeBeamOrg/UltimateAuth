@@ -174,7 +174,7 @@ public sealed class InMemoryAuthStoreTests
             CredentialType.Password,
             flow.Device.DeviceId!.Value.Value,
             "alice",
-            flow.ClientProfile,
+            flow.ApplicationProfile,
             "test-fingerprint",
             expiresAt);
     }

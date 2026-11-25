@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using System.Security.Cryptography;
 
 namespace CodeBeam.UltimateAuth.Tests.Integration.EfCore;
 
@@ -50,23 +51,23 @@ internal sealed class EfCoreTestRuntime : IAsyncDisposable
         services.AddSingleton<IConfiguration>(configuration);
 
         services
-            .AddUltimateAuthServer()
+            .AddUltimateAuthServer(options =>
+            {
+                options.Cryptography.JwtSigningKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+                options.Cryptography.TokenHashingKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+            })
             .AddUltimateAuthEntityFrameworkCore(db =>
             {
                 db.UseSqlite(connection);
             });
 
-        //
         // Replace the production clock with a deterministic test clock.
-        //
         var clock = new IntegrationTestClock();
 
         services.RemoveAll<IClock>();
         services.AddSingleton<IClock>(clock);
 
-        //
         // Apply fault injection / test-specific overrides last.
-        //
         configureServices?.Invoke(services);
 
         var provider =

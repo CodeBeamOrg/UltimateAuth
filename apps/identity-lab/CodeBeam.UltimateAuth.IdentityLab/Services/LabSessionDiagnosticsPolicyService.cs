@@ -11,7 +11,10 @@ public sealed record LabSessionDiagnosticsPolicy(
     TimeSpan? MaxLifetime,
     bool SlidingExpiration,
     bool AutoRefreshEnabled,
-    TimeSpan? AutoRefreshInterval);
+    TimeSpan? AutoRefreshInterval,
+    int? MaxDevices,
+    IReadOnlyDictionary<string, int> DeviceTypeLimits,
+    DeviceLimitBehavior DeviceLimitBehavior);
 
 public sealed class LabSessionDiagnosticsPolicyService(IOptions<UAuthServerOptions> serverOptions, IOptions<UAuthClientOptions> clientOptions)
 {
@@ -27,6 +30,9 @@ public sealed class LabSessionDiagnosticsPolicyService(IOptions<UAuthServerOptio
             session.MaxLifetime,
             session.SlidingExpiration,
             autoRefresh.Enabled,
-            autoRefresh.Interval);
+            autoRefresh.Interval,
+            serverOptions.Value.DeviceLimits.MaxDevices,
+            new Dictionary<string, int>(serverOptions.Value.DeviceLimits.TypeLimits, StringComparer.OrdinalIgnoreCase),
+            serverOptions.Value.DeviceLimits.Behavior);
     }
 }

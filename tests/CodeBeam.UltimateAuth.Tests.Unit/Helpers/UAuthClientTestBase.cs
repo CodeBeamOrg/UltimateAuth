@@ -60,6 +60,16 @@ public abstract class UAuthClientTestBase
         returnUrlProvider.Setup(x => x.GetCurrentUrl())
             .Returns("/home");
 
+        request.Setup(x => x.GetLoginTransportAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UAuthLoginTransportInfo
+            {
+                Supported = true,
+                NavigationSupported = true,
+                AccessTokenInHeader = false
+            });
+
         var options = Options.Create(new UAuthClientOptions
         {
             Endpoints = new UAuthClientEndpointOptions
@@ -89,7 +99,8 @@ public abstract class UAuthClientTestBase
             deviceProvider.Object,
             returnUrlProvider.Object,
             options,
-            diagnostics);
+            diagnostics,
+            new InMemoryUAuthTokenStore());
     }
 
     protected IUAuthClient CreateCredentialClient()

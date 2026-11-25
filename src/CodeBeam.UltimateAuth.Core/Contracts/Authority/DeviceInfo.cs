@@ -6,9 +6,14 @@ public sealed class DeviceInfo
 {
     public required DeviceId DeviceId { get; init; }
 
-    // TODO: Implement device type and device limits
     /// <summary>
-    /// Device type that can be used for device limits. Sends with header "X-Device-Type" or form field "device_type". Examples: "web", "mobile", "desktop", "tablet", "iot".
+    /// Client-declared device category used for device limits.
+    ///
+    /// Resolved from the X-Device-Type header or __uauth_device_type form field.
+    ///
+    /// Defaults to "web" when no category is provided.
+    ///
+    /// This value is not a trusted device identity or proof of the client's execution environment.
     /// </summary>
     public string? DeviceType { get; init; }
 

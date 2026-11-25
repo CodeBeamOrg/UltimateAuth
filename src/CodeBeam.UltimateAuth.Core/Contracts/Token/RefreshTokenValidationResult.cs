@@ -17,8 +17,13 @@ public sealed record RefreshTokenValidationResult
 
     public AuthSessionId? SessionId { get; init; }
 
-    public SessionChainId? ChainId { get; init; }
+    public SessionChainId? SessionChainId { get; init; }
 
+    public RefreshChainId? RefreshChainId { get; init; }
+
+    public DeviceId? DeviceId { get; init; }
+
+    public DateTimeOffset? AuthenticatedAt { get; init; }
     public DateTimeOffset? ExpiresAt { get; init; }
     public DateTimeOffset? ConsumedAt { get; init; }
 
@@ -54,9 +59,12 @@ public sealed record RefreshTokenValidationResult
             Tenant = token.Tenant,
             UserKey = token.UserKey,
             SessionId = token.SessionId,
-            ChainId = token.ChainId,
+            SessionChainId = token.SessionChainId,
+            RefreshChainId = token.RefreshChainId,
+            DeviceId = token.DeviceId,
 
             TokenHash = tokenHash,
+            AuthenticatedAt = token.AuthenticatedAt,
             ExpiresAt = token.ExpiresAt,
             ReplacedByTokenHash = token.ReplacedByTokenHash
         };
@@ -69,9 +77,12 @@ public sealed record RefreshTokenValidationResult
             Tenant = token.Tenant,
             UserKey = token.UserKey,
             SessionId = token.SessionId,
-            ChainId = token.ChainId,
+            SessionChainId = token.SessionChainId,
+            RefreshChainId = token.RefreshChainId,
+            DeviceId = token.DeviceId,
 
             TokenHash = token.TokenHash,
+            AuthenticatedAt = token.AuthenticatedAt,
             ExpiresAt = token.ExpiresAt,
             ReplacedByTokenHash = token.ReplacedByTokenHash,
 

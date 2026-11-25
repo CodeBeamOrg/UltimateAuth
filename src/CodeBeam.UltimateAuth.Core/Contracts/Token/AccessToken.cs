@@ -12,7 +12,7 @@ public sealed class AccessToken
 
     // TODO: TokenKind enum?
     /// <summary>
-    /// Token type: "jwt" or "opaque".
+    /// Token format (JWT or opaque).
     /// Used for diagnostics and middleware behavior.
     /// </summary>
     public TokenFormat Format { get; init; }
@@ -23,9 +23,17 @@ public sealed class AccessToken
     public required DateTimeOffset ExpiresAt { get; init; }
 
     /// <summary>
-    /// Optional session id this token is bound to (Hybrid / SemiHybrid).
+    /// Optional session identifier associated with the token.
     /// </summary>
     public string? SessionId { get; init; }
 
+    /// <summary>
+    /// Optional token scope.
+    /// </summary>
     public string? Scope { get; init; }
+
+    /// <summary>
+    /// Determines whether the token has expired.
+    /// </summary>
+    public bool IsExpired(DateTimeOffset now) => now >= ExpiresAt;
 }

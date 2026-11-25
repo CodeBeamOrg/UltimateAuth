@@ -481,13 +481,20 @@ namespace CodeBeam.UltimateAuth.Sample.UAuthHub.EFCore.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<Guid?>("ChainId")
+                    b.Property<DateTime?>("AuthenticatedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("RefreshChainId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ReplacedByTokenHash")
@@ -497,8 +504,10 @@ namespace CodeBeam.UltimateAuth.Sample.UAuthHub.EFCore.Migrations
                     b.Property<DateTime?>("RevokedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("SessionChainId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("SessionId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Tenant")
@@ -525,11 +534,13 @@ namespace CodeBeam.UltimateAuth.Sample.UAuthHub.EFCore.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Tenant", "ChainId");
-
                     b.HasIndex("Tenant", "ExpiresAt");
 
+                    b.HasIndex("Tenant", "RefreshChainId");
+
                     b.HasIndex("Tenant", "ReplacedByTokenHash");
+
+                    b.HasIndex("Tenant", "SessionChainId");
 
                     b.HasIndex("Tenant", "SessionId");
 
@@ -543,6 +554,8 @@ namespace CodeBeam.UltimateAuth.Sample.UAuthHub.EFCore.Migrations
                     b.HasIndex("Tenant", "ExpiresAt", "RevokedAt");
 
                     b.HasIndex("Tenant", "TokenHash", "RevokedAt");
+
+                    b.HasIndex("Tenant", "UserKey", "DeviceId");
 
                     b.ToTable("UAuth_RefreshTokens", (string)null);
                 });

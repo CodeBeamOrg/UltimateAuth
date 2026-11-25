@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 
 namespace CodeBeam.UltimateAuth.Core.Infrastructure;
 
@@ -28,8 +29,13 @@ public sealed class UAuthRefreshTokenValidator : IRefreshTokenValidator
         if (stored.IsExpired(context.Now))
             return RefreshTokenValidationResult.Expired(stored);
 
-        if (context.ExpectedSessionId.HasValue &&
-            stored.SessionId != context.ExpectedSessionId.Value)
+        if (context.ExpectedSessionId.HasValue && stored.SessionId != context.ExpectedSessionId.Value)
+        {
+            return RefreshTokenValidationResult.Invalid();
+        }
+
+        // Device-bound refresh tokens must be presented from the same device identity.
+        if (stored.DeviceId is DeviceId boundDeviceId && context.Device.DeviceId != boundDeviceId)
         {
             return RefreshTokenValidationResult.Invalid();
         }
@@ -37,9 +43,7 @@ public sealed class UAuthRefreshTokenValidator : IRefreshTokenValidator
         if (stored.IsRevoked)
         {
             if (stored.ReplacedByTokenHash is not null)
-            {
                 return RefreshTokenValidationResult.Consumed(stored);
-            }
 
             return RefreshTokenValidationResult.Invalid();
         }

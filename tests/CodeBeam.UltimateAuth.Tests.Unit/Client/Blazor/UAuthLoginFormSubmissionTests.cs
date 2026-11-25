@@ -1,7 +1,12 @@
 ﻿using AwesomeAssertions;
 using Bunit;
 using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Blazor;
+using CodeBeam.UltimateAuth.Client.Contracts;
+using CodeBeam.UltimateAuth.Client.Errors;
+using CodeBeam.UltimateAuth.Client.Events;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
@@ -29,6 +34,8 @@ public sealed class UAuthLoginFormSubmissionTests : BunitContext
         Services.AddSingleton(_flows.Object);
         Services.AddSingleton(_capabilities.Object);
         Services.AddSingleton<IOptions<UAuthClientOptions>>(Options.Create(new UAuthClientOptions()));
+        Services.AddSingleton<IUAuthTokenStore, InMemoryUAuthTokenStore>();
+        Services.AddSingleton<IUAuthClientEvents, UAuthClientEvents>();
     }
 
     private static JsonElement Json(string value) => JsonDocument.Parse(value).RootElement.Clone();
@@ -252,5 +259,203 @@ public sealed class UAuthLoginFormSubmissionTests : BunitContext
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("Missing PKCE credentials.");
         JSInterop.Invocations.Should().NotContain(x => x.Identifier == "uauth.submitLoginForm");
+    }
+
+    [Fact]
+    public async Task SuccessfulFetchCommit_StoresAccessToken()
+    {
+        var response = new
+        {
+            commit = new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200,
+                AccessToken = "Bearer form-jwt",
+                AccessTokenFormat = "jwt",
+                AccessTokenHeaderFormat = "bearer",
+                AccessTokenExpiresAt =
+                    DateTimeOffset.UtcNow.AddMinutes(10).ToString("O")
+            },
+            accessTokenInHeader = true
+        };
+
+        ConfigureResult(JsonSerializer.Serialize(response));
+
+        var cut = Render<UAuthLoginForm>(p => p
+            .Add(x => x.SubmitMode, UAuthSubmitMode.DirectCommit));
+
+        await cut.InvokeAsync(() => cut.Instance.SubmitAsync());
+
+        var store = Services.GetRequiredService<IUAuthTokenStore>();
+
+        store.Read().Should().NotBeNull();
+        store.Read()!.Token.Should().Be("form-jwt");
+        store.Read()!.Format.Should().Be(TokenFormat.Jwt);
+
+        cut.Instance.IsSubmitting.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task FetchCommit_WithoutRequiredToken_RejectsCompletion()
+    {
+        var response = new
+        {
+            commit = new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200
+            },
+            accessTokenInHeader = true
+        };
+
+        ConfigureResult(JsonSerializer.Serialize(response));
+
+        var cut = Render<UAuthLoginForm>(p => p
+            .Add(x => x.SubmitMode, UAuthSubmitMode.DirectCommit));
+
+        var act = () => cut.InvokeAsync(
+            () => cut.Instance.SubmitAsync());
+
+        await act.Should()
+            .ThrowAsync<UAuthProtocolException>()
+            .WithMessage("*required access token*");
+
+        Services.GetRequiredService<IUAuthTokenStore>()
+            .Read().Should().BeNull();
+
+        cut.Instance.IsSubmitting.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task PkceHandoff_RejectsDifferentReturnUrl_WithoutStoringToken()
+    {
+        var hubId = HubSessionId.New();
+
+        _capabilities.SetupGet(x => x.SupportsPkce)
+            .Returns(true);
+
+        _credentials.Setup(x => x.ResolveAsync(
+                hubId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HubCredentials
+            {
+                AuthorizationCode = "authorization-code",
+                CodeVerifier = "verifier"
+            });
+
+        _flows.Setup(x => x.GetStateAsync(
+                hubId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HubFlowState
+            {
+                HubSessionId = hubId,
+                ReturnUrl = "https://localhost:6132/home"
+            });
+
+        var response = new
+        {
+            commit = new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200,
+                AccessToken = "Bearer hub-jwt",
+                AccessTokenFormat = "jwt",
+                AccessTokenHeaderFormat = "bearer",
+                AccessTokenExpiresAt =
+                    DateTimeOffset.UtcNow.AddMinutes(10).ToString("O"),
+                Body = JsonSerializer.SerializeToElement(new
+                {
+                    redirectUrl = "https://evil.example/home"
+                })
+            },
+            accessTokenInHeader = true
+        };
+
+        ConfigureResult(JsonSerializer.Serialize(response));
+
+        var cut = Render<UAuthLoginForm>(p => p
+            .Add(x => x.LoginType, UAuthLoginType.Pkce)
+            .Add(x => x.HubSessionId, hubId)
+            .Add(x => x.SubmitMode, UAuthSubmitMode.DirectCommit));
+
+        var act = () => cut.InvokeAsync(
+            () => cut.Instance.SubmitAsync());
+
+        await act.Should().ThrowAsync<UAuthProtocolException>()
+            .WithMessage("*Invalid PKCE handoff redirect*");
+
+        Services.GetRequiredService<IUAuthTokenStore>()
+            .Read().Should().BeNull();
+    }
+
+    [Fact]
+    public async Task PkceHandoff_SuccessfulRedirect_DoesNotStoreTokenOrPublishLogin()
+    {
+        var hubId = HubSessionId.New();
+        const string returnUrl = "https://localhost:6132/home";
+
+        _capabilities.SetupGet(x => x.SupportsPkce)
+            .Returns(true);
+
+        _credentials.Setup(x => x.ResolveAsync(
+                hubId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HubCredentials
+            {
+                AuthorizationCode = "auth-code",
+                CodeVerifier = "verifier"
+            });
+
+        _flows.Setup(x => x.GetStateAsync(
+                hubId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HubFlowState
+            {
+                HubSessionId = hubId,
+                ReturnUrl = returnUrl
+            });
+
+        var events = Services.GetRequiredService<IUAuthClientEvents>();
+        var published = new List<UAuthStateEvent>();
+
+        events.StateChanged += args =>
+        {
+            published.Add(args.Type);
+            return Task.CompletedTask;
+        };
+
+        ConfigureResult(JsonSerializer.Serialize(new
+        {
+            commit = new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200,
+                AccessToken = "Bearer initiating-app-jwt",
+                AccessTokenFormat = "jwt",
+                AccessTokenHeaderFormat = "bearer",
+                AccessTokenExpiresAt =
+                    DateTimeOffset.UtcNow.AddMinutes(10).ToString("O"),
+                Body = JsonSerializer.SerializeToElement(new
+                {
+                    redirectUrl = returnUrl
+                })
+            },
+            accessTokenInHeader = true
+        }));
+
+        var cut = Render<UAuthLoginForm>(p => p
+            .Add(x => x.LoginType, UAuthLoginType.Pkce)
+            .Add(x => x.HubSessionId, hubId)
+            .Add(x => x.SubmitMode, UAuthSubmitMode.DirectCommit));
+
+        await cut.InvokeAsync(() => cut.Instance.SubmitAsync());
+
+        var store = Services.GetRequiredService<IUAuthTokenStore>();
+        store.Read().Should().BeNull();
+
+        published.Should().BeEmpty();
+
+        var navigation = Services.GetRequiredService<
+            Microsoft.AspNetCore.Components.NavigationManager>();
+
+        navigation.Uri.Should().Be(returnUrl);
+
+        cut.Instance.IsSubmitting.Should().BeFalse();
     }
 }

@@ -660,7 +660,7 @@ public sealed class SessionEndpointHandlerTests
             targetUserKey: targetUser,
             resourceTenant: flow.Tenant,
             action: action,
-            clientProfile: UAuthClientProfile.NotSpecified,
+            applicationProfile: UAuthApplicationProfile.NotSpecified,
             attributes: new Dictionary<string, object>());
     }
 
@@ -670,7 +670,7 @@ public sealed class SessionEndpointHandlerTests
 
         return new AuthFlowContext(
             flowType: authenticated.FlowType,
-            clientProfile: authenticated.ClientProfile,
+            applicationProfile: authenticated.ApplicationProfile,
             effectiveMode: authenticated.EffectiveMode,
             device: authenticated.Device,
             tenantKey: authenticated.Tenant,

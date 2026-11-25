@@ -1,5 +1,6 @@
 ﻿namespace CodeBeam.UltimateAuth.Core.Options;
 
+[Obsolete("TokenResponseMode is no longer supported. Use GrantDeliveryMode instead.")]
 public enum TokenResponseMode
 {
     None = 0,

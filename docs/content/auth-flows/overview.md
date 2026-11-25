@@ -10,7 +10,7 @@ Authentication is often described as a collection of endpoints: one accepts a pa
 
 **UltimateAuth treats authentication as a set of controlled flows operating within an explicitly resolved security context.** A flow represents an intention—establish access, continue it, or terminate it—and the server determines which rules, state, and delivery behavior apply before executing that intention.
 
-This distinction matters because the same request can have different legitimate outcomes depending on the tenant, authentication mode, client profile, device, current session, and server policy. A flow should not have to guess those values independently.
+This distinction matters because the same request can have different legitimate outcomes depending on the tenant, authentication mode, application profile, device, current session, and server policy. A flow should not have to guess those values independently.
 
 ## A flow is more than an endpoint
 
@@ -58,7 +58,7 @@ AuthFlow.BeginAsync(...)
         v
 AuthFlowContextFactory
   - Read tenant, session, and user contexts
-  - Resolve client profile and effective server options
+  - Resolve application profile and effective server options
   - Determine effective authentication mode
   - Resolve primary token kind and response delivery policy
   - Resolve device context and return URL
@@ -102,7 +102,7 @@ The filter initializes the flow context; it does **not**, by itself, validate a 
 | --- | --- |
 | `FlowType` | Identifies the intended authentication operation. |
 | `Tenant` | Establishes the tenant boundary for state and decisions. |
-| `ClientProfile` | Describes the kind of client interacting with the server. |
+| `ApplicationProfile` | Describes the kind of application interacting with the server. |
 | `EffectiveMode` | Determines the authentication model actually in force for this request. |
 | `Options` | Supplies the effective server policy. |
 | `PrimaryTokenKind` | Identifies the primary credential/token kind for the effective mode. |
@@ -167,7 +167,7 @@ This separation helps prevent HTTP transport details from becoming security poli
 
 A successful domain operation and the HTTP response carrying its outcome are different concerns.
 
-`AuthResponseResolver` derives the effective response configuration from the authentication mode, flow type, client profile, and server options. It binds applicable cookie settings and validates the delivery configuration before the endpoint performs the operation.
+`AuthResponseResolver` derives the effective response configuration from the authentication mode, flow type, application profile, and server options. It binds applicable cookie settings and validates the delivery configuration before the endpoint performs the operation.
 
 This means a flow can use the same underlying authentication semantics while producing a client-appropriate HTTP outcome—for example, a response with managed cookies or a browser redirect when configured.
 
@@ -185,7 +185,7 @@ UltimateAuth instead resolves these questions at the flow boundary. That provide
 
 1. **Consistency.** The same effective policy is available throughout the operation.
 2. **Separation of concerns.** Endpoint handlers handle HTTP; orchestrators coordinate security-relevant work; response components handle delivery.
-3. **Extensibility.** New client profiles and flow behaviors can integrate with established boundaries instead of duplicating authentication plumbing.
+3. **Extensibility.** New application profiles and flow behaviors can integrate with established boundaries instead of duplicating authentication plumbing.
 
 A context is not an authorization bypass. Possessing an `AuthFlowContext` does not imply that the requested operation has been approved.
 
@@ -238,7 +238,7 @@ This is the larger goal of UltimateAuth's unified model—not to make every auth
 
 - **An auth flow is a controlled operation**, not merely an HTTP endpoint.
 - **`AuthFlowEndpointFilter` initializes the request context** for endpoints carrying flow metadata.
-- **`AuthFlowContext` resolves tenant, mode, client profile, device, identity/session information, and response policy** before the handler executes.
+- **`AuthFlowContext` resolves tenant, mode, application profile, device, identity/session information, and response policy** before the handler executes.
 - **Proof is not the source of truth.** Validation depends on authoritative state and the effective authentication mode.
 - **Authority and orchestration are distinct responsibilities.** The exact checks and state transitions vary by flow.
 - **Credential delivery and redirects are outcomes**, not substitutes for security decisions.

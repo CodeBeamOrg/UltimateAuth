@@ -1,11 +1,10 @@
-using System.Reflection;
-using System.Security.Claims;
 using Bunit;
 using CodeBeam.UltimateAuth.Authorization;
-using CodeBeam.UltimateAuth.Authorization.Contracts;
 using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
+using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Client.Services;
 using CodeBeam.UltimateAuth.Core.Abstractions;
@@ -19,7 +18,6 @@ using CodeBeam.UltimateAuth.IdentityLab.Services;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.Services;
-using CodeBeam.UltimateAuth.Users.Contracts;
 using CodeBeam.UltimateAuth.Users.Reference;
 using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +27,8 @@ using Moq;
 using MudBlazor;
 using MudBlazor.Services;
 using MudExtensions.Services;
+using System.Reflection;
+using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Tests.Rendering;
 
@@ -61,6 +61,7 @@ internal sealed partial class PageRenderContext : BunitContext
         Services.AddSingleton(Requests.Object);
         Services.AddSingleton(Options.Create(new UAuthClientOptions()));
         Services.AddSingleton(Options.Create(new UAuthServerOptions()));
+        Services.AddScoped<LabSessionDiagnosticsPolicyService>();
         var device = new Mock<IDeviceIdProvider>();
         device.Setup(x => x.GetOrCreateAsync(It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<DeviceId>(DeviceId.Create("render-test-device-0001")));
@@ -68,6 +69,8 @@ internal sealed partial class PageRenderContext : BunitContext
         Services.AddSingleton(Mock.Of<IHubCredentialResolver>());
         Services.AddSingleton(Mock.Of<IHubFlowReader>());
         Services.AddSingleton(Mock.Of<IHubCapabilities>());
+        Services.AddSingleton(Mock.Of<IUAuthTokenStore>());
+        Services.AddSingleton(Mock.Of<IUAuthClientEvents>());
     }
 
     public IRenderedComponent<T> RenderPage<T>(UAuthState? state = null) where T : IComponent

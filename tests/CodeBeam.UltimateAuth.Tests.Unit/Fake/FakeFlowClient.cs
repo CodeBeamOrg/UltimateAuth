@@ -42,12 +42,7 @@ internal sealed class FakeFlowClient : IFlowClient
         throw new NotImplementedException();
     }
 
-    public Task LoginAsync(LoginRequest request)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task LoginAsync(LoginRequest request, string? returnUrl)
+    public Task<UAuthResult> LoginAsync(LoginRequest request, string? returnUrl = null, UAuthLoginTransport transport = UAuthLoginTransport.Auto)
     {
         throw new NotImplementedException();
     }
@@ -127,6 +122,11 @@ internal sealed class FakeFlowClient : IFlowClient
         throw new NotImplementedException();
     }
 
+    public Task<RefreshResult> RecoverAsync()
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<RefreshResult> RefreshAsync(bool isAuto = false)
     {
         var outcome = _outcomes.Count > 0
@@ -150,7 +150,7 @@ internal sealed class FakeFlowClient : IFlowClient
         throw new NotImplementedException();
     }
 
-    public Task<TryLoginResult> TryLoginAsync(LoginRequest request, UAuthSubmitMode mode, string? returnUrl = null)
+    public Task<TryLoginResult> TryLoginAsync(LoginRequest request, UAuthSubmitMode mode, string? returnUrl = null, UAuthLoginTransport transport = UAuthLoginTransport.Auto)
     {
         throw new NotImplementedException();
     }

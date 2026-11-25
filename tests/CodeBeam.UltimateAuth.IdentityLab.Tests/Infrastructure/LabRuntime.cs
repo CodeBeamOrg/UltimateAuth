@@ -1,4 +1,3 @@
-using CodeBeam.UltimateAuth.Authorization;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.EntityFrameworkCore;
@@ -13,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using System.Security.Cryptography;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Tests.Infrastructure;
 
@@ -43,8 +43,17 @@ internal sealed class LabRuntime(ServiceProvider provider) : IAsyncDisposable
         services.AddLogging();
         services.AddRouting();
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection().Build());
-        services.AddUltimateAuthServer().AddUltimateAuthEntityFrameworkCore(options =>
-            options.UseNpgsql(database.ConnectionString, pg => pg.MigrationsAssembly(typeof(LabDbContext).Assembly.FullName)));
+        services.AddUltimateAuthServer(options =>
+            {
+                options.Cryptography.JwtSigningKey =
+                    Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+
+                options.Cryptography.TokenHashingKey =
+                    Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+            })
+            .AddUltimateAuthEntityFrameworkCore(options =>
+                options.UseNpgsql(database.ConnectionString, pg =>
+                    pg.MigrationsAssembly(typeof(LabDbContext).Assembly.FullName)));
         services.RemoveAll<IClock>();
         services.AddSingleton<IClock, FixedClock>();
         services.AddSingleton<IDbContextFactory<LabDbContext>>(database);

@@ -4,6 +4,7 @@ using CodeBeam.UltimateAuth.Core.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Options;
 
+[Obsolete("CredentialResponseOptions is no longer supported. Use GrantDeliveryOptions instead.")]
 public sealed class CredentialResponseOptions
 {
     public GrantKind Kind { get; init; }

@@ -12,7 +12,7 @@ public sealed class AuthFlowContext
 {
 
     public AuthFlowType FlowType { get; }
-    public UAuthClientProfile ClientProfile { get; }
+    public UAuthApplicationProfile ApplicationProfile { get; }
     public UAuthMode EffectiveMode { get; }
     public DeviceContext Device { get; }
 
@@ -30,15 +30,15 @@ public sealed class AuthFlowContext
 
     // Helpers
     public bool AllowsTokenIssuance =>
-        Response.AccessTokenDelivery.Mode != TokenResponseMode.None ||
-        Response.RefreshTokenDelivery.Mode != TokenResponseMode.None;
+        Response.AccessTokenDelivery.Mode != GrantDeliveryMode.None ||
+        Response.RefreshTokenDelivery.Mode != GrantDeliveryMode.None;
 
     public bool IsSingleTenant => Tenant.IsSingle;
     public bool IsMultiTenant => Tenant.IsNormal;
 
     internal AuthFlowContext(
         AuthFlowType flowType,
-        UAuthClientProfile clientProfile,
+        UAuthApplicationProfile applicationProfile,
         UAuthMode effectiveMode,
         DeviceContext device,
         TenantKey tenantKey,
@@ -54,7 +54,7 @@ public sealed class AuthFlowContext
             throw new InvalidOperationException("AuthFlowContext cannot be created with invalid or unresolved tenant.");
 
         FlowType = flowType;
-        ClientProfile = clientProfile;
+        ApplicationProfile = applicationProfile;
         EffectiveMode = effectiveMode;
         Device = device;
 

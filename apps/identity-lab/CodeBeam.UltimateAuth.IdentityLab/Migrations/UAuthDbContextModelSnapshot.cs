@@ -495,14 +495,21 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<Guid?>("ChainId")
-                        .HasColumnType("uuid");
+                    b.Property<DateTime?>("AuthenticatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RefreshChainId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ReplacedByTokenHash")
                         .HasMaxLength(128)
@@ -511,8 +518,10 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Migrations
                     b.Property<DateTime?>("RevokedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("SessionChainId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("SessionId")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Tenant")
@@ -539,11 +548,13 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Tenant", "ChainId");
-
                     b.HasIndex("Tenant", "ExpiresAt");
 
+                    b.HasIndex("Tenant", "RefreshChainId");
+
                     b.HasIndex("Tenant", "ReplacedByTokenHash");
+
+                    b.HasIndex("Tenant", "SessionChainId");
 
                     b.HasIndex("Tenant", "SessionId");
 
@@ -557,6 +568,8 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Migrations
                     b.HasIndex("Tenant", "ExpiresAt", "RevokedAt");
 
                     b.HasIndex("Tenant", "TokenHash", "RevokedAt");
+
+                    b.HasIndex("Tenant", "UserKey", "DeviceId");
 
                     b.ToTable("UAuth_RefreshTokens", (string)null);
                 });

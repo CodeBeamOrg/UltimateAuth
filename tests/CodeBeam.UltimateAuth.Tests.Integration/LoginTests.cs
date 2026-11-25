@@ -1,8 +1,10 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Tests.Integration.Infrastructure;
 using CodeBeam.UltimateAuth.Users.Contracts;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using System.Net.Http.Json;
@@ -1854,6 +1856,85 @@ public class LoginTests : IDisposable
         failureState.Reason.Should().Be(AuthFailureReason.InvalidCredentials);
         failureState.RemainingAttempts.Should().BeNull();
         failureState.LockoutUntilUtc.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task HybridLogin_WithSessionCookieAndBearerToken_ShouldValidate()
+    {
+        using var factory = AuthServerFactory.Create(options =>
+        {
+            options.AuthMode = UAuthMode.Hybrid;
+            options.GrantDelivery.Session.Mode = GrantDeliveryMode.Cookie;
+            options.GrantDelivery.AccessToken.Mode = GrantDeliveryMode.Header;
+            options.GrantDelivery.RefreshToken.Mode = GrantDeliveryMode.Cookie;
+        });
+
+        var ct = TestContext.Current.CancellationToken;
+
+        var user = await factory.CreateLoginUserAsync(ct: ct);
+
+        var deviceId = $"hybrid-regression-{Guid.NewGuid():N}";
+
+        using var client = CreateClient(factory, deviceId);
+
+        client.DefaultRequestHeaders.Add("X-UDID", deviceId);
+
+        client.DefaultRequestHeaders.Add(
+            "X-UAuth-ApplicationProfile", "BlazorWasm");
+
+        client.DefaultRequestHeaders.Add(
+            "X-Requested-With", "UAuth");
+
+        using var content = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["Identifier"] = user.Identifier,
+                ["Secret"] = user.Secret,
+                ["__uauth_response_mode"] = "fetch"
+            });
+
+        using var login = await CsrfTestClient.PostAsync(
+            client,
+            "/auth/login",
+            content);
+
+        login.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        login.Headers.GetValues("X-UAuth-Access-Format")
+            .Single().Should().Be("opaque");
+
+        var accessToken = login.Headers
+            .GetValues("uat")
+            .Single();
+
+        accessToken.Should().StartWith("Bearer ");
+
+        var sessionCookie = GetSessionCookie(login);
+
+        sessionCookie.Should().NotBeNullOrWhiteSpace();
+
+        client.DefaultRequestHeaders.Add(
+            "Cookie", sessionCookie);
+
+        client.DefaultRequestHeaders.Authorization =
+            System.Net.Http.Headers.AuthenticationHeaderValue
+                .Parse(accessToken);
+
+        using var validation = await CsrfTestClient.PostAsync(
+            client,
+            "/auth/validate");
+
+        validation.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var result = await validation.Content
+            .ReadFromJsonAsync<AuthValidationResult>(
+                cancellationToken: ct);
+
+        result.Should().NotBeNull();
+        result!.IsValid.Should().BeTrue();
+        result.State.Should().Be(SessionState.Active);
+        result.Snapshot.Should().NotBeNull();
+        result.Snapshot!.Identity.UserKey.Should().Be(user.UserKey);
     }
 
 

@@ -1,6 +1,8 @@
-﻿using CodeBeam.UltimateAuth.Core.Runtime;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Runtime;
 using CodeBeam.UltimateAuth.Server.Middlewares;
 using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Server.ResourceApi;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -77,22 +79,25 @@ public static class UltimateAuthApplicationBuilderExtensions
 
     public static IApplicationBuilder UseUltimateAuthResourceApi(this IApplicationBuilder app)
     {
-        var logger = app.ApplicationServices
-            .GetRequiredService<ILoggerFactory>()
-            .CreateLogger("UltimateAuth");
-
+        var logger = app.ApplicationServices.GetRequiredService<ILoggerFactory>().CreateLogger("UltimateAuth");
         var options = app.ApplicationServices.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value;
+        var mode = app.ApplicationServices.GetRequiredService<ResourceApiAuthModeProvider>().Mode;
 
-        if (options.AllowedClientOrigins?.Count > 0)
+        if (options.Cors.AllowedOrigins?.Count > 0)
         {
-            app.UseCors(options.CorsPolicyName);
+            app.UseCors(options.Cors.PolicyName);
             logger.LogInformation("UAuth Resource API initialized with CORS.");
         }
 
         app.UseUAuthExceptionHandling();
         app.UseMiddleware<TenantMiddleware>();
-        app.UseMiddleware<SessionResolutionMiddleware>();
-        app.UseMiddleware<RemoteSessionValidationMiddleware>();
+
+        //if (mode != UAuthMode.PureJwt)
+        //{
+        //    app.UseMiddleware<SessionResolutionMiddleware>();
+        //    app.UseMiddleware<RemoteSessionValidationMiddleware>();
+        //}
+
         app.UseMiddleware<UserMiddleware>();
 
         return app;

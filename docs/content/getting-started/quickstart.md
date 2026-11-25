@@ -22,6 +22,7 @@ You'll need:
 
 This guide uses **Blazor Web App with Interactive Server rendering** and UltimateAuth's in-memory persistence bundle.
 
+
 ## 1. Create a Blazor Application
 
 Open a terminal and create a new Blazor Interactive Server project:
@@ -32,6 +33,7 @@ cd UltimateAuthDemo
 ```
 
 This creates a Blazor Web App with Interactive Server components.
+
 
 ## 2. Install UltimateAuth
 
@@ -58,7 +60,62 @@ The packages serve different purposes:
 
 The in-memory bundle includes the relevant persistence implementations, so you do not need to register each store individually.
 
-## 3. Configure UltimateAuth Services
+
+## 3. Generate and Store Cryptographic Keys
+
+UltimateAuth uses cryptographic keys to protect authentication credentials.
+
+Even when using PureOpaque authentication, applications should configure their token-hashing key explicitly. JWT-enabled modes additionally require a signing key.
+
+Never embed cryptographic keys in source code, commit them to a repository, or rely on shared development keys.
+
+### Generate independent keys
+
+Generate two independent 256-bit keys using a cryptographically secure random number generator.
+
+In PowerShell:
+
+```powershell
+$tokenHashingKey = [Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+
+$jwtSigningKey = [Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+```
+
+Each command generates a different random key.
+
+### Store keys using .NET User Secrets
+
+Initialize User Secrets for your application:
+
+```bash
+dotnet user-secrets init
+```
+
+Store the generated keys:
+
+```powershell
+dotnet user-secrets set "UltimateAuth:Cryptography:TokenHashingKey" $tokenHashingKey
+dotnet user-secrets set "UltimateAuth:Cryptography:JwtSigningKey" $jwtSigningKey
+```
+
+User Secrets are intended for local development. They are not a production secret-management system.
+
+For production deployments, use environment variables or a dedicated secret manager.
+
+Never expose these keys to browser-based clients, including Blazor WebAssembly.
+
+### Why two keys?
+
+`TokenHashingKey` protects server-managed token hashes using HMAC-SHA256.
+
+`JwtSigningKey` signs JWT access tokens in JWT-enabled authentication modes.
+
+The keys serve different security purposes and must be independently generated.
+
+The QuickStart uses PureOpaque by default, but configures both keys so that the application does not depend on built-in development key material.
+
+
+## 4. Configure UltimateAuth Services
 
 Open `Program.cs`.
 
@@ -75,12 +132,33 @@ using CodeBeam.UltimateAuth.Server.Extensions;
 After creating the builder, register UltimateAuth:
 
 ```csharp
-builder.Services.AddUltimateAuthServer()
-    .AddUltimateAuthInMemory();
+
+static string RequireSecret(IConfiguration configuration, string name)
+{
+    var value = configuration[name];
+
+    if (string.IsNullOrWhiteSpace(value))
+    {
+        throw new InvalidOperationException($"Required UltimateAuth secret '{name}' is missing.");
+    }
+
+    return value;
+}
+
+builder.Services.AddUltimateAuthServer(options =>
+{
+    options.Cryptography.TokenHashingKey = RequireSecret(builder.Configuration,
+        "UltimateAuth:Cryptography:TokenHashingKey");
+
+    // Not required for PureOpaque, but needed for JWT-enabled modes.
+    options.Cryptography.JwtSigningKey = RequireSecret(builder.Configuration,
+        "UltimateAuth:Cryptography:JwtSigningKey");
+})
+.AddUltimateAuthInMemory();
 
 builder.Services.AddUltimateAuthClientBlazor();
-
 builder.Services.AddUltimateAuthSampleSeed();
+
 ```
 
 That's the core service configuration.
@@ -95,7 +173,7 @@ That's the core service configuration.
 
 You don't need to call `AddUltimateAuth()` or `AddUltimateAuthClient()` separately.
 
-## 4. Configure the HTTP Pipeline
+## 5. Configure the HTTP Pipeline
 
 In `Program.cs`, configure the application pipeline:
 
@@ -137,7 +215,7 @@ Keep the `AddRazorComponents().AddInteractiveServerComponents()` registration ge
 
 The development-only seed call creates the sample users before the application begins accepting requests.
 
-## 5. Add the UltimateAuth Script
+## 6. Add the UltimateAuth Script
 
 Open `Components/App.razor`.
 
@@ -151,7 +229,7 @@ Place these near the end of the document body.
 
 UltimateAuth's Blazor integration uses this script for browser-side functionality.
 
-## 6. Add Usings
+## 7. Add Usings
 
 Add this in `_Imports.razor`
 
@@ -160,7 +238,7 @@ Add this in `_Imports.razor`
 @using CodeBeam.UltimateAuth.Client.Blazor
 ```
 
-## 7. Initialize the UltimateAuth Application
+## 8. Initialize the UltimateAuth Application
 
 Open `Components/Routes.razor`.
 
@@ -178,7 +256,7 @@ With `UseBuiltInRouter="true"`, it also provides the application's router.
 
 You don't need to create a separate `Router` or `CascadingAuthenticationState` component for this setup.
 
-## 8. Create Your Login Page
+## 9. Create Your Login Page
 
 Change `Components/Pages/Home.razor`:
 
@@ -214,7 +292,7 @@ Only designate one login page for this purpose.
 
 The form above is intentionally minimal. You can replace the inputs with your preferred UI components later.
 
-## 9. Add a Protected Page
+## 10. Add a Protected Page
 
 Create `Components/Pages/Dashboard.razor`:
 
@@ -244,7 +322,7 @@ Create `Components/Pages/Dashboard.razor`:
 
 **Important:** Client-side route protection is not a substitute for server-side authorization. Protected APIs and resources must enforce authorization on the server.
 
-## 10. Run the Application
+## 11. Run the Application
 
 Start the application:
 
@@ -322,7 +400,11 @@ It is ideal for:
 
 The sample credentials are also for development only. Do not deploy the seeded accounts or their example passwords in a production application.
 
-For production use, configure durable persistence, appropriate secrets and signing keys, HTTPS, and the security settings required by your deployment.
+**Cryptographic keys are independent from persistence.** Using in-memory storage does not remove the need for securely generated cryptographic keys.
+
+Keep cryptographic secrets outside source control. Do not replace missing keys with hardcoded fallback values.
+
+For production, use durable persistence and a secure secret-management solution. Preserve required cryptographic keys across application restarts and deployments; changing a key can invalidate credentials that depend on it.
 
 ## Next Steps
 

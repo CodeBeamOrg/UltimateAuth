@@ -26,45 +26,43 @@ public class RedirectTests
         services.AddOptions();
         services.Configure<UAuthServerOptions>(o =>
         {
-            o.AuthResponse.Login.AllowReturnUrlOverride = false;
-            o.AuthResponse.Login.SuccessRedirect = "/welcome";
+            o.Redirect.Login.AllowReturnUrlOverride = false;
+            o.Redirect.Login.SuccessRedirect = "/welcome";
         });
 
         services.AddSingleton<IEffectiveAuthModeResolver, TestAuthModeResolver>();
         services.AddSingleton<IEffectiveServerOptionsProvider, EffectiveServerOptionsProvider>();
-        services.AddSingleton<AuthResponseOptionsModeTemplateResolver>();
-        services.AddSingleton<ClientProfileAuthResponseAdapter>();
         services.AddSingleton<IAuthResponseResolver, AuthResponseResolver>();
 
         var provider = services.BuildServiceProvider();
         var optionsProvider = provider.GetRequiredService<IEffectiveServerOptionsProvider>();
         var resolver = provider.GetRequiredService<IAuthResponseResolver>();
 
-        var effective = optionsProvider.GetEffective(TenantKey.Single, UAuthClientProfile.BlazorServer);
-        var response = resolver.Resolve(effective.Mode, AuthFlowType.Login, UAuthClientProfile.BlazorServer, effective);
+        var effective = optionsProvider.GetEffective(TenantKey.Single, UAuthApplicationProfile.BlazorServer);
+        var response = resolver.Resolve(effective.Mode, AuthFlowType.Login, UAuthApplicationProfile.BlazorServer, effective);
 
         response.Redirect.AllowReturnUrlOverride.Should().BeFalse();
         response.Redirect.SuccessPath.Should().Be("/welcome");
     }
 
     [Fact]
-    public async Task ClientProfile_Is_Read_From_Header()
+    public async Task ApplicationProfile_Is_Read_From_Header()
     {
-        var reader = new ClientProfileReader();
+        var reader = new ApplicationProfileReader();
         var ctx = TestHttpContext.Create();
-        ctx.Request.Headers[UAuthConstants.Headers.ClientProfile] = "BlazorServer";
+        ctx.Request.Headers[UAuthConstants.Headers.ApplicationProfile] = "BlazorServer";
 
         var profile = await reader.ReadAsync(ctx);
-        profile.Should().Be(UAuthClientProfile.BlazorServer);
+        profile.Should().Be(UAuthApplicationProfile.BlazorServer);
     }
 
     [Theory]
-    [InlineData(UAuthClientProfile.BlazorWasm, UAuthMode.Hybrid)]
-    [InlineData(UAuthClientProfile.BlazorServer, UAuthMode.PureOpaque)]
-    public void ClientProfile_Resolves_To_Correct_Mode(UAuthClientProfile profile, UAuthMode expected)
+    [InlineData(UAuthApplicationProfile.BlazorWasm, UAuthMode.Hybrid)]
+    [InlineData(UAuthApplicationProfile.BlazorServer, UAuthMode.PureOpaque)]
+    public void ApplicationProfile_Resolves_To_Correct_Mode(UAuthApplicationProfile profile, UAuthMode expected)
     {
         var resolver = new EffectiveAuthModeResolver();
-        var mode = resolver.Resolve(profile);
+        var mode = resolver.Resolve(new AuthModeResolutionContext() { ApplicationProfile = profile, Tenant = TenantKey.Single });
         mode.Should().Be(expected);
     }
 
@@ -77,10 +75,7 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureCodes: null,
-                allowReturnUrlOverride: true,
-                includeLockoutTiming: true,
-                includeRemainingAttempts: false
+                allowReturnUrlOverride: true
             )
         );
 
@@ -101,10 +96,7 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureCodes: null,
-                allowReturnUrlOverride: false,
-                includeLockoutTiming: true,
-                includeRemainingAttempts: false
+                allowReturnUrlOverride: false
             )
         );
 
@@ -123,10 +115,7 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureCodes: null,
-                allowReturnUrlOverride: true,
-                includeLockoutTiming: true,
-                includeRemainingAttempts: false
+                allowReturnUrlOverride: true
             )
         );
 
@@ -146,10 +135,7 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureCodes: null,
-                allowReturnUrlOverride: true,
-                includeLockoutTiming: true,
-                includeRemainingAttempts: false
+                allowReturnUrlOverride: true
             )
         );
 
@@ -168,10 +154,7 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureCodes: null,
-                allowReturnUrlOverride: true,
-                includeLockoutTiming: true,
-                includeRemainingAttempts: false
+                allowReturnUrlOverride: true
             )
         );
 
@@ -189,13 +172,7 @@ public class RedirectTests
             enabled: true,
             successPath: "/welcome",
             failurePath: "/login",
-            failureCodes: new Dictionary<AuthFailureReason, string>
-            {
-                [AuthFailureReason.InvalidCredentials] = "bad_credentials"
-            },
-            allowReturnUrlOverride: false,
-            includeLockoutTiming: true,
-            includeRemainingAttempts: true
+            allowReturnUrlOverride: false
         );
 
         var flow = AuthFlowTestFactory.LoginSuccess(
@@ -238,10 +215,7 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureCodes: null,
-                allowReturnUrlOverride: true,
-                includeLockoutTiming: true,
-                includeRemainingAttempts: false));
+                allowReturnUrlOverride: true));
 
         flow.Options.Hub.AllowedClientOrigins.Clear();
 
@@ -264,10 +238,7 @@ public class RedirectTests
                 enabled: true,
                 successPath: "/welcome",
                 failurePath: null,
-                failureCodes: null,
-                allowReturnUrlOverride: true,
-                includeLockoutTiming: true,
-                includeRemainingAttempts: false));
+                allowReturnUrlOverride: true));
 
         flow.Options.Hub.AllowedClientOrigins.Clear();
 

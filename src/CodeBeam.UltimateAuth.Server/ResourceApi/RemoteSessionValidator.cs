@@ -1,8 +1,8 @@
 ﻿using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
-using Microsoft.AspNetCore.Http;
-using System.Net.Http.Json;
+using CodeBeam.UltimateAuth.Server.Options;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Server.ResourceApi;
@@ -11,70 +11,101 @@ namespace CodeBeam.UltimateAuth.Server.ResourceApi;
 internal sealed class RemoteSessionValidator : ISessionValidator
 {
     private readonly HttpClient _http;
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly UAuthResourceApiOptions _options;
 
-    public RemoteSessionValidator(HttpClient http, IHttpContextAccessor httpContextAccessor)
+    public RemoteSessionValidator(HttpClient http, IOptions<UAuthResourceApiOptions> options)
     {
         _http = http;
-        _httpContextAccessor = httpContextAccessor;
+        _options = options.Value;
     }
 
     public async Task<SessionValidationResult> ValidateSessionAsync(SessionValidationContext context, CancellationToken ct = default)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, "/auth/validate")
-        {
-            Content = JsonContent.Create(new
-            {
-                sessionId = context.SessionId.Value,
-                tenant = context.Tenant.Value
-            })
-        };
+        SessionValidationResult Invalid(SessionState state = SessionState.Invalid)
+            => SessionValidationResult.Invalid(state, sessionId: context.SessionId);
 
-        var httpContext = _httpContextAccessor.HttpContext!;
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/auth/validate");
 
-        if (httpContext.Request.Headers.TryGetValue("Cookie", out var cookie))
+        var cookieName = _options.Hub.SessionCookieName;
+        var sessionValue = context.SessionId.Value;
+
+        if (string.IsNullOrWhiteSpace(cookieName) ||
+            string.IsNullOrWhiteSpace(sessionValue) ||
+            sessionValue.Any(c =>
+                char.IsWhiteSpace(c) ||
+                char.IsControl(c) ||
+                c is ';' or ',' or '"' or '\\'))
         {
-            request.Headers.Add("Cookie", cookie.ToString());
+            return Invalid();
         }
+
+        request.Headers.Add(
+            "Cookie",
+            $"{cookieName}={sessionValue}");
 
         if (context.Device.DeviceId is { } deviceId)
         {
-            request.Headers.TryAddWithoutValidation("X-UDID", deviceId.Value);
+            request.Headers.Add("X-UDID", deviceId.Value);
         }
 
-        var response = await _http.SendAsync(request, ct);
-
-        if (!response.IsSuccessStatusCode)
-            return SessionValidationResult.Invalid(SessionState.NotFound, sessionId: context.SessionId);
-
-        using var stream = await response.Content.ReadAsStreamAsync(ct);
-        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
-
-        var dto = document.Deserialize<AuthValidationResult>(new JsonSerializerOptions(JsonSerializerDefaults.Web));
-
-        if (dto is null)
+        try
         {
-            return SessionValidationResult.Invalid(SessionState.NotFound, sessionId: context.SessionId);
-        }
+            using var response = await _http.SendAsync(request, ct);
 
-        if (dto.IsValid)
-        {
-            var hasUserStatus =
-                document.RootElement.ValueKind == JsonValueKind.Object &&
-                document.RootElement.TryGetProperty("snapshot", out var snapshot) &&
-                snapshot.ValueKind == JsonValueKind.Object &&
-                snapshot.TryGetProperty("identity", out var identity) &&
-                identity.ValueKind == JsonValueKind.Object &&
-                identity.TryGetProperty("userStatus", out var status) &&
-                status.ValueKind != JsonValueKind.Null &&
-                status.ValueKind != JsonValueKind.Undefined;
+            if (!response.IsSuccessStatusCode)
+                return Invalid(SessionState.NotFound);
 
-            if (!hasUserStatus || dto.Snapshot?.Identity is null || !Enum.IsDefined(dto.Snapshot.Identity.UserStatus))
+            using var stream =
+                await response.Content.ReadAsStreamAsync(ct);
+
+            using var document =
+                await JsonDocument.ParseAsync(
+                    stream,
+                    cancellationToken: ct);
+
+            var dto = document.Deserialize<AuthValidationResult>(
+                new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+            if (dto is null)
+                return Invalid();
+
+            if (dto.IsValid)
             {
-                return SessionValidationResult.Invalid(SessionState.Invalid, sessionId: context.SessionId);
-            }
-        }
+                var hasUserStatus =
+                    document.RootElement.ValueKind == JsonValueKind.Object &&
+                    document.RootElement.TryGetProperty("snapshot", out var snapshot) &&
+                    snapshot.ValueKind == JsonValueKind.Object &&
+                    snapshot.TryGetProperty("identity", out var identity) &&
+                    identity.ValueKind == JsonValueKind.Object &&
+                    identity.TryGetProperty("userStatus", out var status) &&
+                    status.ValueKind != JsonValueKind.Null &&
+                    status.ValueKind != JsonValueKind.Undefined;
 
-        return SessionValidationMapper.ToDomain(dto, context.SessionId);
+                if (!hasUserStatus ||
+                    dto.Snapshot?.Identity is null ||
+                    !Enum.IsDefined(dto.Snapshot.Identity.UserStatus) ||
+                    dto.Snapshot.Identity.Tenant != context.Tenant)
+                {
+                    return Invalid();
+                }
+            }
+
+            return SessionValidationMapper.ToDomain(
+                dto,
+                context.SessionId);
+        }
+        catch (HttpRequestException)
+        {
+            return Invalid();
+        }
+        catch (OperationCanceledException)
+            when (!ct.IsCancellationRequested)
+        {
+            return Invalid();
+        }
+        catch (JsonException)
+        {
+            return Invalid();
+        }
     }
 }

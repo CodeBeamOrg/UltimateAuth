@@ -191,7 +191,7 @@ UltimateAuth separates authentication-flow execution from authorization context.
 
 `AuthFlowContext` is associated with authentication operations and describes the effective environment in which those operations execute.
 
-It includes the applicable mode, client profile, tenant, and other flow-related information.
+It includes the applicable mode, application profile, tenant, and other flow-related information.
 
 `AccessContext` represents the trusted actor and contextual information used for access and authorization decisions.
 

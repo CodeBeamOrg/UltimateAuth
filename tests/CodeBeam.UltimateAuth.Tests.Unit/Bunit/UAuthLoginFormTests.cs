@@ -1,7 +1,10 @@
 ﻿using AwesomeAssertions;
 using Bunit;
 using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Blazor;
+using CodeBeam.UltimateAuth.Client.Events;
+using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
@@ -28,6 +31,8 @@ public sealed class UAuthLoginFormContextTests : BunitContext
         Services.AddSingleton(_flows.Object);
         Services.AddSingleton(_capabilities.Object);
         Services.AddSingleton<IOptions<UAuthClientOptions>>(Options.Create(new UAuthClientOptions()));
+        Services.AddSingleton<IUAuthTokenStore>(new InMemoryUAuthTokenStore());
+        Services.AddSingleton<IUAuthClientEvents>(Mock.Of<IUAuthClientEvents>());
     }
 
     [Fact]
@@ -95,7 +100,7 @@ public sealed class UAuthLoginFormContextTests : BunitContext
     {
         var cut = Render<UAuthLoginForm>(p => p.Add(x => x.ReturnUrl, "/dashboard"));
 
-        cut.FindAll($"input[name='{UAuthConstants.Form.ClientProfile}']").Should().ContainSingle();
+        cut.FindAll($"input[name='{UAuthConstants.Form.ApplicationProfile}']").Should().ContainSingle();
         cut.FindAll($"input[name='{UAuthConstants.Form.Device}']").Should().ContainSingle();
         cut.Find($"input[name='{UAuthConstants.Form.ReturnUrl}']")
             .GetAttribute("value").Should().Be("/dashboard");

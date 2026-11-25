@@ -532,7 +532,7 @@ The following do not independently establish a trusted authenticated partition:
 - Usernames or target user identifiers
 - Unvalidated tokens
 - Device identifiers
-- Client profile hints
+- Application profile hints
 - Raw tenant selectors
 - Principals from unrelated authentication authorities
 

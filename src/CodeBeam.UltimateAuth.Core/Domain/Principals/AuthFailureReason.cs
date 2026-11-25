@@ -10,5 +10,6 @@ public enum AuthFailureReason
     SessionExpired = 100,
     SessionRevoked = 110,
     TenantDisabled = 120,
+    DeviceLimitExceeded = 130,
     Unknown = 1000
 }

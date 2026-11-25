@@ -1,10 +1,15 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Server.Endpoints;
 
@@ -33,6 +38,12 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
     public async Task<IResult> ValidateAsync(HttpContext context, CancellationToken ct = default)
     {
         var auth = _authContext.Current;
+
+        if (auth.EffectiveMode == UAuthMode.PureJwt)
+        {
+            return await ValidatePureJwtAsync(context);
+        }
+
         var credential = await _credentialResolver.ResolveAsync(context, auth.Response);
 
         if (credential is null)
@@ -109,8 +120,7 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
                         RootId = result.RootId,
                         BoundDeviceId = result.BoundDeviceId
                     },
-                    statusCode:
-                        StatusCodes.Status401Unauthorized);
+                    statusCode: StatusCodes.Status401Unauthorized);
             }
 
             return Results.Ok(new AuthValidationResult
@@ -124,7 +134,6 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
             });
         }
 
-        // Stateless (JWT / Opaque) – 0.0.1 no support yet
         return Results.Json(
             new AuthValidationResult
             {
@@ -132,5 +141,59 @@ internal sealed class ValidateEndpointHandler : IValidateEndpointHandler
             },
             statusCode: StatusCodes.Status401Unauthorized
         );
+    }
+
+    private static async Task<IResult> ValidatePureJwtAsync(
+    HttpContext context)
+    {
+        var result = await context.AuthenticateAsync(
+            UAuthConstants.SchemeDefaults.GlobalScheme);
+
+        if (result.None)
+        {
+            return Results.Json(
+                new AuthValidationResult
+                {
+                    State = SessionState.NotFound
+                },
+                statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        if (!result.Succeeded ||
+            result.Principal?.Identity?.IsAuthenticated != true)
+        {
+            return Results.Json(
+                new AuthValidationResult
+                {
+                    State = SessionState.Invalid
+                },
+                statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        var principal = result.Principal;
+
+        var subject = principal
+            .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (!UserKey.TryParse(subject, null, out var userKey))
+        {
+            return Results.Json(
+                new AuthValidationResult
+                {
+                    State = SessionState.Invalid
+                },
+                statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        var snapshot = PureJwtSnapshotFactory.Create(
+            principal,
+            userKey,
+            context.GetTenant());
+
+        return Results.Ok(new AuthValidationResult
+        {
+            State = SessionState.Active,
+            Snapshot = snapshot
+        });
     }
 }

@@ -26,7 +26,7 @@ internal class RefreshResponsePolicy : IRefreshResponsePolicy
             return GrantKind.Session;
         }
 
-        if (flow.ClientProfile == UAuthClientProfile.Api)
+        if (flow.ApplicationProfile == UAuthApplicationProfile.Api)
             return GrantKind.AccessToken;
 
         return GrantKind.Session;
@@ -40,5 +40,4 @@ internal class RefreshResponsePolicy : IRefreshResponsePolicy
 
         return false;
     }
-
 }

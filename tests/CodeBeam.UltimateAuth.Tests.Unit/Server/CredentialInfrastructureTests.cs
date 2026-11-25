@@ -1,8 +1,10 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core.Contracts;
+using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Server.Options;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
@@ -75,13 +77,9 @@ public class CredentialInfrastructureTests
         string expected)
     {
         var builder = new UAuthHeaderPolicyBuilder();
+        var delivery = HeaderDelivery(HeaderTokenFormat.Bearer);
 
-        var options = new CredentialResponseOptions
-        {
-            HeaderFormat = HeaderTokenFormat.Bearer
-        };
-
-        builder.BuildHeaderValue(raw, options, null!)
+        builder.BuildHeaderValue(raw, delivery, null!)
             .Should().Be(expected);
     }
 
@@ -89,13 +87,9 @@ public class CredentialInfrastructureTests
     public void Header_builder_should_preserve_raw_tokens()
     {
         var builder = new UAuthHeaderPolicyBuilder();
+        var delivery = HeaderDelivery(HeaderTokenFormat.Raw);
 
-        var options = new CredentialResponseOptions
-        {
-            HeaderFormat = HeaderTokenFormat.Raw
-        };
-
-        builder.BuildHeaderValue("raw-token", options, null!)
+        builder.BuildHeaderValue("raw-token", delivery, null!)
             .Should().Be("raw-token");
     }
 
@@ -106,14 +100,10 @@ public class CredentialInfrastructureTests
     public void Header_builder_should_reject_empty_values(string? value)
     {
         var builder = new UAuthHeaderPolicyBuilder();
-
-        var options = new CredentialResponseOptions
-        {
-            HeaderFormat = HeaderTokenFormat.Bearer
-        };
+        var delivery = HeaderDelivery(HeaderTokenFormat.Bearer);
 
         Action act = () =>
-            builder.BuildHeaderValue(value!, options, null!);
+            builder.BuildHeaderValue(value!, delivery, null!);
 
         act.Should()
             .Throw<ArgumentException>()
@@ -125,17 +115,47 @@ public class CredentialInfrastructureTests
     {
         var builder = new UAuthHeaderPolicyBuilder();
 
-        var options = new CredentialResponseOptions
-        {
-            HeaderFormat = (HeaderTokenFormat)999
-        };
+        var delivery = HeaderDelivery((HeaderTokenFormat)999);
 
         Action act = () =>
-            builder.BuildHeaderValue("token", options, null!);
+            builder.BuildHeaderValue("token", delivery, null!);
 
         act.Should()
             .Throw<InvalidOperationException>()
             .WithMessage("*Unsupported header token format*");
+    }
+
+    [Theory]
+    [InlineData(GrantDeliveryMode.None)]
+    [InlineData(GrantDeliveryMode.Cookie)]
+    [InlineData(GrantDeliveryMode.Body)]
+    public void Header_builder_should_reject_non_header_delivery(
+        GrantDeliveryMode mode)
+    {
+        var builder = new UAuthHeaderPolicyBuilder();
+
+        var delivery = new EffectiveGrantDelivery(
+            kind: GrantKind.AccessToken,
+            tokenFormat: TokenFormat.Jwt,
+            mode: mode,
+            headerFormat: HeaderTokenFormat.Bearer);
+
+        Action act = () =>
+            builder.BuildHeaderValue("token", delivery, null!);
+
+        act.Should()
+            .Throw<InvalidOperationException>();
+    }
+
+    private static EffectiveGrantDelivery HeaderDelivery(
+        HeaderTokenFormat format)
+    {
+        return new EffectiveGrantDelivery(
+            kind: GrantKind.AccessToken,
+            tokenFormat: TokenFormat.Jwt,
+            mode: GrantDeliveryMode.Header,
+            name: "Authorization",
+            headerFormat: format);
     }
 
     private static PrimaryCredentialResolver CreatePrimaryResolver()

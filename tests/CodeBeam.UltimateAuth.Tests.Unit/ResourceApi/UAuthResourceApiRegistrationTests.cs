@@ -1,4 +1,5 @@
 ﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
@@ -205,7 +206,7 @@ public sealed class UAuthResourceApiRegistrationTests
     {
         using var provider = CreateProvider(options =>
         {
-            options.AllowedClientOrigins =
+            options.Cors.AllowedOrigins =
             [
                 "https://client.example.com"
             ];
@@ -218,7 +219,7 @@ public sealed class UAuthResourceApiRegistrationTests
         var policy = options.GetPolicy(
             provider.GetRequiredService<IOptions<UAuthResourceApiOptions>>()
                 .Value
-                .CorsPolicyName);
+                .Cors.PolicyName);
 
         policy.Should().NotBeNull();
 
@@ -237,7 +238,7 @@ public sealed class UAuthResourceApiRegistrationTests
     {
         using var provider = CreateProvider(options =>
         {
-            options.UAuthHubBaseUrl = "https://hub.example.com";
+            options.Hub.BaseUrl = "https://hub.example.com";
         });
 
         using var scope = provider.CreateScope();
@@ -256,15 +257,15 @@ public sealed class UAuthResourceApiRegistrationTests
     {
         var services = new ServiceCollection();
 
-        var configuration = new ConfigurationBuilder()
-            .Build();
+        var configuration = new ConfigurationBuilder().Build();
 
         services.AddSingleton<IConfiguration>(configuration);
         services.AddLogging();
 
         services.AddUltimateAuthResourceApi(options =>
         {
-            options.UAuthHubBaseUrl = "https://uauth.test";
+            options.Hub.BaseUrl = "https://uauth.test";
+            options.Auth.Mode = UAuthMode.PureOpaque;
 
             options.MultiTenant.Enabled = true;
             options.MultiTenant.EnableHeader = true;
@@ -299,7 +300,8 @@ public sealed class UAuthResourceApiRegistrationTests
 
         services.AddUltimateAuthResourceApi(options =>
         {
-            options.UAuthHubBaseUrl = "https://uauth.test";
+            options.Hub.BaseUrl = "https://uauth.test";
+            options.Auth.Mode = UAuthMode.PureOpaque;
 
             options.MultiTenant.Enabled = true;
             options.MultiTenant.EnableHeader = true;
@@ -390,7 +392,8 @@ public sealed class UAuthResourceApiRegistrationTests
 
         services.AddUltimateAuthResourceApi(options =>
         {
-            options.UAuthHubBaseUrl = "https://uauth.test";
+            options.Auth.Mode = UAuthMode.PureOpaque;
+            options.Hub.BaseUrl = "https://uauth.test";
 
             configure?.Invoke(options);
         });

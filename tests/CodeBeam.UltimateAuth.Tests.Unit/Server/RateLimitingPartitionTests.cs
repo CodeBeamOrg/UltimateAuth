@@ -40,9 +40,9 @@ public class RateLimitingPartitionTests
     public void EveryEndpointHasTheReviewedClassification()
     {
         var all = Enum.GetValues<UAuthEndpoint>().Select(UAuthEndpointClassification.Get).ToArray();
-        Assert.Equal(83, all.Length);
+        Assert.Equal(84, all.Length);
         Assert.Equal(21, all.Count(x => x.Group == UAuthRateLimitGroup.Sensitive));
-        Assert.Equal(57, all.Count(x => x.Group == UAuthRateLimitGroup.Standard));
+        Assert.Equal(58, all.Count(x => x.Group == UAuthRateLimitGroup.Standard));
         Assert.Equal(5, all.Count(x => x.Group == UAuthRateLimitGroup.Frequent));
         Assert.Equal(UAuthRateLimitGroup.Sensitive, UAuthEndpointClassification.Get(UAuthEndpoint.CredentialResetBeginAnonymous).Group);
         Assert.Equal(UAuthRateLimitGroup.Standard, UAuthEndpointClassification.Get(UAuthEndpoint.VerifyUserIdentifierAdmin).Group);
@@ -61,7 +61,7 @@ public class RateLimitingPartitionTests
         var actor = policy.GetPartition(context).PartitionKey;
         Assert.NotEqual(anonymous, actor);
         context.Request.RouteValues["userKey"] = "target-2";
-        context.Request.Headers["X-UAuth-ClientProfile"] = "Maui";
+        context.Request.Headers["X-UAuth-ApplicationProfile"] = "Maui";
         Assert.Equal(actor, policy.GetPartition(context).PartitionKey);
         UAuthRateLimitPolicy.SetValidatedActor(context, "tenant-b", "actor");
         Assert.NotEqual(actor, policy.GetPartition(context).PartitionKey);

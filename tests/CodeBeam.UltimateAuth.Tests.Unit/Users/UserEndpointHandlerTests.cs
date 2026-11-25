@@ -1994,7 +1994,7 @@ public sealed class UserEndpointHandlerTests
             targetUserKey: targetUserKey ?? f.Flow.UserKey,
             resourceTenant: f.Flow.Tenant,
             action: "test",
-            clientProfile: UAuthClientProfile.NotSpecified,
+            applicationProfile: UAuthApplicationProfile.NotSpecified,
             attributes: EmptyAttributes.Instance);
     }
 

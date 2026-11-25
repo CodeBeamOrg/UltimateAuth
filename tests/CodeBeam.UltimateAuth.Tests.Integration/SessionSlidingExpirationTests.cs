@@ -143,7 +143,7 @@ public sealed class SessionSlidingExpirationTests
 
         client.DefaultRequestHeaders.Add("Origin", "https://localhost:6130");
         client.DefaultRequestHeaders.Add("X-UDID", $"idle-regression-{Guid.NewGuid():N}");
-        client.DefaultRequestHeaders.Add("X-UAuth-ClientProfile", profile);
+        client.DefaultRequestHeaders.Add("X-UAuth-ApplicationProfile", profile);
 
         using var login = await CsrfTestClient.PostJsonAsync(
             client,
@@ -461,7 +461,7 @@ public sealed class SessionSlidingExpirationTests
         });
         client.DefaultRequestHeaders.Add("Origin", "https://localhost:6130");
         client.DefaultRequestHeaders.Add("X-UDID", $"sliding-device-{Guid.NewGuid():N}");
-        client.DefaultRequestHeaders.Add("X-UAuth-ClientProfile", profile);
+        client.DefaultRequestHeaders.Add("X-UAuth-ApplicationProfile", profile);
         return client;
     }
 

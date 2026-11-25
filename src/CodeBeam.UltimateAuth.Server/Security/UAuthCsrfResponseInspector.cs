@@ -7,8 +7,8 @@ internal static class UAuthCsrfResponseInspector
 {
     public static bool CanIssueAuthenticationCookie(EffectiveAuthResponse response)
     {
-        return response.SessionIdDelivery.Mode == TokenResponseMode.Cookie
-               || response.AccessTokenDelivery.Mode == TokenResponseMode.Cookie
-               || response.RefreshTokenDelivery.Mode == TokenResponseMode.Cookie;
+        return response.SessionIdDelivery.Mode == GrantDeliveryMode.Cookie
+               || response.AccessTokenDelivery.Mode == GrantDeliveryMode.Cookie
+               || response.RefreshTokenDelivery.Mode == GrantDeliveryMode.Cookie;
     }
 }

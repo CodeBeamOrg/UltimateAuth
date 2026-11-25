@@ -1,4 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
@@ -9,10 +11,12 @@ using CodeBeam.UltimateAuth.Server.Contracts;
 using CodeBeam.UltimateAuth.Server.Endpoints;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
-using AwesomeAssertions;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Server;
 
@@ -482,14 +486,154 @@ public sealed class ValidateEndpointHandlerTests
             Times.Never);
     }
 
+
+    [Fact]
+    public async Task ValidateAsync_PureJwt_NoCredential_ReturnsUnauthorizedNotFound()
+    {
+        var fixture = CreatePureJwtFixture(
+            AuthenticateResult.NoResult());
+
+        var result = await fixture.Sut.ValidateAsync(
+            fixture.HttpContext,
+            TestContext.Current.CancellationToken);
+
+        var json = result.Should()
+            .BeOfType<JsonHttpResult<AuthValidationResult>>()
+            .Subject;
+
+        json.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        json.Value!.State.Should().Be(SessionState.NotFound);
+        json.Value.Snapshot.Should().BeNull();
+
+        fixture.CredentialResolver.VerifyNoOtherCalls();
+        fixture.SessionValidator.VerifyNoOtherCalls();
+        fixture.SnapshotFactory.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task ValidateAsync_PureJwt_AuthenticationFails_ReturnsUnauthorizedInvalid()
+    {
+        var fixture = CreatePureJwtFixture(
+            AuthenticateResult.Fail("Invalid access token"));
+
+        var result = await fixture.Sut.ValidateAsync(
+            fixture.HttpContext,
+            TestContext.Current.CancellationToken);
+
+        var json = result.Should()
+            .BeOfType<JsonHttpResult<AuthValidationResult>>()
+            .Subject;
+
+        json.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        json.Value!.State.Should().Be(SessionState.Invalid);
+        json.Value.Snapshot.Should().BeNull();
+
+        fixture.CredentialResolver.VerifyNoOtherCalls();
+        fixture.SessionValidator.VerifyNoOtherCalls();
+        fixture.SnapshotFactory.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task ValidateAsync_PureJwt_UnauthenticatedPrincipal_ReturnsUnauthorizedInvalid()
+    {
+        var principal = new ClaimsPrincipal(
+            new ClaimsIdentity(new[]
+            {
+            new Claim(ClaimTypes.NameIdentifier, UserKey.New().Value)
+            }));
+
+        var fixture = CreatePureJwtFixture(JwtSuccess(principal));
+
+        var result = await fixture.Sut.ValidateAsync(fixture.HttpContext, TestContext.Current.CancellationToken);
+
+        var json = result.Should()
+            .BeOfType<JsonHttpResult<AuthValidationResult>>()
+            .Subject;
+
+        json.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        json.Value!.State.Should().Be(SessionState.Invalid);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    public async Task ValidateAsync_PureJwt_InvalidSubject_ReturnsUnauthorizedInvalid(
+        string? subject)
+    {
+        var claims = subject is null
+            ? Array.Empty<Claim>()
+            : new[] { new Claim(ClaimTypes.NameIdentifier, subject) };
+
+        var principal = new ClaimsPrincipal(
+            new ClaimsIdentity(
+                claims,
+                UAuthConstants.SchemeDefaults.GlobalScheme));
+
+        var fixture = CreatePureJwtFixture(JwtSuccess(principal));
+
+        var result = await fixture.Sut.ValidateAsync(fixture.HttpContext, TestContext.Current.CancellationToken);
+
+        var json = result.Should()
+            .BeOfType<JsonHttpResult<AuthValidationResult>>()
+            .Subject;
+
+        json.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        json.Value!.State.Should().Be(SessionState.Invalid);
+        json.Value.Snapshot.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ValidateAsync_PureJwt_ValidPrincipal_ReturnsActiveSnapshot()
+    {
+        var userKey = UserKey.New();
+
+        var principal = new ClaimsPrincipal(
+            new ClaimsIdentity(
+                new[]
+                {
+                new Claim(ClaimTypes.NameIdentifier, userKey.Value),
+                new Claim("uauth:permission", "users.read"),
+                new Claim("uauth:role", "admin")
+                },
+                UAuthConstants.SchemeDefaults.GlobalScheme));
+
+        var fixture = CreatePureJwtFixture(JwtSuccess(principal));
+
+        var result = await fixture.Sut.ValidateAsync(fixture.HttpContext, TestContext.Current.CancellationToken);
+
+        var ok = result.Should()
+            .BeOfType<Ok<AuthValidationResult>>()
+            .Subject;
+
+        ok.Value.Should().NotBeNull();
+        ok.Value!.State.Should().Be(SessionState.Active);
+        ok.Value.IsValid.Should().BeTrue();
+
+        var snapshot = ok.Value.Snapshot;
+
+        snapshot.Should().NotBeNull();
+        snapshot!.Identity.Should().NotBeNull();
+        snapshot.Identity!.UserKey.Should().Be(userKey);
+        snapshot.Identity.Tenant.Should().Be(fixture.Flow.Tenant);
+        snapshot.Identity.SessionState.Should().BeNull();
+        snapshot.Identity.UserStatus.Should().Be(UserStatus.Unknown);
+
+        snapshot.Claims.Claims["uauth:permission"]
+            .Should().Contain("users.read");
+
+        fixture.CredentialResolver.VerifyNoOtherCalls();
+        fixture.SessionValidator.VerifyNoOtherCalls();
+        fixture.SnapshotFactory.VerifyNoOtherCalls();
+    }
+
     // =====================================================================
     // Helpers
     // =====================================================================
 
-    private static Fixture CreateFixture()
+    private static Fixture CreateFixture(UAuthMode mode = UAuthMode.PureOpaque)
     {
-        var flow =
-            AuthFlowTestFactory.LoginSuccess();
+        var flow = AuthFlowTestFactory.New(mode: mode);
 
         var authContext =
             new Mock<IAuthFlowContextAccessor>(
@@ -543,9 +687,36 @@ public sealed class ValidateEndpointHandlerTests
             cancellationToken);
     }
 
-    private static void SetupSessionCredential(
-        Fixture fixture,
-        AuthSessionId sessionId)
+    private static Fixture CreatePureJwtFixture(AuthenticateResult authenticationResult)
+    {
+        var fixture = CreateFixture(UAuthMode.PureJwt);
+
+        var authentication = new Mock<IAuthenticationService>();
+
+        authentication
+            .Setup(x => x.AuthenticateAsync(
+                It.IsAny<HttpContext>(),
+                UAuthConstants.SchemeDefaults.GlobalScheme))
+            .ReturnsAsync(authenticationResult);
+
+        fixture.HttpContext.RequestServices =
+            new ServiceCollection()
+                .AddSingleton(authentication.Object)
+                .BuildServiceProvider();
+
+        return fixture;
+    }
+
+    private static AuthenticateResult JwtSuccess(ClaimsPrincipal principal)
+    {
+        return AuthenticateResult.Success(
+            new AuthenticationTicket(
+                principal,
+                UAuthConstants.SchemeDefaults.GlobalScheme));
+    }
+
+
+    private static void SetupSessionCredential(Fixture fixture, AuthSessionId sessionId)
     {
         fixture.CredentialResolver
             .Setup(x => x.ResolveAsync(
@@ -561,9 +732,7 @@ public sealed class ValidateEndpointHandlerTests
                 });
     }
 
-    private static SessionValidationResult CreateActiveValidation(
-        TenantKey tenant,
-        AuthSessionId sessionId)
+    private static SessionValidationResult CreateActiveValidation(TenantKey tenant, AuthSessionId sessionId)
     {
         return SessionValidationResult.Active(
             tenant: tenant,
@@ -575,9 +744,7 @@ public sealed class ValidateEndpointHandlerTests
             authenticatedAt: Now);
     }
 
-    private static AuthStateSnapshot CreateSnapshot(
-        TenantKey tenant,
-        UserKey userKey)
+    private static AuthStateSnapshot CreateSnapshot(TenantKey tenant, UserKey userKey)
     {
         return new AuthStateSnapshot
         {

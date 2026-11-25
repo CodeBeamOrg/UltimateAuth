@@ -29,7 +29,7 @@ namespace CodeBeam.UltimateAuth.Client.Services;
 /// <para>
 /// Important:
 /// <list type="bullet">
-/// <item><description>Behavior depends on client profile (e.g., Blazor Server vs WASM).</description></item>
+/// <item><description>Behavior depends on application profile (e.g., Blazor Server vs WASM).</description></item>
 /// <item><description>Login may result in redirects or cookie/token updates.</description></item>
 /// <item><description>Refresh behavior differs between PureOpaque and Hybrid modes.</description></item>
 /// <item><description>Session state is managed server-side and may expire independently.</description></item>
@@ -39,12 +39,10 @@ namespace CodeBeam.UltimateAuth.Client.Services;
 public interface IFlowClient
 {
     /// <summary>
-    /// Performs a login operation.
+    /// Logs in using the effective transport configuration.
+    /// When a return URL is supplied, successful fetch logins navigate after the authentication state has been updated.
     /// </summary>
-    /// <remarks>
-    /// This method triggers redirects depending on the client profile and configuration.
-    /// </remarks>
-    Task LoginAsync(LoginRequest request, string? returnUrl = null);
+    Task<UAuthResult> LoginAsync(LoginRequest request, string? returnUrl = null, UAuthLoginTransport transport = UAuthLoginTransport.Auto);
 
     /// <summary>
     /// Attempts to log in and returns a structured result instead of throwing. UltimateAuth suggestion as better UX.
@@ -53,7 +51,7 @@ public interface IFlowClient
     /// Redirects only on successful login if mode is TryAndCommit. In TryOnly mode, it returns the result without redirecting.
     /// DirectCommit mode behaves same as LoginAsync.
     /// </remarks>
-    Task<TryLoginResult> TryLoginAsync(LoginRequest request, UAuthSubmitMode mode, string? returnUrl = null);
+    Task<TryLoginResult> TryLoginAsync(LoginRequest request, UAuthSubmitMode mode, string? returnUrl = null, UAuthLoginTransport transport = UAuthLoginTransport.Auto);
 
     /// <summary>
     /// Logs out the current user.
@@ -137,4 +135,6 @@ public interface IFlowClient
     /// Logs out all sessions for a user.
     /// </summary>
     Task<UAuthResult> LogoutAllUserDevicesAsync(UserKey userKey);
+
+    Task<RefreshResult> RecoverAsync();
 }

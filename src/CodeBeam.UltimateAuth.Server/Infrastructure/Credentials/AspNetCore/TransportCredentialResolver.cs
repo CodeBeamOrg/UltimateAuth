@@ -1,124 +1,114 @@
-﻿using CodeBeam.UltimateAuth.Server.Extensions;
-using CodeBeam.UltimateAuth.Server.Options;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Auth;
+using CodeBeam.UltimateAuth.Server.Extensions;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 internal sealed class TransportCredentialResolver : ITransportCredentialResolver
 {
-    private readonly IOptionsMonitor<UAuthServerOptions> _server;
-
-    public TransportCredentialResolver(IOptionsMonitor<UAuthServerOptions> server)
+    public async ValueTask<TransportCredential?> ResolveAsync(HttpContext context, UAuthMode mode, EffectiveAuthResponse response)
     {
-        _server = server;
-    }
-
-    public async ValueTask<TransportCredential?> ResolveAsync(HttpContext context)
-    {
-        var cookies = _server.CurrentValue.Cookie;
-
-        return await TryFromAuthorizationHeaderAsync(context)
-            ?? await TryFromCookiesAsync(context, cookies)
-            ?? await TryFromQueryAsync(context)
-            ?? await TryFromBodyAsync(context)
-            ?? await TryFromHubAsync(context);
-    }
-
-    // TODO: Make scheme configurable, shouldn't be hard coded
-    private static async ValueTask<TransportCredential?> TryFromAuthorizationHeaderAsync(HttpContext ctx)
-    {
-        if (!ctx.Request.Headers.TryGetValue("Authorization", out var header))
-            return null;
-
-        var value = header.ToString();
-        if (!value.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-            return null;
-
-        var token = value["Bearer ".Length..].Trim();
-        if (string.IsNullOrWhiteSpace(token))
-            return null;
-
-        return new TransportCredential
+        return mode switch
         {
-            Kind = TransportCredentialKind.AccessToken,
-            Value = token,
-            TenantId = ctx.GetTenant().Value,
-            Device = await ctx.GetDeviceAsync()
+            UAuthMode.PureJwt or UAuthMode.SemiHybrid =>
+                await ResolveDeliveryAsync(
+                    context,
+                    response.AccessTokenDelivery,
+                    TransportCredentialKind.AccessToken),
+
+            UAuthMode.PureOpaque or UAuthMode.Hybrid =>
+                await ResolveDeliveryAsync(
+                    context,
+                    response.SessionIdDelivery,
+                    TransportCredentialKind.Session),
+
+            _ => null
         };
     }
 
-    private static async ValueTask<TransportCredential?> TryFromCookiesAsync(HttpContext ctx, UAuthCookiePolicyOptions cookieSet)
+    private static async ValueTask<TransportCredential?> ResolveDeliveryAsync(HttpContext context, EffectiveGrantDelivery delivery, TransportCredentialKind kind)
     {
-        if (TryReadCookie(ctx, cookieSet.Session.Name, out var session))
-            return await BuildAsync(ctx, TransportCredentialKind.Session, session);
+        string? value = delivery.Mode switch
+        {
+            GrantDeliveryMode.Cookie =>
+                ReadCookie(context, delivery.Cookie?.Name),
 
-        if (TryReadCookie(ctx, cookieSet.RefreshToken.Name, out var refresh))
-            return await BuildAsync(ctx, TransportCredentialKind.RefreshToken, refresh);
+            GrantDeliveryMode.Header
+                when kind == TransportCredentialKind.AccessToken =>
+                ReadHeader(
+                    context,
+                    "Authorization",
+                    HeaderTokenFormat.Bearer),
 
-        if (TryReadCookie(ctx, cookieSet.AccessToken.Name, out var access))
-            return await BuildAsync(ctx, TransportCredentialKind.AccessToken, access);
+            GrantDeliveryMode.Header =>
+                ReadHeader(
+                    context,
+                    delivery.Name,
+                    delivery.HeaderFormat),
 
-        return null;
-    }
+            _ => null
+        };
 
-    private static async ValueTask<TransportCredential?> TryFromQueryAsync(HttpContext ctx)
-    {
-        if (!ctx.Request.Query.TryGetValue("access_token", out var token))
-            return null;
-
-        var value = token.ToString();
         if (string.IsNullOrWhiteSpace(value))
             return null;
 
         return new TransportCredential
         {
-            Kind = TransportCredentialKind.AccessToken,
-            Value = value,
-            TenantId = ctx.GetTenant().Value,
-            Device = await ctx.GetDeviceAsync()
-        };
-    }
-
-    private static ValueTask<TransportCredential?> TryFromBodyAsync(HttpContext ctx)
-    {
-        // intentionally empty for now
-        // body parsing is expensive and opt-in later
-
-        return ValueTask.FromResult<TransportCredential?>(null);
-    }
-
-    private static ValueTask<TransportCredential?> TryFromHubAsync(HttpContext ctx)
-    {
-        // UAuthHub detection can live here later
-
-        return ValueTask.FromResult<TransportCredential?>(null);
-    }
-
-    private static bool TryReadCookie(HttpContext ctx, string name, out string value)
-    {
-        value = string.Empty;
-
-        if (string.IsNullOrWhiteSpace(name))
-            return false;
-
-        if (!ctx.Request.Cookies.TryGetValue(name, out var raw))
-            return false;
-
-        raw = raw?.Trim();
-        if (string.IsNullOrWhiteSpace(raw))
-            return false;
-
-        value = raw;
-        return true;
-    }
-
-    private static async Task<TransportCredential> BuildAsync(HttpContext ctx, TransportCredentialKind kind, string value)
-        => new()
-        {
             Kind = kind,
             Value = value,
-            TenantId = ctx.GetTenant().Value,
-            Device = await ctx.GetDeviceAsync()
+            TenantId = context.GetTenant().Value,
+            Device = await context.GetDeviceAsync()
         };
+    }
+
+    private static string? ReadCookie(
+        HttpContext context,
+        string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return null;
+
+        return context.Request.Cookies.TryGetValue(name, out var value)
+            && !string.IsNullOrWhiteSpace(value)
+                ? value.Trim()
+                : null;
+    }
+
+    private static string? ReadHeader(
+        HttpContext context,
+        string? name,
+        HeaderTokenFormat format)
+    {
+        if (string.IsNullOrWhiteSpace(name) ||
+            !context.Request.Headers.TryGetValue(name, out var header))
+        {
+            return null;
+        }
+
+        var value = header.ToString().Trim();
+
+        if (format == HeaderTokenFormat.Bearer)
+        {
+            const string prefix = "Bearer ";
+
+            if (!value.StartsWith(
+                    prefix,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            value = value[prefix.Length..].Trim();
+        }
+        else if (format != HeaderTokenFormat.Raw)
+        {
+            return null;
+        }
+
+        return string.IsNullOrWhiteSpace(value)
+            ? null
+            : value;
+    }
 }

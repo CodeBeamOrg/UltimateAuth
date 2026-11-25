@@ -2,7 +2,9 @@
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace CodeBeam.UltimateAuth.Server.ResourceApi;
 
@@ -15,19 +17,66 @@ internal sealed class ResourceUserAccessor<TUserId> : IUserAccessor<TUserId>
         _converter = resolver.GetConverter<TUserId>();
     }
 
-    public Task ResolveAsync(HttpContext context)
+    public async Task ResolveAsync(HttpContext context)
     {
-        var result = context.Items[UAuthConstants.HttpItems.SessionValidationResult] as SessionValidationResult;
+        await ResolveAuthenticationAsync(context);
+    }
 
-        if (result is null || !result.IsValid || result.UserKey is null)
+    private async Task ResolveAuthenticationAsync(HttpContext context)
+    {
+        var result = await context.AuthenticateAsync(UAuthConstants.SchemeDefaults.GlobalScheme);
+
+        if (!result.Succeeded || result.Principal is null)
         {
-            context.Items[UAuthConstants.HttpItems.UserContextKey] = AuthUserSnapshot<TUserId>.Anonymous();
-            return Task.CompletedTask;
+            SetAnonymous(context);
+            return;
         }
 
-        var userId = _converter.FromString(result.UserKey.Value);
-        context.Items[UAuthConstants.HttpItems.UserContextKey] = AuthUserSnapshot<TUserId>.Authenticated(userId);
+        var identities = result.Principal.Identities
+            .Where(x =>
+                x.IsAuthenticated &&
+                x.AuthenticationType == UAuthConstants.SchemeDefaults.GlobalScheme)
+            .ToArray();
 
-        return Task.CompletedTask;
+        if (identities.Length != 1 ||
+            result.Principal.Identities.Count() != 1)
+        {
+            SetAnonymous(context);
+            return;
+        }
+
+        var subjects = identities[0]
+            .FindAll(ClaimTypes.NameIdentifier)
+            .Select(x => x.Value)
+            .ToArray();
+
+        if (subjects.Length != 1 ||
+            string.IsNullOrWhiteSpace(subjects[0]))
+        {
+            SetAnonymous(context);
+            return;
+        }
+
+        TUserId userId;
+
+        try
+        {
+            userId = _converter.FromString(subjects[0]);
+        }
+        catch (FormatException)
+        {
+            SetAnonymous(context);
+            return;
+        }
+
+        context.Items[UAuthConstants.HttpItems.UserContextKey] =
+            AuthUserSnapshot<TUserId>.Authenticated(userId);
+
+        context.User = result.Principal;
+    }
+
+    private static void SetAnonymous(HttpContext context)
+    {
+        context.Items[UAuthConstants.HttpItems.UserContextKey] = AuthUserSnapshot<TUserId>.Anonymous();
     }
 }

@@ -56,8 +56,8 @@
     "GroupOrder": 2
   },
   {
-    "Title": "Client Profiles",
-    "Slug": "fundamentals/client-profiles",
+    "Title": "Application Profiles",
+    "Slug": "fundamentals/application-profiles",
     "Order": 5,
     "Group": "fundamentals",
     "GroupOrder": 2
@@ -115,6 +115,13 @@
     "Title": "Device Management",
     "Slug": "sessions-devices/device-management",
     "Order": 2,
+    "Group": "sessions-devices",
+    "GroupOrder": 4
+  },
+  {
+    "Title": "Device Limits",
+    "Slug": "sessions-devices/device-limits",
+    "Order": 3,
     "Group": "sessions-devices",
     "GroupOrder": 4
   },

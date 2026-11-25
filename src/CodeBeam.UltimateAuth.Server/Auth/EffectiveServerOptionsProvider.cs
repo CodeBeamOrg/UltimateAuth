@@ -1,4 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
@@ -24,29 +24,61 @@ internal sealed class EffectiveServerOptionsProvider : IEffectiveServerOptionsPr
         return _baseOptions.Value;
     }
 
-    public EffectiveUAuthServerOptions GetEffective(HttpContext context, UAuthClientProfile clientProfile)
+    public EffectiveUAuthServerOptions GetEffective(HttpContext context, UAuthApplicationProfile applicationProfile)
     {
-        var tenant = context.GetTenant();
-        return GetEffective(tenant, clientProfile);
+        return CreateEffective(new AuthModeResolutionContext
+        {
+            Tenant = context.GetTenant(),
+            ApplicationProfile = applicationProfile,
+            HttpContext = context
+        });
     }
 
-    public EffectiveUAuthServerOptions GetEffective(TenantKey tenant, UAuthClientProfile clientProfile)
+    public EffectiveUAuthServerOptions GetEffective(TenantKey tenant, UAuthApplicationProfile applicationProfile)
+    {
+        return CreateEffective(new AuthModeResolutionContext
+        {
+            Tenant = tenant,
+            ApplicationProfile = applicationProfile
+        });
+    }
+
+    private EffectiveUAuthServerOptions CreateEffective(AuthModeResolutionContext context)
     {
         var original = _baseOptions.Value;
-        var effectiveMode = _modeResolver.Resolve(clientProfile);
+        var mode = ResolveMode(original, context);
         var options = original.Clone();
 
-        ConfigureDefaults.ApplyModeDefaults(effectiveMode, options);
+        ConfigureDefaults.ApplyModeDefaults(mode, options);
 
-        if (original.ModeConfigurations.TryGetValue(effectiveMode, out var configure))
+        if (original.ModeConfigurations.TryGetValue(
+            mode, out var configure))
         {
             configure(options);
         }
 
         return new EffectiveUAuthServerOptions
         {
-            Mode = effectiveMode,
+            Mode = mode,
             Options = options
         };
+    }
+
+    private UAuthMode ResolveMode(UAuthServerOptions options, AuthModeResolutionContext context)
+    {
+        var mode = options.AuthMode
+            ?? (options.ApplicationProfileModes.TryGetValue(context.ApplicationProfile, out var mapped)
+                    ? mapped
+                    : _modeResolver.Resolve(context));
+
+        if (!Enum.IsDefined(mode))
+            throw new InvalidOperationException($"Invalid authentication mode: {mode}.");
+
+        if (options.AllowedModes is { Count: > 0 } allowed && !allowed.Contains(mode))
+        {
+            throw new InvalidOperationException($"Authentication mode '{mode}' is not allowed.");
+        }
+
+        return mode;
     }
 }

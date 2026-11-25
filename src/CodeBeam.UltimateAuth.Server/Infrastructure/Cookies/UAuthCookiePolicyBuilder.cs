@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Options;
 using Microsoft.AspNetCore.Http;
@@ -8,12 +9,20 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 internal sealed class UAuthCookiePolicyBuilder : IUAuthCookiePolicyBuilder
 {
-    public CookieOptions Build(CredentialResponseOptions response, AuthFlowContext context, GrantKind kind)
+    public CookieOptions Build(EffectiveGrantDelivery delivery, AuthFlowContext context, GrantKind kind)
     {
-        if (response.Cookie is null)
-            throw new InvalidOperationException("Cookie policy requested but Cookie options are null.");
+        if (delivery.Mode != GrantDeliveryMode.Cookie)
+        {
+            throw new InvalidOperationException($"Cookie policy requested for non-cookie grant '{kind}'.");
+        }
 
-        var src = response.Cookie;
+        if (delivery.Kind != kind)
+        {
+            throw new InvalidOperationException($"Cookie grant kind mismatch: '{delivery.Kind}' and '{kind}'.");
+        }
+
+        var src = delivery.Cookie
+            ?? throw new InvalidOperationException($"Cookie options missing for grant '{kind}'.");
 
         var options = new CookieOptions
         {
