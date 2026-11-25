@@ -37,9 +37,9 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
     {
         ct.ThrowIfCancellationRequested();
 
-        await _bootstrapper.EnsureStartedAsync();
+        await _bootstrapper.EnsureStartedAsync(ct);
 
-        await _js.InvokeVoidAsync("uauth.post", ct, new
+        await InvokeVoidAsync("uauth.post", ct, new
         {
             url = endpoint,
             mode = "navigate",
@@ -56,9 +56,9 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
     {
         ct.ThrowIfCancellationRequested();
 
-        await _bootstrapper.EnsureStartedAsync();
+        await _bootstrapper.EnsureStartedAsync(ct);
 
-        var result = await _js.InvokeAsync<UAuthTransportResult>(
+        var result = await InvokeAsync<UAuthTransportResult>(
             "uauth.post",
             ct,
             new
@@ -84,9 +84,9 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
     {
         ct.ThrowIfCancellationRequested();
 
-        await _bootstrapper.EnsureStartedAsync();
+        await _bootstrapper.EnsureStartedAsync(ct);
 
-        var result = await _js.InvokeAsync<UAuthTransportResult>("uauth.post", ct,
+        var result = await InvokeAsync<UAuthTransportResult>("uauth.post", ct,
             new
             {
                 url = endpoint,
@@ -109,9 +109,9 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
     {
         ct.ThrowIfCancellationRequested();
 
-        await _bootstrapper.EnsureStartedAsync();
+        await _bootstrapper.EnsureStartedAsync(ct);
 
-        var result = await _js.InvokeAsync<UAuthTransportResult>(
+        var result = await InvokeAsync<UAuthTransportResult>(
             "uauth.postJson",
             ct,
             new
@@ -136,9 +136,9 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
     {
         ct.ThrowIfCancellationRequested();
 
-        await _bootstrapper.EnsureStartedAsync();
+        await _bootstrapper.EnsureStartedAsync(ct);
 
-        var response = await _js.InvokeAsync<JsonElement>(
+        var response = await InvokeAsync<JsonElement>(
             "uauth.tryAndCommit",
             ct,
             new
@@ -169,7 +169,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
 
         await _bootstrapper.EnsureStartedAsync(ct);
 
-        var response = await _js.InvokeAsync<UAuthTransportResult>(
+        var response = await InvokeAsync<UAuthTransportResult>(
             "uauth.getLoginTransport",
             ct,
             new
@@ -219,14 +219,8 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
     {
         ct.ThrowIfCancellationRequested();
 
-        if (!Uri.TryCreate(
-                expectedReturnUrl,
-                UriKind.Absolute,
-                out var expected) ||
-            !Uri.TryCreate(
-                redirectUrl,
-                UriKind.Absolute,
-                out var target) ||
+        if (!Uri.TryCreate(expectedReturnUrl, UriKind.Absolute, out var expected) ||
+            !Uri.TryCreate(redirectUrl, UriKind.Absolute, out var target) ||
             target != expected ||
             target.Scheme is not ("https" or "http") ||
             !string.IsNullOrEmpty(target.UserInfo))
@@ -236,10 +230,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
 
         var current = new Uri(_navigation.Uri);
 
-        var crossOrigin =
-            target.Scheme != current.Scheme ||
-            target.Authority != current.Authority;
-
+        var crossOrigin = target.Scheme != current.Scheme || target.Authority != current.Authority;
         _navigation.NavigateTo(target.ToString(), forceLoad: crossOrigin);
 
         return Task.CompletedTask;
@@ -273,5 +264,37 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
         }
 
         return null;
+    }
+
+    private async ValueTask InvokeVoidAsync(string identifier, CancellationToken ct, params object?[] args)
+    {
+        try
+        {
+            await _js.InvokeVoidAsync(identifier, ct, args);
+        }
+        catch (JSDisconnectedException ex)
+        {
+            throw new UAuthTransportException("The JavaScript runtime was disconnected.", ex);
+        }
+        catch (JSException ex)
+        {
+            throw new UAuthTransportException("The JavaScript transport operation failed.", ex);
+        }
+    }
+
+    private async ValueTask<T> InvokeAsync<T>(string identifier, CancellationToken ct, params object?[] args)
+    {
+        try
+        {
+            return await _js.InvokeAsync<T>(identifier, ct, args);
+        }
+        catch (JSDisconnectedException ex)
+        {
+            throw new UAuthTransportException("The JavaScript runtime was disconnected.", ex);
+        }
+        catch (JSException ex)
+        {
+            throw new UAuthTransportException("The JavaScript transport operation failed.", ex);
+        }
     }
 }
