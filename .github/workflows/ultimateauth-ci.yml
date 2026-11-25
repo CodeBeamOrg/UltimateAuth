@@ -259,17 +259,10 @@ jobs:
               output.write("|---|---:|\n")
               output.write(f"| Lines | {line_rate:.2%} |\n")
               output.write(f"| Branches | {branch_rate:.2%} |\n")
-              output.write(
-                  f"| Covered lines | {lines_covered:,} / {lines_valid:,} |\n"
-              )
-              output.write(
-                  f"| Covered branches | {branches_covered:,} / {branches_valid:,} |\n"
-              )
+              output.write(f"| Covered lines | {lines_covered:,} / {lines_valid:,} |\n")
+              output.write(f"| Covered branches | {branches_covered:,} / {branches_valid:,} |\n")
               output.write("\n")
-              output.write(
-                  "Coverage is reported separately from UltimateAuth "
-                  "framework coverage.\n"
-              )
+              output.write("Coverage is reported separately from UltimateAuth framework coverage.\n")
           PY
 
       - name: Upload Identity Lab test and coverage results
