@@ -46,12 +46,15 @@ public sealed class UAuthRequestClientTests : BunitContext
     public async Task NavigateAsync_InvokesUAuthPost()
     {
         var sut = CreateSut();
-        await sut.NavigateAsync("/login", ct: Xunit.TestContext.Current.CancellationToken);
+        var ct = Xunit.TestContext.Current.CancellationToken;
+
+        await sut.NavigateAsync("/login", ct: ct);
 
         var invocation = JSInterop.Invocations.Single(x => x.Identifier == "uauth.post");
+
         invocation.Arguments.Should().ContainSingle();
 
-        _bootstrapper.Verify(x => x.EnsureStartedAsync(), Times.Once);
+        _bootstrapper.Verify(x => x.EnsureStartedAsync(ct), Times.Once);
     }
 
     [Fact]
