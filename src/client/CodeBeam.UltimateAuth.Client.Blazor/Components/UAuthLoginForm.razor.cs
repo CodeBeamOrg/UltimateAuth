@@ -349,6 +349,10 @@ public partial class UAuthLoginForm
             if (OnTryResult.HasDelegate)
                 await OnTryResult.InvokeAsync(parsed);
         }
+        catch (JSDisconnectedException)
+        {
+            // The circuit was disconnected before the login operation completed.
+        }
         finally
         {
             _isSubmitting = false;

@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
+using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using Microsoft.JSInterop;
@@ -21,7 +22,22 @@ internal sealed class WebClientDeviceProvider : IClientDeviceProvider
     public async Task<DeviceContext> GetAsync()
     {
         var deviceId = await _deviceIdProvider.GetOrCreateAsync();
-        var jsInfo = await _js.InvokeAsync<ClientDeviceJsInfo>("uauth.getDeviceInfo");
+
+        ClientDeviceJsInfo jsInfo;
+
+        try
+        {
+            jsInfo = await _js.InvokeAsync<ClientDeviceJsInfo>("uauth.getDeviceInfo");
+        }
+        catch (JSDisconnectedException ex)
+        {
+            throw new UAuthTransportException("The JavaScript runtime was disconnected.", ex);
+        }
+        catch (JSException ex)
+        {
+            throw new UAuthTransportException("Unable to retrieve browser device information.", ex);
+        }
+
         var ua = jsInfo.UserAgent;
         var parsed = _userAgentParser.Parse(ua);
 
