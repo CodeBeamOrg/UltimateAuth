@@ -12,22 +12,19 @@ using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using AwesomeAssertions;
 using Moq;
 using System.Security;
+using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
 public sealed class UAuthSessionIssuerTests
 {
-    private static readonly DateTimeOffset Now =
-        new(2026, 10, 6, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Now = new(2026, 10, 6, 12, 0, 0, TimeSpan.Zero);
 
-    private static readonly TenantKey Tenant =
-        TenantKey.FromExternal("tenant-a");
+    private static readonly TenantKey Tenant = TenantKey.FromExternal("tenant-a");
 
-    private static readonly TimeSpan Lifetime =
-        TimeSpan.FromHours(8);
+    private static readonly TimeSpan Lifetime = TimeSpan.FromHours(8);
 
-    private const string OpaqueToken =
-        "opaque-session-token-000000000000000000000001";
+    private const string OpaqueToken = "opaque-session-token-000000000000000000000001";
 
     // =====================================================================
     // IssueSessionAsync - mode / token guards
@@ -1580,16 +1577,13 @@ public sealed class UAuthSessionIssuerTests
 
         SetupNewIssuance(fixture, context);
 
-        using var cts =
-            new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
 
-        await fixture.Sut.IssueSessionAsync(
-            context,
-            cts.Token);
+        await fixture.Sut.IssueSessionAsync(context, cts.Token);
 
         fixture.Store.Verify(
             x => x.ExecuteAsync(
-                It.IsAny<Func<CancellationToken, Task>>(),
+                It.IsAny<Func<CancellationToken, Task<IssuedSession>>>(),
                 cts.Token),
             Times.Once);
     }
@@ -1673,6 +1667,20 @@ public sealed class UAuthSessionIssuerTests
             .Returns<Func<CancellationToken, Task<SessionChainId?>>, CancellationToken>(
                 (action, ct) => action(ct));
 
+        store
+            .Setup(x => x.ExecuteAsync(
+                It.IsAny<Func<CancellationToken, Task<IssuedSession>>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<IssuedSession>>, CancellationToken>(
+                (action, ct) => action(ct));
+
+        store
+            .Setup(x => x.ExecuteAdmissionAsync(
+                It.IsAny<Func<CancellationToken, Task<IssuedSession>>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task<IssuedSession>>, CancellationToken>(
+                (action, ct) => action(ct));
+
         var options = new UAuthServerOptions();
 
         options.Session.Lifetime =
@@ -1687,7 +1695,8 @@ public sealed class UAuthSessionIssuerTests
         var sut =
             new UAuthSessionIssuer(
                 storeFactory.Object,
-                tokenGenerator.Object);
+                tokenGenerator.Object,
+                Options.Create(options));
 
         return new Fixture(
             sut,

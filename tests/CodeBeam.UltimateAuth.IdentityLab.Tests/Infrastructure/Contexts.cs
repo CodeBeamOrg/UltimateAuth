@@ -31,7 +31,7 @@ internal static class Contexts
                 "action" => action,
                 "attributes" => attributes ?? new Dictionary<string, object>(),
                 "targetUserKeys" => targets,
-                "clientProfile" => UAuthClientProfile.NotSpecified,
+                "applicationProfile" => UAuthApplicationProfile.NotSpecified,
                 _ => throw new InvalidOperationException(
                     $"Unexpected AccessContext parameter: {parameter.Name}")
             })

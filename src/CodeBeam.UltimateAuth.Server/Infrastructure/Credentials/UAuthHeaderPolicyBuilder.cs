@@ -1,21 +1,27 @@
 ﻿using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
-using CodeBeam.UltimateAuth.Server.Options;
 
 namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 
 internal sealed class UAuthHeaderPolicyBuilder : IUAuthHeaderPolicyBuilder
 {
-    public string BuildHeaderValue(string rawValue, CredentialResponseOptions response, AuthFlowContext context)
+    public string BuildHeaderValue(string rawValue, EffectiveGrantDelivery delivery, AuthFlowContext context)
     {
-        if (string.IsNullOrWhiteSpace(rawValue))
-            throw new ArgumentException("Header value cannot be empty.", nameof(rawValue));
+        if (delivery.Mode != GrantDeliveryMode.Header)
+        {
+            throw new InvalidOperationException($"Header policy requested for non-header grant '{delivery.Kind}'.");
+        }
 
-        return response.HeaderFormat switch
+        if (string.IsNullOrWhiteSpace(rawValue))
+        {
+            throw new ArgumentException("Header value cannot be empty.", nameof(rawValue));
+        }
+
+        return delivery.HeaderFormat switch
         {
             HeaderTokenFormat.Bearer => $"Bearer {rawValue}",
             HeaderTokenFormat.Raw => rawValue,
-            _ => throw new InvalidOperationException($"Unsupported header token format: {response.HeaderFormat}")
+            _ => throw new InvalidOperationException($"Unsupported header token format: {delivery.HeaderFormat}")
         };
     }
 }

@@ -119,7 +119,7 @@ internal sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
         return Task.CompletedTask;
     }
 
-    public Task RevokeByChainAsync(SessionChainId chainId, DateTimeOffset revokedAt, CancellationToken ct = default)
+    public Task RevokeBySessionChainAsync(SessionChainId chainId, DateTimeOffset revokedAt, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -128,9 +128,29 @@ internal sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
             if (tenant != _tenant)
                 continue;
 
-            if (token.ChainId == chainId && !token.IsRevoked)
+            if (token.SessionChainId == chainId && !token.IsRevoked)
             {
                 _tokens[(_tenant, hash)] = token.Revoke(revokedAt);
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task RevokeByRefreshChainAsync(RefreshChainId refreshChainId, DateTimeOffset revokedAt, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        foreach (var ((tenant, hash), token) in _tokens.ToArray())
+        {
+            if (tenant != _tenant)
+                continue;
+
+            if (token.RefreshChainId == refreshChainId &&
+                !token.IsRevoked)
+            {
+                _tokens[(_tenant, hash)] =
+                    token.Revoke(revokedAt);
             }
         }
 

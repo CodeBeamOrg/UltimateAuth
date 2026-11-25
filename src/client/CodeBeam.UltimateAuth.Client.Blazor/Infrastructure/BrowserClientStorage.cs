@@ -54,8 +54,8 @@ public sealed class BrowserClientStorage : IClientStorage
     /// <param name="scope"></param>
     /// <param name="key"></param>
     /// <returns></returns>
-    public async ValueTask<bool> ExistsAsync(StorageScope scope, string key)
-        => await _js.InvokeAsync<bool>("uauth.storage.exists", Scope(scope), key);
+    public ValueTask<bool> ExistsAsync(StorageScope scope, string key)
+        => _js.InvokeAsync<bool>("uauth.storage.exists", Scope(scope), key);
 
     /// <summary>
     /// Gets the string representation of the storage scope for use in JavaScript interop.

@@ -4,11 +4,11 @@ namespace CodeBeam.UltimateAuth.Client.Infrastructure;
 
 internal static class ClientLoginCapabilities
 {
-    public static bool CanPostCredentials(UAuthClientProfile profile)
+    public static bool CanPostCredentials(UAuthApplicationProfile profile)
         => profile switch
         {
-            UAuthClientProfile.BlazorServer => true,
-            UAuthClientProfile.UAuthHub => true,
+            UAuthApplicationProfile.BlazorServer => true,
+            UAuthApplicationProfile.UAuthHub => true,
             _ => false
         };
 }

@@ -1,12 +1,13 @@
-﻿using CodeBeam.UltimateAuth.Core;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Extensions;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Options;
-using AwesomeAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using System.Security.Cryptography;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -99,6 +100,8 @@ public class ServerOptionsValidatorTests
             o.Token.AccessTokenLifetime = TimeSpan.FromMinutes(5);
             o.Token.RefreshTokenLifetime = TimeSpan.FromDays(1);
             o.Token.OpaqueIdBytes = 32;
+            o.Cryptography.JwtSigningKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+            o.Cryptography.TokenHashingKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         });
 
         services.AddSingleton<IValidateOptions<UAuthServerOptions>, UAuthServerTokenOptionsValidator>();
@@ -850,7 +853,6 @@ public class ServerOptionsValidatorTests
 
     [Theory]
     [InlineData(UAuthMode.SemiHybrid)]
-    [InlineData(UAuthMode.PureJwt)]
     public void Server_unimplemented_mode_fails(UAuthMode mode) =>
         ShouldReject<UAuthServerOptionsValidator>(o =>
         {

@@ -1078,7 +1078,7 @@ public sealed class CredentialManagementServiceTests
         f.EffectiveOptionsProvider
             .Setup(x => x.GetEffective(
                 context.ResourceTenant,
-                UAuthClientProfile.NotSpecified))
+                UAuthApplicationProfile.NotSpecified))
             .Returns(new EffectiveUAuthServerOptions
             {
                 Mode = UAuthMode.PureOpaque,
@@ -1656,8 +1656,8 @@ public sealed class CredentialManagementServiceTests
             EffectiveOptionsProvider
                 .Setup(x => x.GetEffective(
                     It.IsAny<TenantKey>(),
-                    It.IsAny<UAuthClientProfile>()))
-                .Returns((TenantKey tenant, UAuthClientProfile profile) =>
+                    It.IsAny<UAuthApplicationProfile>()))
+                .Returns((TenantKey tenant, UAuthApplicationProfile profile) =>
                     new EffectiveUAuthServerOptions
                     {
                         Mode = UAuthMode.PureOpaque,

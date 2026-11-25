@@ -4,6 +4,7 @@
 @inject IUAuthClient UAuthClient
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject LabSessionDiagnosticsPolicyService PolicyService
 @inject NavigationManager Navigation
 
 @attribute [UAuthAuthorize(Roles = "Ladmin,Owner,User")]
@@ -64,6 +65,58 @@
                        OnClick="LogoutOthersAsync">Logout Other Sessions</MudButton>
         </div>
 
+        <MudPaper Outlined="true" Class="pa-5 mb-4">
+            <MudStack Spacing="3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.h6">
+                        Device Limits
+                    </MudText>
+
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">
+                        Configured
+                    </MudChip>
+                </MudStack>
+
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            MAXIMUM DEVICES
+                        </MudText>
+
+                        <MudText Typo="Typo.h4">
+                            @MaxDevicesText
+                        </MudText>
+
+                        <LabOptionInfo Title="Maximum Devices" OptionPath="o.DeviceLimits.MaxDevices" CurrentValue="@MaxDevicesText" Description="Maximum number of distinct active devices per user." />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            WEB DEVICE LIMIT
+                        </MudText>
+
+                        <MudText Typo="Typo.h4">
+                            @WebDeviceLimitText
+                        </MudText>
+
+                        <LabOptionInfo Title="Web Device Limit" OptionPath="o.DeviceLimits.TypeLimits[&quot;web&quot;]" CurrentValue="@WebDeviceLimitText" Description="Maximum number of distinct active web devices." />
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider />
+
+                <MudText Typo="Typo.body2">
+                    Limit behavior:
+                    <strong>@_devicePolicy?.DeviceLimitBehavior</strong>
+                </MudText>
+
+                <MudText Typo="Typo.caption"
+                         Color="Color.Secondary">
+                    Limits apply to distinct active device identities,
+                    not the number of sessions.
+                </MudText>
+            </MudStack>
+        </MudPaper>
         
         @* TODO (SDK): Provide direct current-chain lookup without scanning pages. *@
         @if (_currentChain is not null)
@@ -106,21 +159,13 @@
                         </div>
                     </div>
 
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               Size="Size.Small"
-                               Disabled="@_busy"
-                               OnClick="@(() => OpenSessionManagementAsync(_currentChain.ChainId))">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Disabled="@_busy" OnClick="@(() => OpenSessionManagementAsync(_currentChain.ChainId))">
                         Details
                     </MudButton>
 
                     @if (!_currentChain.IsRevoked)
                     {
-                        <MudButton Variant="Variant.Outlined"
-                                   Color="Color.Error"
-                                   Size="Size.Small"
-                                   Disabled="@_busy"
-                                   OnClick="@(() => LogoutAsync(_currentChain))">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" Disabled="@_busy" OnClick="@(() => LogoutAsync(_currentChain))">
                             Logout
                         </MudButton>
                     }
@@ -129,10 +174,7 @@
         }
         else if (!_loading && _error is null)
         {
-            <MudButton Variant="Variant.Text"
-                       Color="Color.Primary"
-                       Disabled="@_busy"
-                       OnClick="FindCurrentChainAsync">
+            <MudButton Variant="Variant.Text" Color="Color.Primary" Disabled="@_busy" OnClick="FindCurrentChainAsync">
                 Locate Current Device
             </MudButton>
         }
@@ -332,8 +374,17 @@
     private int _treeVisibleCount = 4;
     private int TotalPages => Math.Max(1, (_totalChains + PageSize - 1) / PageSize);
     private const int PageSize = 20;
+    private LabSessionDiagnosticsPolicy? _devicePolicy;
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    private string MaxDevicesText => _devicePolicy?.MaxDevices?.ToString() ?? "Unlimited";
+
+    private string WebDeviceLimitText => _devicePolicy?.DeviceTypeLimits.TryGetValue("web", out var limit) == true ? limit.ToString() : "Unlimited";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _devicePolicy = PolicyService.Get();
+        await LoadAsync();
+    }
 
     private async Task RefreshAsync()
     {

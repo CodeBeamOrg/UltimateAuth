@@ -32,7 +32,7 @@ public sealed class AccessContext
     public TenantKey ResourceTenant { get; init; }
 
     public string Action { get; init; } = default!;
-    public UAuthClientProfile ClientProfile { get; }
+    public UAuthApplicationProfile ApplicationProfile { get; }
     public IReadOnlyDictionary<string, object> Attributes { get; init; } = EmptyAttributes.Instance;
 
     public bool IsCrossTenant => !string.Equals(ActorTenant, ResourceTenant, StringComparison.Ordinal);
@@ -64,7 +64,7 @@ public sealed class AccessContext
         UserKey? targetUserKey,
         TenantKey resourceTenant,
         string action,
-        UAuthClientProfile clientProfile,
+        UAuthApplicationProfile applicationProfile,
         IReadOnlyDictionary<string, object> attributes,
         IReadOnlyCollection<UserKey>? targetUserKeys = null)
     {
@@ -82,7 +82,7 @@ public sealed class AccessContext
         ResourceTenant = resourceTenant;
 
         Action = action;
-        ClientProfile = clientProfile;
+        ApplicationProfile = applicationProfile;
         Attributes = attributes;
     }
 
@@ -104,7 +104,7 @@ public sealed class AccessContext
             TargetUserKey,
             ResourceTenant,
             Action,
-            ClientProfile,
+            ApplicationProfile,
             merged,
             TargetUserKeys
         );

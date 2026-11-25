@@ -246,14 +246,27 @@ public partial class SampleHubHome
         Snackbar.Add(message, Severity.Error);
     }
 
-    private string ResolveErrorMessage(HubErrorCode? errorCode)
+    private static string ResolveErrorMessage(HubErrorCode? errorCode)
     {
-        if (errorCode == HubErrorCode.InvalidCredentials)
+        return errorCode switch
         {
-            return "Invalid credentials.";
-        }
+            HubErrorCode.InvalidCredentials =>
+                "Invalid username or password. Please check your credentials and try again.",
 
-        return "Failed attempt.";
+            HubErrorCode.LockedOut =>
+                "Your account is temporarily locked due to too many failed login attempts. Please try again later.",
+
+            HubErrorCode.RequiresMfa =>
+                "Additional verification is required to complete your sign-in.",
+
+            HubErrorCode.DeviceLimitExceeded =>
+                "Device limit reached. You have reached the maximum number of active devices allowed for your account. Please sign out from another device before trying again.",
+
+            HubErrorCode.None =>
+                "Unable to complete sign-in. Please try again.",
+
+            _ =>
+                "Authentication failed. Please try again or contact support if the problem persists."
+        };
     }
-
 }

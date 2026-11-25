@@ -1000,11 +1000,40 @@ public sealed class AuthorizationManagementTests
         return client;
     }
 
+    //private static async Task<HttpClient> AuthenticatedClientAsync(AuthServerFactory factory, IntegrationTestUser user)
+    //{
+    //    var client = CreateClient(factory);
+
+    //    using var response = await CsrfTestClient.PostJsonAsync(client,
+    //        "/auth/login",
+    //        new
+    //        {
+    //            identifier = user.Identifier,
+    //            secret = user.Secret
+    //        });
+
+    //    response.StatusCode.Should().Be(HttpStatusCode.Found);
+
+    //    response.Headers.TryGetValues("Set-Cookie", out var values)
+    //        .Should().BeTrue();
+
+    //    var cookie = values!
+    //        .First(x => x.StartsWith(
+    //            "uas=",
+    //            StringComparison.OrdinalIgnoreCase))
+    //        .Split(';', 2)[0];
+
+    //    client.DefaultRequestHeaders.Add("Cookie", cookie);
+
+    //    return client;
+    //}
+
     private static async Task<HttpClient> AuthenticatedClientAsync(AuthServerFactory factory, IntegrationTestUser user)
     {
         var client = CreateClient(factory);
 
-        using var response = await CsrfTestClient.PostJsonAsync(client,
+        using var response = await CsrfTestClient.PostJsonAsync(
+            client,
             "/auth/login",
             new
             {
@@ -1012,7 +1041,12 @@ public sealed class AuthorizationManagementTests
                 secret = user.Secret
             });
 
-        response.StatusCode.Should().Be(HttpStatusCode.Found);
+        var body = await response.Content.ReadAsStringAsync(
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(
+            HttpStatusCode.Found,
+            $"login failed with {(int)response.StatusCode}: {body}");
 
         response.Headers.TryGetValues("Set-Cookie", out var values)
             .Should().BeTrue();

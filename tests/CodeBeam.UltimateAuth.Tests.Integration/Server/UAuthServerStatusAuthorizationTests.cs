@@ -1,15 +1,19 @@
 ﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Core.Runtime;
+using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Authorization;
+using CodeBeam.UltimateAuth.Server.Options;
+using CodeBeam.UltimateAuth.Server.ResourceApi;
 using CodeBeam.UltimateAuth.Server.Runtime;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -167,6 +171,162 @@ public sealed class UAuthServerStatusAuthorizationTests
         restored.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
+    [Theory]
+    [InlineData(UAuthMode.PureOpaque)]
+    [InlineData(UAuthMode.Hybrid)]
+    [InlineData(UAuthMode.SemiHybrid)]
+    public async Task ResourceApi_SessionMode_WithoutSessionValidation_ShouldForbid(UAuthMode mode)
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseTestServer();
+
+        builder.Services.AddSingleton<IOptions<UAuthResourceApiOptions>>(
+            Options.Create(new UAuthResourceApiOptions
+            {
+                Auth = new UAuthResourceAuthOptions
+                {
+                    Mode = mode
+                }
+            }));
+
+        builder.Services.AddSingleton<IUAuthRuntimeMarker, ResourceRuntimeMarker>();
+
+        builder.Services.AddSingleton<IEffectiveAuthModeResolver>(
+            new EffectiveAuthModeResolver());
+
+        builder.Services.AddSingleton<ResourceApiAuthModeProvider>();
+
+        builder.Services
+            .AddAuthentication(UAuthConstants.SchemeDefaults.GlobalScheme)
+            .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
+                UAuthConstants.SchemeDefaults.GlobalScheme, _ => { });
+
+        builder.Services.AddAuthorization();
+
+        builder.Services.AddSingleton<
+            IAuthorizationMiddlewareResultHandler,
+            UAuthStatusAuthorizationResultHandler>();
+
+        var app = builder.Build();
+
+        app.UseRouting();
+
+        app.Use(async (context, next) =>
+        {
+            context.Items[UAuthConstants.HttpItems.TenantContextKey] =
+                UAuthTenantContext.SingleTenant();
+
+            await next();
+        });
+
+        app.UseAuthentication();
+        app.UseAuthorization();
+
+        app.MapGet("/resource-protected", () => Results.Ok())
+            .RequireAuthorization();
+
+        await app.StartAsync(TestContext.Current.CancellationToken);
+
+        try
+        {
+            using var client = app.GetTestClient();
+
+            client.DefaultRequestHeaders.Add("X-Test-Auth", "true");
+
+            using var response = await client.GetAsync(
+                "/resource-protected",
+                TestContext.Current.CancellationToken);
+
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+        finally
+        {
+            await app.StopAsync(TestContext.Current.CancellationToken);
+            await app.DisposeAsync();
+        }
+    }
+
+    [Fact]
+    public async Task ResourceApi_PureJwt_ShouldAuthorizeWithoutSessionValidation()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseTestServer();
+
+        var resourceOptions = new UAuthResourceApiOptions
+        {
+            Auth = new UAuthResourceAuthOptions
+            {
+                Mode = UAuthMode.PureJwt
+            }
+        };
+
+        builder.Services.AddSingleton<IOptions<UAuthResourceApiOptions>>(
+            Options.Create(resourceOptions));
+
+        builder.Services.AddSingleton<IUAuthRuntimeMarker, ResourceRuntimeMarker>();
+
+        builder.Services.AddSingleton<IEffectiveAuthModeResolver>(
+            new EffectiveAuthModeResolver());
+
+        builder.Services.AddSingleton<ResourceApiAuthModeProvider>();
+
+        builder.Services
+            .AddAuthentication(UAuthConstants.SchemeDefaults.GlobalScheme)
+            .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
+                UAuthConstants.SchemeDefaults.GlobalScheme, _ => { });
+
+        builder.Services.AddAuthorization();
+
+        builder.Services.AddSingleton<
+            IAuthorizationMiddlewareResultHandler,
+            UAuthStatusAuthorizationResultHandler>();
+
+        var app = builder.Build();
+
+        app.UseRouting();
+
+        app.Use(async (context, next) =>
+        {
+            context.Items[UAuthConstants.HttpItems.TenantContextKey] =
+                UAuthTenantContext.SingleTenant();
+
+            await next();
+        });
+
+        app.UseAuthentication();
+        app.UseAuthorization();
+
+        app.MapGet("/resource-protected", () => Results.Ok())
+            .RequireAuthorization();
+
+        await app.StartAsync(TestContext.Current.CancellationToken);
+
+        try
+        {
+            var mode = app.Services
+                .GetRequiredService<ResourceApiAuthModeProvider>()
+                .Mode;
+
+            mode.Should().Be(UAuthMode.PureJwt);
+
+            using var client = app.GetTestClient();
+
+            client.DefaultRequestHeaders.Add("X-Test-Auth", "true");
+
+            using var response = await client.GetAsync(
+                "/resource-protected",
+                TestContext.Current.CancellationToken);
+
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+        finally
+        {
+            await app.StopAsync(TestContext.Current.CancellationToken);
+            await app.DisposeAsync();
+        }
+    }
+
+
     private static UserRuntimeRecord CreateState(
         bool exists = true,
         bool isActive = true,
@@ -201,6 +361,29 @@ public sealed class UAuthServerStatusAuthorizationTests
 
         builder.Services.AddSingleton(provider.Object);
         builder.Services.AddSingleton<IUAuthRuntimeMarker, ServerRuntimeMarker>();
+
+        var profileReader = new Mock<IApplicationProfileReader>();
+
+        profileReader
+            .Setup(x => x.ReadAsync(It.IsAny<HttpContext>()))
+            .ReturnsAsync(UAuthApplicationProfile.BlazorServer);
+
+        builder.Services.AddSingleton(profileReader.Object);
+
+        var effectiveOptionsProvider =
+            new Mock<IEffectiveServerOptionsProvider>();
+
+        effectiveOptionsProvider
+            .Setup(x => x.GetEffective(
+                It.IsAny<HttpContext>(),
+                It.IsAny<UAuthApplicationProfile>()))
+            .Returns(new EffectiveUAuthServerOptions
+            {
+                Mode = UAuthMode.PureOpaque,
+                Options = new UAuthServerOptions()
+            });
+
+        builder.Services.AddSingleton(effectiveOptionsProvider.Object);
 
         builder.Services
             .AddAuthentication(UAuthConstants.SchemeDefaults.GlobalScheme)

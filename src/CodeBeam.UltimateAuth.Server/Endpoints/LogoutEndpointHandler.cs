@@ -1,7 +1,9 @@
-﻿using CodeBeam.UltimateAuth.Core.Contracts;
+﻿using CodeBeam.UltimateAuth.Core;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Defaults;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -20,8 +22,10 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
     private readonly ISessionApplicationService _sessionApplicationService;
     private readonly IUAuthCookieManager _cookieManager;
     private readonly IAuthRedirectResolver _redirectResolver;
+    private readonly IRefreshTokenResolver _refreshTokenResolver;
+    private readonly IPureJwtLogoutService _pureJwtLogout;
 
-    public LogoutEndpointHandler(IAuthFlowContextAccessor authContext, IUAuthFlowService flow, IAccessContextFactory accessContextFactory, ISessionApplicationService sessionApplicationService, IUAuthCookieManager cookieManager, IAuthRedirectResolver redirectResolver)
+    public LogoutEndpointHandler(IAuthFlowContextAccessor authContext, IUAuthFlowService flow, IAccessContextFactory accessContextFactory, ISessionApplicationService sessionApplicationService, IUAuthCookieManager cookieManager, IAuthRedirectResolver redirectResolver, IRefreshTokenResolver refreshTokenResolver, IPureJwtLogoutService pureJwtLogout)
     {
         _authContext = authContext;
         _flow = flow;
@@ -29,13 +33,30 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
         _sessionApplicationService = sessionApplicationService;
         _cookieManager = cookieManager;
         _redirectResolver = redirectResolver;
+        _refreshTokenResolver = refreshTokenResolver;
+        _pureJwtLogout = pureJwtLogout;
     }
 
     public async Task<IResult> LogoutAsync(HttpContext ctx)
     {
         var authFlow = _authContext.Current;
 
-        if (authFlow.Session is SessionSecurityContext session)
+        if (authFlow.EffectiveMode == UAuthMode.PureJwt)
+        {
+            if (authFlow.IsAuthenticated)
+            {
+                var refreshToken = _refreshTokenResolver.Resolve(ctx);
+
+                if (!string.IsNullOrWhiteSpace(refreshToken))
+                {
+                    var revoked = await _pureJwtLogout.LogoutAsync(authFlow, refreshToken, ctx.RequestAborted);
+
+                    if (!revoked)
+                        return Results.Unauthorized();
+                }
+            }
+        }
+        else if (authFlow.Session is SessionSecurityContext session)
         {
             var request = new LogoutRequest
             {
@@ -51,20 +72,25 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
 
         var decision = _redirectResolver.ResolveSuccess(authFlow, ctx);
 
-        var observedLogout = string.Equals(ctx.Request.Headers["X-UAuth-Logout-Mode"].ToString(), "observe" ,StringComparison.OrdinalIgnoreCase);
+        var observedLogout = string.Equals(ctx.Request.Headers["X-UAuth-Logout-Mode"].ToString(), "observe", StringComparison.OrdinalIgnoreCase);
 
         if (observedLogout)
         {
             return Results.Ok(new
             {
                 IsSuccess = true,
-                RedirectUrl = decision.Enabled ? decision.TargetUrl : null
+                RedirectUrl = decision.Enabled
+                    ? decision.TargetUrl
+                    : null
             });
         }
 
         return decision.Enabled
             ? Results.Redirect(decision.TargetUrl!)
-            : Results.Ok(new LogoutResponse { IsSuccess = true });
+            : Results.Ok(new LogoutResponse
+            {
+                IsSuccess = true
+            });
     }
 
     public async Task<IResult> LogoutDeviceSelfAsync(HttpContext ctx)
@@ -181,14 +207,14 @@ public sealed class LogoutEndpointHandler : ILogoutEndpointHandler
         return Results.Ok();
     }
 
-    private void DeleteIfCookie(HttpContext ctx, CredentialResponseOptions delivery)
+    private void DeleteIfCookie(HttpContext ctx, EffectiveGrantDelivery delivery)
     {
-        if (delivery.Mode != TokenResponseMode.Cookie)
+        if (delivery.Mode != GrantDeliveryMode.Cookie)
             return;
 
-        if (delivery.Cookie == null)
-            return;
+        var cookie = delivery.Cookie
+            ?? throw new InvalidOperationException($"Cookie options are missing for grant '{delivery.Kind}'.");
 
-        _cookieManager.Delete(ctx, delivery.Cookie.Name);
+        _cookieManager.Delete(ctx, cookie.Name);
     }
 }

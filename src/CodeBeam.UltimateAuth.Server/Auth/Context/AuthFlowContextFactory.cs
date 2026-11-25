@@ -14,7 +14,7 @@ namespace CodeBeam.UltimateAuth.Server.Auth;
 
 internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
 {
-    private readonly IClientProfileReader _clientProfileReader;
+    private readonly IApplicationProfileReader _applicationProfileReader;
     private readonly IPrimaryTokenResolver _primaryTokenResolver;
     private readonly IEffectiveServerOptionsProvider _serverOptionsProvider;
     private readonly IAuthResponseResolver _authResponseResolver;
@@ -24,7 +24,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
     private readonly IClock _clock;
 
     public AuthFlowContextFactory(
-        IClientProfileReader clientProfileReader,
+        IApplicationProfileReader applicationProfileReader,
         IPrimaryTokenResolver primaryTokenResolver,
         IEffectiveServerOptionsProvider serverOptionsProvider,
         IAuthResponseResolver authResponseResolver,
@@ -33,7 +33,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         ISessionValidator sessionValidator,
         IClock clock)
     {
-        _clientProfileReader = clientProfileReader;
+        _applicationProfileReader = applicationProfileReader;
         _primaryTokenResolver = primaryTokenResolver;
         _serverOptionsProvider = serverOptionsProvider;
         _authResponseResolver = authResponseResolver;
@@ -49,57 +49,69 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         var sessionCtx = ctx.GetSessionContext();
         var user = ctx.GetUserContext();
 
-        var clientProfile = await _clientProfileReader.ReadAsync(ctx);
+        var applicationProfile = await _applicationProfileReader.ReadAsync(ctx);
 
-        var effective = _serverOptionsProvider.GetEffective(ctx, clientProfile);
+        var effective = _serverOptionsProvider.GetEffective(ctx, applicationProfile);
         var options = effective.Options;
 
         var effectiveMode = effective.Mode;
         var allowedModes = options.AllowedModes;
 
         if (allowedModes is { Count: > 0 } && !allowedModes.Contains(effectiveMode))
-        {
             throw new InvalidOperationException($"Auth mode '{effectiveMode}' is not allowed by server configuration.");
-        }
 
         var primaryTokenKind = _primaryTokenResolver.Resolve(effectiveMode);
-        var response = _authResponseResolver.Resolve(effectiveMode, flowType, clientProfile, effective);
+        var response = _authResponseResolver.Resolve(effectiveMode, flowType, applicationProfile, effective);
         var deviceInfo = await _deviceResolver.ResolveAsync(ctx);
         var deviceContext = _deviceContextFactory.Create(deviceInfo);
         var returnUrl = await ctx.GetReturnUrlAsync();
         var returnUrlInfo = ReturnUrlParser.Parse(returnUrl);
 
+
         SessionSecurityContext? sessionSecurityContext = null;
-        var isAuthenticated = user?.IsAuthenticated ?? false;
-        var userKey = user?.UserId;
+        bool isAuthenticated;
+        UserKey? userKey;
 
-        if (!sessionCtx.IsAnonymous)
+        if (effectiveMode == UAuthMode.PureJwt)
         {
-            var validation = await _sessionValidator.ValidateSessionAsync(
-                new SessionValidationContext
-                {
-                    Tenant = tenant,
-                    SessionId = sessionCtx.SessionId!.Value,
-                    Device = deviceContext,
-                    SessionOptions = options.Session,
-                    Now = _clock.UtcNow
-                },
-                ct);
-
-            sessionSecurityContext = SessionValidationMapper.ToSecurityContext(validation);
+            // The UserMiddleware has already populated this snapshot from the cryptographically authenticated JWT principal.
+            // No session validation is performed for PureJwt.
+            isAuthenticated = user?.IsAuthenticated == true;
+            userKey = isAuthenticated ? user?.UserId : null;
+        }
+        else
+        {
+            isAuthenticated = user?.IsAuthenticated ?? false;
+            userKey = user?.UserId;
 
             if (effectiveMode is UAuthMode.PureOpaque or UAuthMode.Hybrid)
             {
-                isAuthenticated = validation.IsValid;
+                if (!sessionCtx.IsAnonymous)
+                {
+                    var validation = await _sessionValidator.ValidateSessionAsync(
+                        new SessionValidationContext
+                        {
+                            Tenant = tenant,
+                            SessionId = sessionCtx.SessionId!.Value,
+                            Device = deviceContext,
+                            SessionOptions = options.Session,
+                            Now = _clock.UtcNow
+                        },
+                        ct);
 
-                if (!isAuthenticated)
+                    sessionSecurityContext = SessionValidationMapper.ToSecurityContext(validation);
+
+                    isAuthenticated = validation.IsValid;
+
+                    if (!isAuthenticated)
+                        userKey = null;
+                }
+                else
+                {
+                    isAuthenticated = false;
                     userKey = null;
+                }
             }
-        }
-        else if (effectiveMode is UAuthMode.PureOpaque or UAuthMode.Hybrid)
-        {
-            isAuthenticated = false;
-            userKey = null;
         }
 
         if (!tenant.IsValid || tenant.IsUnresolved)
@@ -110,7 +122,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
 
         return new AuthFlowContext(
             flowType,
-            clientProfile,
+            applicationProfile,
             effectiveMode,
             deviceContext,
             tenant,
@@ -124,7 +136,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         );
     }
 
-    public async ValueTask<AuthFlowContext> RecreateWithClientProfileAsync(AuthFlowContext existing, UAuthClientProfile overriddenProfile, CancellationToken ct = default)
+    public async ValueTask<AuthFlowContext> RecreateWithApplicationProfileAsync(AuthFlowContext existing, UAuthApplicationProfile overriddenProfile, CancellationToken ct = default)
     {
         var flowType = existing.FlowType;
         var tenant = existing.Tenant;
@@ -138,6 +150,11 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
         if (allowedModes is { Count: > 0 } && !allowedModes.Contains(effectiveMode))
         {
             throw new InvalidOperationException($"Auth mode '{effectiveMode}' is not allowed by server configuration.");
+        }
+
+        if (effectiveMode != existing.EffectiveMode && existing.IsAuthenticated)
+        {
+            throw new InvalidOperationException("An authenticated flow cannot change its authentication mode through a application profile override.");
         }
 
         var primaryTokenKind = _primaryTokenResolver.Resolve(effectiveMode);
@@ -170,7 +187,7 @@ internal sealed class AuthFlowContextFactory : IAuthFlowContextFactory
 
         return ValueTask.FromResult(new AuthFlowContext(
             flowType,
-            existing.ClientProfile,
+            existing.ApplicationProfile,
             existing.EffectiveMode,
             device,
             tenant,

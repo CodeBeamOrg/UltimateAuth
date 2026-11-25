@@ -180,6 +180,26 @@ This is useful when an application needs to clear its own state, perform additio
 
 **Important:** The `navigate` parameter controls client-side navigation, not session termination or server-side redirect configuration. If logout fails, including with HTTP 429, the operation does not publish a successful logout event. Applications should perform post-logout actions only after `LogoutAsync` completes successfully.
 
+### PureJwt logout
+
+PureJwt does not have a server-side authentication session to terminate.
+
+Instead, UltimateAuth can revoke the refresh chain associated with the authenticated client.
+
+When a refresh token is supplied, the logout flow validates its relationship to the authenticated user, tenant, device, and refresh chain before revocation.
+
+The refresh chain is revoked through the configured refresh-token store.
+
+Cookie-based credentials are cleared according to the effective delivery configuration.
+
+An important distinction applies:
+
+- Refresh-chain revocation prevents further token renewal.
+- Clearing client credentials removes locally accessible authentication material.
+- Already issued JWT access tokens remain valid until expiration unless an additional validation condition invalidates them.
+
+A logout request without a refresh token does not revoke a refresh chain. Applications should not treat local credential removal alone as proof of server-side refresh-token revocation.
+
 ## Why redirect matters
 
 A redirect is **not required to invalidate authentication state**. It is a navigation concern that becomes important in browser-based authentication flows.

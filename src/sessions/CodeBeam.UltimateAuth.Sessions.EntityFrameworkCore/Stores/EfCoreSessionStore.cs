@@ -92,6 +92,44 @@ internal sealed class EfCoreSessionStore<TDbContext> : ISessionStore where TDbCo
         }
     }
 
+    public async Task<TResult> ExecuteAdmissionAsync<TResult>(Func<CancellationToken, Task<TResult>> action, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        ct.ThrowIfCancellationRequested();
+
+        if (_db.Database.CurrentTransaction is not null)
+        {
+            throw new InvalidOperationException("Device admission cannot participate in an existing transaction.");
+        }
+
+        var strategy = _db.Database.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+
+            try
+            {
+                var result = await ExecuteCoreAsync(action, ct);
+                await transaction.CommitAsync(ct);
+                return result;
+            }
+            catch
+            {
+                try
+                {
+                    await transaction.RollbackAsync(CancellationToken.None);
+                }
+                finally
+                {
+                    _db.ChangeTracker.Clear();
+                }
+
+                throw;
+            }
+        });
+    }
+
     public async Task<UAuthSession?> GetSessionAsync(AuthSessionId sessionId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();

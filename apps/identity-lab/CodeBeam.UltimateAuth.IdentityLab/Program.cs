@@ -42,6 +42,12 @@ builder.Services.AddSingleton(activityEventBridge);
 
 builder.Services.AddUltimateAuthServer(o =>
 {
+    o.Cryptography.TokenHashingKey = builder.Configuration["UltimateAuth:Cryptography:TokenHashingKey"]
+        ?? o.Cryptography.TokenHashingKey;
+
+    o.Cryptography.JwtSigningKey = builder.Configuration["UltimateAuth:Cryptography:JwtSigningKey"]
+        ?? o.Cryptography.JwtSigningKey;
+
     // Identity Lab uses its own trusted creation align with Sandbox management.
     o.Endpoints.DisabledActions.Add(UAuthActions.Users.CreateAnonymous);
     o.Diagnostics.EnableRefreshDetails = true;
@@ -50,6 +56,8 @@ builder.Services.AddUltimateAuthServer(o =>
     o.Login.LockoutDuration = TimeSpan.FromMinutes(1);
     o.Login.IncludeFailureDetails = true;
     o.Identifiers.Behavior.AllowMultipleUsernames = true;
+    o.DeviceLimits.MaxDevices = 3;
+    o.DeviceLimits.TypeLimits["web"] = 2;
 
 
     o.Events.OnUserLoggedIn = context => activityEventBridge.RecordAsync(context.UserKey, ActivityEvents.Login);

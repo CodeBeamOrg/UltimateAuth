@@ -53,10 +53,50 @@ public sealed class UAuthServerOptions
     // SERVER-ONLY BEHAVIOR
     // -------------------------------------------------------
 
-    /// <summary>Startup-only native endpoint throttling; application policies take precedence.</summary>
+    /// <summary>
+    /// Gets or sets the authentication mode used for all application profiles when explicitly configured.
+    /// </summary>
+    /// <remarks>
+    /// When null, mode selection uses the configured application profile mappings or the registered authentication mode resolver.
+    /// <br/><br/>
+    /// Setting this property establishes a server-controlled mode selection that cannot be changed by application profile headers.
+    /// <br/><br/>
+    /// This setting is mutually exclusive with ApplicationProfileModes.
+    /// The selected mode must be included in AllowedModes when an allowlist is configured.
+    /// </remarks>
+    public UAuthMode? AuthMode { get; set; }
+
+    /// <summary>
+    /// Gets or sets explicit authentication mode mappings for individual application profiles.
+    /// </summary>
+    /// <remarks>
+    /// Mappings override the default automatic selection for the specified profiles.
+    /// Profiles without mappings use the registered resolver.
+    /// <br/><br/>
+    /// Application profiles describe application environments and are not authenticated application identities.
+    /// Use a server-controlled authentication policy when selecting modes is security-sensitive.
+    /// <br/><br/>
+    /// Cannot be combined with an explicit AuthMode.
+    /// </remarks>
+    public Dictionary<UAuthApplicationProfile, UAuthMode> ApplicationProfileModes { get; set; } = new();
+
+    /// <summary>
+    /// Cryptographic keys used by the built-in implementations.
+    /// </summary>
+    public UAuthCryptographyOptions Cryptography { get; set; } = new();
+
+    /// <summary>
+    /// Startup-only native endpoint throttling; application policies take precedence.
+    /// </summary>
     public UAuthRateLimitingOptions RateLimiting { get; set; } = new();
 
     public UAuthConcurrencyLimitingOptions ConcurrencyLimiting { get; set; } = new();
+
+    /// <summary>
+    /// Controls optional global and per-type active device limits.
+    /// No limits by default.
+    /// </summary>
+    public UAuthDeviceLimitOptions DeviceLimits { get; set; } = new();
 
     /// <summary>
     /// Defines which authentication modes are allowed to be used by the server.
@@ -83,7 +123,16 @@ public sealed class UAuthServerOptions
 
     public UAuthPrimaryCredentialPolicy PrimaryCredential { get; init; } = new();
 
-    public UAuthResponseOptions AuthResponse { get; init; } = new();
+    /// <summary>
+    /// Configures how authentication grants are delivered
+    /// to clients.
+    /// </summary>
+    public UAuthGrantDeliveryOptions GrantDelivery { get; set; } = new();
+
+    /// <summary>
+    /// Configures authentication flow redirects.
+    /// </summary>
+    public UAuthRedirectOptions Redirect { get; set; } = new();
 
     public UAuthResetOptions ResetCredential { get; init; } = new();
 
@@ -128,6 +177,18 @@ public sealed class UAuthServerOptions
     /// </summary>
     public UAuthArtifactStoreOptions AuthArtifacts { get; set; } = new();
 
+    [Obsolete("AuthResponse is no longer supported. Use GrantDelivery and Redirect instead.")]
+    public UAuthResponseOptions AuthResponse
+    {
+        get => throw new NotSupportedException(
+            "AuthResponse is no longer supported. " +
+            "Use GrantDelivery and Redirect instead.");
+
+        set => throw new NotSupportedException(
+            "AuthResponse is no longer supported. " +
+            "Use GrantDelivery and Redirect instead.");
+    }
+
 
     // -------------------------------------------------------
     // CUSTOMIZATION HOOKS
@@ -148,11 +209,15 @@ public sealed class UAuthServerOptions
     {
         return new UAuthServerOptions
         {
+            AuthMode = AuthMode,
+            ApplicationProfileModes = new(ApplicationProfileModes),
+            Cryptography = Cryptography.Clone(),
             AllowedModes = AllowedModes?.ToArray(),
             HubDeploymentMode = HubDeploymentMode,
 
             RateLimiting = RateLimiting.Clone(),
             ConcurrencyLimiting = ConcurrencyLimiting.Clone(),
+            DeviceLimits = DeviceLimits.Clone(),
             Login = Login.Clone(),
             Session = Session.Clone(),
             Token = Token.Clone(),
@@ -164,7 +229,8 @@ public sealed class UAuthServerOptions
             Cookie = Cookie.Clone(),
             Diagnostics = Diagnostics.Clone(),
             PrimaryCredential = PrimaryCredential.Clone(),
-            AuthResponse = AuthResponse.Clone(),
+            GrantDelivery = GrantDelivery.Clone(),
+            Redirect = Redirect.Clone(),
             ResetCredential = ResetCredential.Clone(),
             CredentialSessionPolicy = CredentialSessionPolicy.Clone(),
             Password = Password.Clone(),

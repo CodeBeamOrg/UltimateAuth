@@ -10,13 +10,13 @@ namespace CodeBeam.UltimateAuth.Server.Infrastructure;
 public sealed class CompositeSessionIdResolver : ISessionIdResolver
 {
     private readonly IReadOnlyDictionary<string, IInnerSessionIdResolver> _resolvers;
-    private readonly IClientProfileReader _clientProfileReader;
+    private readonly IApplicationProfileReader _applicationProfileReader;
     private readonly IEffectiveServerOptionsProvider _effectiveOptionsProvider;
 
-    public CompositeSessionIdResolver(IEnumerable<IInnerSessionIdResolver> resolvers, IClientProfileReader clientProfileReader, IEffectiveServerOptionsProvider effectiveOptionsProvider)
+    public CompositeSessionIdResolver(IEnumerable<IInnerSessionIdResolver> resolvers, IApplicationProfileReader applicationProfileReader, IEffectiveServerOptionsProvider effectiveOptionsProvider)
     {
         _resolvers = resolvers.ToDictionary(r => r.Name, StringComparer.OrdinalIgnoreCase);
-        _clientProfileReader = clientProfileReader;
+        _applicationProfileReader = applicationProfileReader;
         _effectiveOptionsProvider = effectiveOptionsProvider;
     }
 
@@ -24,8 +24,8 @@ public sealed class CompositeSessionIdResolver : ISessionIdResolver
     {
         ct.ThrowIfCancellationRequested();
 
-        var clientProfile = await _clientProfileReader.ReadAsync(context);
-        var effective = _effectiveOptionsProvider.GetEffective(context, clientProfile);
+        var applicationProfile = await _applicationProfileReader.ReadAsync(context);
+        var effective = _effectiveOptionsProvider.GetEffective(context, applicationProfile);
         var options = effective.Options.SessionResolution;
 
         foreach (var name in options.Order)

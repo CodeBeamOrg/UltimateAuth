@@ -34,7 +34,15 @@
         if (_ref == null && PageState.Headings.Count > 0)
         {
             _ref = DotNetObjectReference.Create(this);
-            await JS.InvokeVoidAsync("uaDocsScrollSpy.start", _ref);
+            try
+            {
+                await JS.InvokeVoidAsync("uaDocsScrollSpy.start", _ref);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+
         }
     }
 
@@ -58,14 +66,33 @@
     private async Task OnClick(string id)
     {
         PageState.SetActiveHeading(id);
-        await JS.InvokeVoidAsync("uaDocsScrollSpy.scrollTo", id);
+
+        try
+        {
+            await JS.InvokeVoidAsync("uaDocsScrollSpy.scrollTo", id);
+        }
+        catch (Exception)
+        {
+            throw;
+        }
     }
 
     private string GetClass(DocsHeadingItem item)
      => item.Id == PageState.ActiveHeadingId ? "active toc-active" : "";
 
     private Task ScrollTo(string id)
-        => JS.InvokeVoidAsync("uaDocsScrollSpy.scrollTo", id).AsTask();
+    {
+        try
+        {
+            JS.InvokeVoidAsync("uaDocsScrollSpy.scrollTo", id).AsTask();
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+
+        return Task.CompletedTask;
+    }
 
     public void Dispose()
     {

@@ -29,7 +29,7 @@ internal sealed class HubFlowReader : IHubFlowReader
             Exists = true,
             HubSessionId = flow.HubSessionId,
             FlowType = flow.FlowType,
-            ClientProfile = flow.ClientProfile,
+            ApplicationProfile = flow.ApplicationProfile,
             ReturnUrl = flow.ReturnUrl,
             Error = flow.Error,
             AttemptCount = flow.AttemptCount,

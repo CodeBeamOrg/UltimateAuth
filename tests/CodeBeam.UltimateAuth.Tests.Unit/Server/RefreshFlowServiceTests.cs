@@ -505,7 +505,7 @@ public sealed class RefreshFlowServiceTests
             Tenant = TenantKey.Single,
             UserKey = UserKey.New(),
             SessionId = SessionId,
-            ChainId = SessionChainId.New(),
+            SessionChainId = SessionChainId.New(),
             Result = RefreshTokenRotationResult.Success(access, RefreshTokenMapper.ToTransport(refresh))
         };
     }
@@ -518,7 +518,7 @@ public sealed class RefreshFlowServiceTests
 
         return new AuthFlowContext(
             flowType: AuthFlowType.RefreshSession,
-            clientProfile: UAuthClientProfile.Api,
+            applicationProfile: UAuthApplicationProfile.Api,
             effectiveMode: mode,
             device: Device,
             tenantKey: TenantKey.Single,
@@ -527,9 +527,9 @@ public sealed class RefreshFlowServiceTests
             session: null,
             options: effective.Options,
             response: new EffectiveAuthResponse(
-                sessionIdDelivery: CredentialResponseOptions.Disabled(GrantKind.Session),
-                accessTokenDelivery: CredentialResponseOptions.Disabled(GrantKind.AccessToken),
-                refreshTokenDelivery: CredentialResponseOptions.Disabled(GrantKind.RefreshToken),
+                sessionIdDelivery: EffectiveGrantDelivery.Disabled(GrantKind.Session),
+                accessTokenDelivery: EffectiveGrantDelivery.Disabled(GrantKind.AccessToken),
+                refreshTokenDelivery: EffectiveGrantDelivery.Disabled(GrantKind.RefreshToken),
                 redirect: EffectiveRedirectResponse.Disabled),
             primaryTokenKind: PrimaryTokenKind.AccessToken,
             returnUrlInfo: ReturnUrlInfo.None());

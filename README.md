@@ -92,7 +92,7 @@ UltimateAuth eliminates fragmentation by handling client differences internally 
 
 Built-in capabilities designed for real-world scenarios:
 
-- Automatic client profile detection (blazor server - WASM - MAUI)
+- Automatic application profile detection (blazor server - WASM - MAUI)
 - Selectable authentication modes (Session / Token / Hybrid / SemiHybrid)
 - Device-aware sessions
 - PKCE flows out of the box
@@ -250,6 +250,32 @@ Change `Components/Pages/Home.razor`:
 <h3>Dashboard</h3>
 <p>Welcome, @AuthState?.Identity?.DisplayName!</p>
 ```
+
+### Note: Cryptographic Key Configuration
+
+UltimateAuth provides development-only cryptographic defaults for local testing. Applications can run without explicitly configuring keys in development, but **production deployments require securely configured cryptographic keys**.
+
+Generate independent, cryptographically secure keys (at least 32 random bytes each, Base64-encoded) and store them using environment variables or a trusted secret manager.
+
+```csharp
+builder.Services.AddUltimateAuthServer(options =>
+{
+    options.Cryptography.TokenHashingKey =
+        builder.Configuration["UltimateAuth:Cryptography:TokenHashingKey"]
+        ?? throw new InvalidOperationException("Token hashing key is missing.");
+
+    options.Cryptography.JwtSigningKey =
+        builder.Configuration["UltimateAuth:Cryptography:JwtSigningKey"]
+        ?? throw new InvalidOperationException("JWT signing key is missing.");
+});
+```
+
+- **TokenHashingKey:** Protects server-managed token hashes, including opaque and refresh-token material.
+- **JwtSigningKey:** Signs JWT access tokens for JWT-enabled authentication modes.
+
+Never use development keys in production, commit cryptographic secrets to source control, or reuse the same key for both purposes.
+
+For detailed configuration instructions, see the [QuickStart](https://ultimateauth.com/docs/getting-started/quickstart) and [Real-World Setup](https://ultimateauth.com/docs/getting-started/real-world-setup) guides.
 
 The examples above provide a simplified overview of UltimateAuth integration and are not intended to be a complete, copy-paste-ready application.
 

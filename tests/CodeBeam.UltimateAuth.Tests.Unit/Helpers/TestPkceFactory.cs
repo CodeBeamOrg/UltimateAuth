@@ -11,7 +11,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 internal static class TestPkceFactory
 {
     public static (PkceAuthorizationArtifact Artifact, string Verifier) Create(
-        UAuthClientProfile profile = UAuthClientProfile.BlazorWasm,
+        UAuthApplicationProfile profile = UAuthApplicationProfile.BlazorWasm,
         TenantKey? tenant = null)
     {
         tenant ??= TenantKeys.Single;
@@ -25,7 +25,7 @@ internal static class TestPkceFactory
         var key = AuthArtifactKey.New();
 
         var snapshot = new PkceContextSnapshot(
-            clientProfile: profile,
+            applicationProfile: profile,
             tenant: (TenantKey)tenant,
             redirectUri: "/",
             device: TestDevice.Default()

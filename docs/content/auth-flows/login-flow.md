@@ -25,7 +25,7 @@ UltimateAuth starts with the authentication lifecycle instead. It separates four
 1. **Identity resolution:** determine which user is attempting to authenticate.
 2. **Authentication and security evaluation:** verify the credential and decide whether the attempt is allowed.
 3. **Session establishment:** create a managed authentication instance in the appropriate device and user context.
-4. **Credential delivery:** optionally issue access and refresh tokens and deliver the applicable credentials according to the server mode and client profile.
+4. **Credential delivery:** optionally issue access and refresh tokens and deliver the applicable credentials according to the server mode and application profile.
 
 These responsibilities are related, but they are not interchangeable. In particular, a valid password does not by itself create a session, and a token is not the sole source of authentication state.
 
@@ -65,7 +65,7 @@ Client request
     │
     ▼
 Resolve authentication flow context
-    │  Tenant · device · effective mode · client profile
+    │  Tenant · device · effective mode · application profile
     ▼
 Resolve identifier → UserKey
     │
@@ -101,7 +101,7 @@ This diagram shows the responsibilities in the current flow. Some security-state
 
 ### 1. Resolve the authentication context
 
-Before credential validation, UltimateAuth operates within an `AuthFlowContext`. This context provides the effective tenant, device information, authentication mode, client profile, and applicable server options.
+Before credential validation, UltimateAuth operates within an `AuthFlowContext`. This context provides the effective tenant, device information, authentication mode, application profile, and applicable server options.
 
 That context matters because the same logical login operation can have different delivery and session requirements depending on how the application is hosted and which kind of client is connecting. Login should not need to be reimplemented for each application style.
 
@@ -229,11 +229,11 @@ Depending on the effective mode and issuer behavior, an individual token type ma
 
 Following successful session and optional token issuance, UltimateAuth dispatches a `UserLoggedInContext` event containing the tenant, user key, time, device, and session ID.
 
-The HTTP endpoint then delegates credential delivery to `ICredentialResponseWriter`. Session ID, access token, and refresh token are handled as distinct grant kinds. Delivery is resolved using the effective mode, authentication flow, client profile, and server configuration.
+The HTTP endpoint then delegates credential delivery to `ICredentialResponseWriter`. Session ID, access token, and refresh token are handled as distinct grant kinds. Delivery is resolved using the effective mode, authentication flow, application profile, and server configuration.
 
 Depending on configuration, the HTTP response may complete with `200 OK` or a success redirect. A rejected login may produce `401 Unauthorized` or a configured failure redirect.
 
-**Important for v0.1.0:** `TokenResponseMode.Body` is currently unsupported and rejected during response resolution. Do not assume that the HTTP login endpoint returns a JSON object containing the issued tokens. Consult the configured delivery modes and client profile instead.
+**Important for v0.1.0:** `TokenResponseMode.Body` is currently unsupported and rejected during response resolution. Do not assume that the HTTP login endpoint returns a JSON object containing the issued tokens. Consult the configured delivery modes and application profile instead.
 
 ## TryLogin: evaluate without establishing a session
 
@@ -250,7 +250,7 @@ UltimateAuth distinguishes **previewing a login** from **committing a login**.
 | Issue tokens | No | Optional |
 | Return a preview receipt | Possible | Consumes a matching receipt, if supplied |
 
-On a successful preview, the server can create a short-lived `PreviewReceipt`. That receipt is associated with the user, tenant, credential type, device, identifier, client profile, and a fingerprint of the submitted login material.
+On a successful preview, the server can create a short-lived `PreviewReceipt`. That receipt is associated with the user, tenant, credential type, device, identifier, application profile, and a fingerprint of the submitted login material.
 
 When a subsequent commit request includes a matching receipt, the server consumes it and can suppress a duplicate failed-attempt registration for that commit. **The receipt is not a replacement for the password**: the commit path still performs credential validation.
 

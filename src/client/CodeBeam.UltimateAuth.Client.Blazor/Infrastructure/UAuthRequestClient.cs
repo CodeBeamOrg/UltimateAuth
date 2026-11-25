@@ -1,11 +1,11 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
+﻿using CodeBeam.UltimateAuth.Client.Abstractions;
+using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
-using CodeBeam.UltimateAuth.Core.Contracts;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
-using System.Net;
 using System.Text.Json;
 
 // TODO: Add fluent helper API like RequiredOk
@@ -14,55 +14,68 @@ namespace CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
 internal sealed class UAuthRequestClient : IUAuthRequestClient
 {
     private readonly IJSRuntime _js;
-    IUAuthClientBootstrapper _bootstrapper;
-    private UAuthClientOptions _options;
+    private readonly IUAuthClientBootstrapper _bootstrapper;
+    private readonly IUAuthTokenStore _tokenStore;
+    private readonly UAuthClientOptions _options;
+    private readonly NavigationManager _navigation;
 
-    public UAuthRequestClient(IJSRuntime js, IUAuthClientBootstrapper bootstrapper, IOptions<UAuthClientOptions> options)
+    public UAuthRequestClient(
+        IJSRuntime js,
+        IUAuthClientBootstrapper bootstrapper,
+        IOptions<UAuthClientOptions> options,
+        IUAuthTokenStore tokenStore,
+        NavigationManager navigation)
     {
         _js = js;
         _bootstrapper = bootstrapper;
         _options = options.Value;
+        _tokenStore = tokenStore;
+        _navigation = navigation;
     }
 
     public async Task NavigateAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        await _bootstrapper.EnsureStartedAsync();
+        await _bootstrapper.EnsureStartedAsync(ct);
 
-        await _js.InvokeVoidAsync("uauth.post", ct, new
+        await InvokeVoidAsync("uauth.post", ct, new
         {
             url = endpoint,
             mode = "navigate",
             data = form,
-            clientProfile = _options.ClientProfile.ToString(),
+            applicationProfile = _options.ApplicationProfile.ToString(),
             trustedOrigin = ResolveTrustedOrigin()
         });
     }
 
-    public async Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
+    public Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form = null, CancellationToken ct = default)
+        => SendFormAsync(endpoint, form, accessToken: null, ct);
+
+    public async Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form, string? accessToken, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        await _bootstrapper.EnsureStartedAsync();
+        await _bootstrapper.EnsureStartedAsync(ct);
 
-        var result = await _js.InvokeAsync<UAuthTransportResult>("uauth.post", ct, new
-        {
-            url = endpoint,
-            mode = "fetch",
-            data = form,
-            clientProfile = _options.ClientProfile.ToString(),
-            trustedOrigin = ResolveTrustedOrigin()
-        });
+        var result = await InvokeAsync<UAuthTransportResult>(
+            "uauth.post",
+            ct,
+            new
+            {
+                url = endpoint,
+                mode = "fetch",
+                data = form,
+                accessToken,
+                applicationProfile = _options.ApplicationProfile.ToString(),
+                trustedOrigin = ResolveTrustedOrigin()
+            });
 
-        if (result == null)
+        if (result is null)
             throw new UAuthProtocolException("Invalid error response format.");
 
         if (result.Status == 0)
             throw new UAuthTransportException("Network error.");
-
-        //if (result.Status >= 500)
-        //    throw new UAuthTransportException($"Server error {result.Status}", (HttpStatusCode)result.Status);
 
         return result;
     }
@@ -71,15 +84,15 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
     {
         ct.ThrowIfCancellationRequested();
 
-        await _bootstrapper.EnsureStartedAsync();
+        await _bootstrapper.EnsureStartedAsync(ct);
 
-        var result = await _js.InvokeAsync<UAuthTransportResult>("uauth.post", ct,
+        var result = await InvokeAsync<UAuthTransportResult>("uauth.post", ct,
             new
             {
                 url = endpoint,
                 mode = navigateOnSuccess ? "logout" : "logout-observe",
                 data = form,
-                clientProfile = _options.ClientProfile.ToString(),
+                applicationProfile = _options.ApplicationProfile.ToString(),
                 trustedOrigin = ResolveTrustedOrigin()
             });
 
@@ -96,17 +109,21 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
     {
         ct.ThrowIfCancellationRequested();
 
-        await _bootstrapper.EnsureStartedAsync();
+        await _bootstrapper.EnsureStartedAsync(ct);
 
-        var result = await _js.InvokeAsync<UAuthTransportResult>("uauth.postJson", ct, new
-        {
-            url = endpoint,
-            payload = payload,
-            clientProfile = _options.ClientProfile.ToString(),
-            trustedOrigin = ResolveTrustedOrigin()
-        });
+        var result = await InvokeAsync<UAuthTransportResult>(
+            "uauth.postJson",
+            ct,
+            new
+            {
+                url = endpoint,
+                payload,
+                accessToken = GetAccessToken(),
+                applicationProfile = _options.ApplicationProfile.ToString(),
+                trustedOrigin = ResolveTrustedOrigin()
+            });
 
-        if (result == null)
+        if (result is null)
             throw new UAuthProtocolException("Invalid error response format.");
 
         if (result.Status == 0)
@@ -119,9 +136,9 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
     {
         ct.ThrowIfCancellationRequested();
 
-        await _bootstrapper.EnsureStartedAsync();
+        await _bootstrapper.EnsureStartedAsync(ct);
 
-        var response = await _js.InvokeAsync<JsonElement>(
+        var response = await InvokeAsync<JsonElement>(
             "uauth.tryAndCommit",
             ct,
             new
@@ -129,7 +146,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
                 tryUrl = tryEndpoint,
                 commitUrl = commitEndpoint,
                 data = request,
-                clientProfile = _options.ClientProfile.ToString(),
+                applicationProfile = _options.ApplicationProfile.ToString(),
                 trustedOrigin = ResolveTrustedOrigin()
             });
 
@@ -146,6 +163,95 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
         catch (JsonException ex) { throw new UAuthProtocolException("Invalid tryAndCommit response.", ex); }
     }
 
+    public async Task<UAuthLoginTransportInfo> GetLoginTransportAsync(string endpoint, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        await _bootstrapper.EnsureStartedAsync(ct);
+
+        var response = await InvokeAsync<UAuthTransportResult>(
+            "uauth.getLoginTransport",
+            ct,
+            new
+            {
+                url = endpoint,
+                applicationProfile = _options.ApplicationProfile.ToString(),
+                trustedOrigin = ResolveTrustedOrigin()
+            });
+
+        if (response is null || !response.Ok || response.Body is null)
+        {
+            throw new UAuthProtocolException("Unable to resolve effective login transport.");
+        }
+
+        return response.Body.Value.Deserialize<UAuthLoginTransportInfo>(new JsonSerializerOptions(JsonSerializerDefaults.Web))
+            ?? throw new UAuthProtocolException("Invalid login transport response.");
+    }
+
+    public Task NavigateToUrlAsync(string url, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (string.IsNullOrWhiteSpace(url))
+            throw new ArgumentException("Navigation URL is required.", nameof(url));
+
+        if (url.StartsWith("//", StringComparison.Ordinal) || url.StartsWith(@"\\", StringComparison.Ordinal))
+        {
+            throw new UAuthProtocolException("Invalid login redirect URL.");
+        }
+
+        var target = _navigation.ToAbsoluteUri(url);
+        var current = new Uri(_navigation.Uri);
+
+        if (target.Scheme != current.Scheme || target.Authority != current.Authority ||
+            !string.IsNullOrEmpty(target.UserInfo))
+        {
+            throw new UAuthProtocolException("Fetch login navigation must remain on the application origin.");
+        }
+
+        // Keep the Blazor Server circuit and its scoped token store.
+        _navigation.NavigateTo(target.ToString(), forceLoad: false);
+
+        return Task.CompletedTask;
+    }
+
+    public Task NavigateToPkceReturnUrlAsync(string redirectUrl, string expectedReturnUrl, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (!Uri.TryCreate(expectedReturnUrl, UriKind.Absolute, out var expected) ||
+            !Uri.TryCreate(redirectUrl, UriKind.Absolute, out var target) ||
+            target != expected ||
+            target.Scheme is not ("https" or "http") ||
+            !string.IsNullOrEmpty(target.UserInfo))
+        {
+            throw new UAuthProtocolException("PKCE return URL is invalid or does not match the expected destination.");
+        }
+
+        var current = new Uri(_navigation.Uri);
+
+        var crossOrigin = target.Scheme != current.Scheme || target.Authority != current.Authority;
+        _navigation.NavigateTo(target.ToString(), forceLoad: crossOrigin);
+
+        return Task.CompletedTask;
+    }
+
+
+    private string? GetAccessToken()
+    {
+        var token = _tokenStore.Read();
+
+        if (token is null)
+            return null;
+
+        if (token.IsExpired(DateTimeOffset.UtcNow))
+        {
+            _tokenStore.Clear();
+            return null;
+        }
+
+        return token.Token;
+    }
 
     private string? ResolveTrustedOrigin()
     {
@@ -158,5 +264,37 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
         }
 
         return null;
+    }
+
+    private async ValueTask InvokeVoidAsync(string identifier, CancellationToken ct, params object?[] args)
+    {
+        try
+        {
+            await _js.InvokeVoidAsync(identifier, ct, args);
+        }
+        catch (JSDisconnectedException ex)
+        {
+            throw new UAuthTransportException("The JavaScript runtime was disconnected.", ex);
+        }
+        catch (JSException ex)
+        {
+            throw new UAuthTransportException("The JavaScript transport operation failed.", ex);
+        }
+    }
+
+    private async ValueTask<T> InvokeAsync<T>(string identifier, CancellationToken ct, params object?[] args)
+    {
+        try
+        {
+            return await _js.InvokeAsync<T>(identifier, ct, args);
+        }
+        catch (JSDisconnectedException ex)
+        {
+            throw new UAuthTransportException("The JavaScript runtime was disconnected.", ex);
+        }
+        catch (JSException ex)
+        {
+            throw new UAuthTransportException("The JavaScript transport operation failed.", ex);
+        }
     }
 }

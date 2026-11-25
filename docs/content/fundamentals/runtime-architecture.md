@@ -143,11 +143,11 @@ A native MAUI application has access to platform-specific capabilities.
 
 A Blazor Server application executes application logic on the server while maintaining an interactive connection with the browser.
 
-UltimateAuth accounts for these differences through runtime-specific integrations and Client Profiles.
+UltimateAuth accounts for these differences through runtime-specific integrations and Application Profiles.
 
 The authentication model remains shared even when the implementation of credential transport or application state differs.
 
-See [Client Profiles](/docs/fundamentals/client-profiles).
+See [Application Profiles](/docs/fundamentals/application-profiles).
 
 ## UAuthHub: the authentication host
 
@@ -210,15 +210,47 @@ It must then enforce the relevant authorization policies.
 
 ### Authentication validation depends on the mode
 
-In PureOpaque and Hybrid, authentication requires server-side session authority.
+The authentication mode determines how a resource application establishes the caller's authenticated identity.
 
-The resource authentication path must therefore have access to the infrastructure necessary to enforce the relevant session validation requirements.
+In PureOpaque and Hybrid, the current Resource API implementation relies on remote session validation through UAuthHub.
 
-In SemiHybrid and PureJwt, normal access-token authentication uses JWT validation without a mandatory session lookup.
+```text
+Client
+   |
+   | Session credential
+   v
+Resource API
+   |
+   | Remote session validation
+   v
+UAuthHub
+   |
+   v
+Session infrastructure
+```
 
-This can allow a resource API to validate access tokens locally when it has the required verification keys and token-validation configuration.
+In PureJwt, the Resource API validates JWT access tokens locally using trusted verification keys and explicit token-validation configuration.
 
-The authentication mode therefore affects the resource application's infrastructure dependencies.
+```text
+Client
+   |
+   | JWT access token
+   v
+Resource API
+   |
+   v
+Local JWT validation
+```
+
+UAuthHub remains responsible for authentication flows, credential issuance, and refresh-token lifecycle management.
+
+A PureJwt Resource API does not need to contact UAuthHub for ordinary access-token validation.
+
+Hybrid-aware JWT validation in separate Resource APIs is not yet implemented.
+
+SemiHybrid remains a planned authentication mode.
+
+Authentication mode selection therefore determines the resource application's infrastructure dependencies, revocation semantics, and authorization freshness guarantees.
 
 ### Authorization remains local to the protected operation
 

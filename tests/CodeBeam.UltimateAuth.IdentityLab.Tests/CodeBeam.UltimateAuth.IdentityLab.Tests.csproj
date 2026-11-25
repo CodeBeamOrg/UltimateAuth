@@ -4,17 +4,21 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.14" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.14" />
-    <PackageReference Include="bunit" Version="2.13.3" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="11.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="11.0.0" />
+    <PackageReference Include="bunit" Version="2.15.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="11.0.0" />
     <PackageReference Include="Moq" Version="4.21.0" />
-    <PackageReference Include="Testcontainers.PostgreSql" Version="4.16.0" />
-    <PackageReference Include="xunit.v3" Version="4.0.2" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.17.0" />
+    <PackageReference Include="xunit.v3" Version="4.0.3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../apps/identity-lab/CodeBeam.UltimateAuth.IdentityLab/CodeBeam.UltimateAuth.IdentityLab.csproj" />
     <Using Include="Xunit" />
     <Using Include="CodeBeam.UltimateAuth.IdentityLab.Tests.Infrastructure" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="coverlet.MTP" Version="10.1.1" />
+    <PackageReference Update="Microsoft.Testing.Extensions.TrxReport" Version="2.5.3" />
   </ItemGroup>
 </Project>

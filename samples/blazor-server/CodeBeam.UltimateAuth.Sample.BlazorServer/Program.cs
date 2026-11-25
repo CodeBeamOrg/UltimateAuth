@@ -1,8 +1,9 @@
 using CodeBeam.UltimateAuth.Client.Blazor;
 using CodeBeam.UltimateAuth.Client.Blazor.Extensions;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Credentials;
-using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.InMemory;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Components;
 using CodeBeam.UltimateAuth.Sample.BlazorServer.Infrastructure;
@@ -11,13 +12,10 @@ using CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 using CodeBeam.UltimateAuth.Sample.Shared.ResourceApi;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Users;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Infrastructure;
-using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.Extensions.Options;
 using MudBlazor.Services;
 using MudExtensions.Services;
 using Scalar.AspNetCore;
+using System.Security.Cryptography;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,6 +51,9 @@ builder.Services.AddUltimateAuthServer(o =>
     o.Login.IncludeFailureDetails = true;
     o.Identifiers.Behavior.AllowMultipleUsernames = true;
 
+    o.DeviceLimits.MaxDevices = 3;
+    o.DeviceLimits.TypeLimits["web"] = 2;
+
     // No-op and touch with max lifetime example
     //o.Session.MaxLifetime = TimeSpan.FromSeconds(32);
     //o.Session.Lifetime = TimeSpan.FromSeconds(32);
@@ -71,6 +72,7 @@ builder.Services.AddUltimateAuthServer(o =>
 
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {
+    o.Login.AllowCredentialPost = true;
     //o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;
     o.Resource.BaseAddress = "https://localhost:6120";

@@ -39,11 +39,25 @@ internal sealed class PkceService : IPkceService
 
         var authorizationCode = AuthArtifactKey.New();
 
+        var device = command.Device;
+
+        if (device.DeviceId is DeviceId deviceId)
+        {
+            device = DeviceContext.Create(
+                deviceId,
+                deviceType: string.IsNullOrWhiteSpace(device.DeviceType) ? "web" : device.DeviceType,
+                platform: device.Platform,
+                operatingSystem: device.OperatingSystem,
+                browser: device.Browser,
+                ipAddress: device.IpAddress
+            );
+        }
+
         var snapshot = new PkceContextSnapshot(
-            clientProfile: command.ClientProfile,
+            applicationProfile: command.ApplicationProfile,
             tenant: command.Tenant,
             redirectUri: command.RedirectUri,
-            device: command.Device
+            device: device
         );
 
         var expiresAt = _clock.UtcNow.AddSeconds(_options.Pkce.AuthorizationCodeLifetimeSeconds);
@@ -80,7 +94,7 @@ internal sealed class PkceService : IPkceService
         }
 
         var completionContext = new PkceContextSnapshot(
-            clientProfile: auth.ClientProfile,
+            applicationProfile: auth.ApplicationProfile,
             tenant: auth.Tenant,
             redirectUri: request.ReturnUrl,
             device: auth.Device);
@@ -107,7 +121,7 @@ internal sealed class PkceService : IPkceService
 
         var execution = new AuthExecutionContext
         {
-            EffectiveClientProfile = artifact.Context.ClientProfile,
+            EffectiveApplicationProfile = artifact.Context.ApplicationProfile,
             Device = artifact.Context.Device
         };
 
@@ -134,7 +148,7 @@ internal sealed class PkceService : IPkceService
         var authorizationCode = AuthArtifactKey.New();
 
         var snapshot = new PkceContextSnapshot(
-            clientProfile: hub.ClientProfile,
+            applicationProfile: hub.ApplicationProfile,
             tenant: hub.Tenant,
             redirectUri: hub.ReturnUrl,
             device: device

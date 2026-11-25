@@ -12,9 +12,12 @@ internal static class RefreshTokenProjectionMapper
             tenant: p.Tenant,
             userKey: p.UserKey,
             sessionId: p.SessionId,
-            chainId: p.ChainId,
+            sessionChainId: p.SessionChainId,
             createdAt: p.CreatedAt,
-            expiresAt: p.ExpiresAt
+            authenticatedAt: p.AuthenticatedAt,
+            expiresAt: p.ExpiresAt,
+            refreshChainId: RefreshChainId.From(p.RefreshChainId),
+            deviceId: p.DeviceId
         ) with
         {
             RevokedAt = p.RevokedAt,
@@ -32,8 +35,11 @@ internal static class RefreshTokenProjectionMapper
             TokenHash = t.TokenHash,
             UserKey = t.UserKey,
             SessionId = t.SessionId,
-            ChainId = t.ChainId,
+            SessionChainId = t.SessionChainId,
+            RefreshChainId = t.RefreshChainId.Value,
+            DeviceId = t.DeviceId,
             CreatedAt = t.CreatedAt,
+            AuthenticatedAt = t.AuthenticatedAt,
             ExpiresAt = t.ExpiresAt,
             RevokedAt = t.RevokedAt,
             ReplacedByTokenHash = t.ReplacedByTokenHash,

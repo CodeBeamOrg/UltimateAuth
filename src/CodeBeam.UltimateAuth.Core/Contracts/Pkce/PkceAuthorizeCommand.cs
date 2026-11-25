@@ -11,6 +11,6 @@ public sealed record PkceAuthorizeCommand
     public required DeviceContext Device { get; init; }
     public string? RedirectUri { get; init; }
 
-    public UAuthClientProfile ClientProfile { get; init; }
+    public UAuthApplicationProfile ApplicationProfile { get; init; }
     public TenantKey Tenant { get; init; }
 }

@@ -47,12 +47,22 @@ public static class UAuthTokensModelBuilder
                 .IsRequired();
 
             e.Property(x => x.SessionId)
-                .HasConversion(new AuthSessionIdConverter());
+                .HasConversion(new NullableAuthSessionIdConverter());
 
-            e.Property(x => x.ChainId)
+            e.Property(x => x.RefreshChainId).IsRequired();
+
+            e.Property(x => x.SessionChainId)
                 .HasConversion(new NullableSessionChainIdConverter());
 
+            e.Property(x => x.DeviceId)
+                .HasConversion(
+                    v => v.HasValue ? v.Value.Value : null,
+                    v => v == null ? (DeviceId?)null : DeviceId.Create(v))
+                .HasMaxLength(DeviceId.MaxLength)
+                .IsRequired(false);
+
             e.Property(x => x.CreatedAt).HasUtcDateTimeOffsetConverter().IsRequired();
+            e.Property(x => x.AuthenticatedAt).HasNullableUtcDateTimeOffsetConverter();
             e.Property(x => x.ExpiresAt).HasUtcDateTimeOffsetConverter().IsRequired();
             e.Property(x => x.RevokedAt).HasNullableUtcDateTimeOffsetConverter();
 
@@ -64,10 +74,12 @@ public static class UAuthTokensModelBuilder
             e.HasIndex(x => new { x.Tenant, x.TokenId });
             e.HasIndex(x => new { x.Tenant, x.UserKey });
             e.HasIndex(x => new { x.Tenant, x.SessionId });
-            e.HasIndex(x => new { x.Tenant, x.ChainId });
+            e.HasIndex(x => new { x.Tenant, x.SessionChainId });
             e.HasIndex(x => new { x.Tenant, x.ExpiresAt });
             e.HasIndex(x => new { x.Tenant, x.ExpiresAt, x.RevokedAt });
             e.HasIndex(x => new { x.Tenant, x.ReplacedByTokenHash });
+            e.HasIndex(x => new { x.Tenant, x.RefreshChainId });
+            e.HasIndex(x => new { x.Tenant, x.UserKey, x.DeviceId });
         });
     }
 }

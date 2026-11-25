@@ -60,7 +60,7 @@ Without a unified resource client, developers typically need to:
 1. Configure an additional HTTP client.
 2. Determine how authentication credentials should accompany requests.
 3. Handle browser credential policies and cross-origin restrictions.
-4. Maintain device and client profile metadata where applicable.
+4. Maintain device and application profile metadata where applicable.
 5. Deserialize successful responses.
 6. Translate unsuccessful HTTP responses into application-friendly results.
 7. Implement similar request handling across multiple components.
@@ -569,9 +569,79 @@ The Resource Client simplifies communication.
 
 It does not replace the receiving server's security responsibilities.
 
+### Authentication Mode Compatibility
+
+UAuthHub and Resource APIs are configured independently.
+
+UAuthHub determines which authentication credentials are issued to a client. A Resource API determines which credentials it accepts and how they are validated.
+
+Using the same UltimateAuth infrastructure does not automatically make all authentication modes interchangeable.
+
+| Client Credential | Resource API Validation | Current Support |
+|---|---|---|
+| PureOpaque session | Remote session validation | Supported |
+| PureJwt access token | Local JWT validation | Supported |
+| Hybrid session credential | Remote session validation | Supported when correctly configured |
+| Hybrid JWT access token | Hybrid-aware JWT validation | Not yet implemented |
+| PureOpaque session | PureJwt-only validation | Not supported |
+
+A PureJwt Resource API cannot authenticate an opaque session credential as a JWT.
+
+Likewise, configuring a Resource API URL in the client SDK does not automatically exchange session credentials for JWT access tokens.
+
+### Credential Delivery
+
+The client and Resource API must agree on the credential used for authentication and its transport.
+
+#### Session-based Resource APIs
+
+PureOpaque and Hybrid Resource APIs use opaque session credentials.
+
+Cookie delivery is the default for incoming session credentials.
+
+The Resource API validates the selected session through UAuthHub using the configured Hub address.
+
+The browser must be able to send the session cookie to the Resource API.
+
+#### JWT-based Resource APIs
+
+PureJwt Resource APIs use JWT access tokens.
+
+The default Blazor Resource Client attaches the current access token using:
+
+```http
+Authorization: Bearer <access-token>
+```
+
+For a Resource API that exclusively uses header-based JWT authentication, browser cookies can be omitted:
+
+```csharp
+options.Resource.Credentials = UAuthResourceCredentialsMode.Omit;
+```
+
+Omitting browser cookies does not prevent the client from attaching its access-token authorization header.
+
+This option affects Resource API requests, not authentication or refresh requests sent to UAuthHub.
+
+#### Credential compatibility
+
+A JWT issued in Hybrid mode is not interchangeable with a PureJwt access token.
+
+Hybrid-aware JWT validation in separate Resource APIs is not currently implemented.
+
+Authentication mode selection and credential compatibility remain explicit configuration responsibilities.
+
+### PureJwt and UAuthHub Connectivity
+
+A PureJwt Resource API does not need to contact UAuthHub to validate each JWT.
+
+However, clients still use UAuthHub for login, refresh, and logout operations.
+
+This separation allows protected APIs to validate access tokens independently while the authentication authority manages refresh-token state.
+
 ---
 
-## 8. Device and Client Profile Metadata
+## 8. Device and Application Profile Metadata
 
 UltimateAuth maintains a distinction between user identity, device identity, and client environment.
 
@@ -579,11 +649,11 @@ For browser resource requests, the transport can propagate UltimateAuth metadata
 
 ```text
 X-UDID
-X-UAuth-ClientProfile
+X-UAuth-ApplicationProfile
 X-Requested-With
 ```
 
-This keeps resource requests consistent with the UltimateAuth client environment without requiring every application component to construct these headers manually.
+This keeps resource requests consistent with the UltimateAuth application environment without requiring every application component to construct these headers manually.
 
 For example:
 
@@ -595,15 +665,15 @@ does not require the developer to manually retrieve and attach the device identi
 
 ### Metadata Is Not Proof of Identity
 
-Device identifiers and client profile values describe request context.
+Device identifiers and application profile values describe request context.
 
 They are not independent authentication credentials.
 
-A receiving API must not grant access solely because a request declares a particular device identifier or client profile.
+A receiving API must not grant access solely because a request declares a particular device identifier or application profile.
 
 The server remains responsible for validating the user's authentication state and permissions.
 
-For more information, see [Client Profiles](/docs/fundamentals/client-profiles).
+For more information, see [Application Profiles](/docs/fundamentals/application-profiles).
 
 ---
 
@@ -878,7 +948,7 @@ Different responsibilities. One consistent client model.
 ## Related Documentation
 
 - [Client SDK Overview](/docs/client-sdk/overview) — Understand the unified client architecture.
-- [Client Options](/docs/configuration/client-options) — Configure client profiles, authentication endpoints, and resource options.
+- [Client Options](/docs/configuration/client-options) — Configure application profiles, authentication endpoints, and resource options.
 - [Authentication](/docs/client-sdk/authentication) — Work with authentication flows and session renewal.
-- [Client Profiles](/docs/fundamentals/client-profiles) — Understand runtime-specific authentication behavior.
+- [Application Profiles](/docs/fundamentals/application-profiles) — Understand runtime-specific authentication behavior.
 - [Real-World Setup](/docs/getting-started/real-world-setup) — Configure Blazor applications, UAuthHub, and separate Resource APIs.

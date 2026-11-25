@@ -96,7 +96,7 @@ The result is a framework where these operations share a consistent security voc
 <escape>| Capability | UltimateAuth's approach |
 |---|---|
 | **Unified architecture** | Authentication, sessions, users, credentials, and authorization share a common foundation |
-| **Client-aware behavior** | Authentication can adapt to the client profile and effective server configuration |
+| **Client-aware behavior** | Authentication can adapt to the application profile and effective server configuration |
 | **Session lifecycle** | Root, chain, and session concepts support different scopes of session management |
 | **Flow-driven execution** | Authentication operations use explicit context, validation, decisions, and state transitions |
 | **Credential lifecycle** | Credential changes, recovery, and session invalidation are related security operations |
@@ -118,7 +118,7 @@ They should not necessarily use identical credential storage, transport, or auth
 
 UltimateAuth separates the common authentication model from client-specific integration.
 
-<escape>```text
+```text
             Your .NET Applications
 
     Blazor Server      Blazor WebAssembly
@@ -138,7 +138,7 @@ UltimateAuth separates the common authentication model from client-specific inte
                     ▼
              Shared Security
                  Lifecycle
-```</escape>
+```
 
 The architecture also provides foundations for .NET MAUI, traditional ASP.NET Core applications, and API-oriented integrations.
 
@@ -317,7 +317,7 @@ A Blazor application registers the client adapter:
 ```csharp
 builder.Services.AddUltimateAuthClientBlazor(options =>
 {
-    options.AutoDetectClientProfile = true;
+    options.AutoDetectApplicationProfile = true;
     options.Endpoints.BasePath = "/auth";
 });
 ```

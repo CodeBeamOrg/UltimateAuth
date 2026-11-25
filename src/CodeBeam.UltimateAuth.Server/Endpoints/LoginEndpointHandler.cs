@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
@@ -57,6 +58,15 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
             return failure.Enabled ? Results.Redirect(failure.TargetUrl!) : Results.Unauthorized();
         }
 
+        var isFetch = ctx.Request.HasFormContentType && (await ctx.GetCachedFormAsync())?["__uauth_response_mode"].FirstOrDefault() == "fetch";
+
+        if (!isFetch && (authFlow.Response.AccessTokenDelivery.Mode == GrantDeliveryMode.Header || authFlow.Response.SessionIdDelivery.Mode == GrantDeliveryMode.Header))
+        {
+            return Results.BadRequest(new
+            {
+                error = "fetch_transport_required"
+            });
+        }
 
         var suppressFailureAttempt = false;
 
@@ -82,7 +92,7 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
                     CredentialType.Password,
                     deviceId.Value,
                     request.Identifier,
-                    authFlow.ClientProfile,
+                    authFlow.ApplicationProfile,
                     fingerprint))
                 {
                     var resolution = await _loginIdentifierResolver.ResolveAsync(authFlow.Tenant, request.Identifier, ctx.RequestAborted);
@@ -99,7 +109,7 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
                                 CredentialType.Password,
                                 deviceId.Value,
                                 request.Identifier,
-                                authFlow.ClientProfile,
+                                authFlow.ApplicationProfile,
                                 fingerprint);
                     }
                 }
@@ -126,6 +136,17 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
 
         if (!result.IsSuccess)
         {
+            if (isFetch)
+            {
+                return Results.Json(new
+                {
+                    IsSuccess = false,
+                    Reason = result.FailureReason,
+                    RemainingAttempts = result.RemainingAttempts,
+                    LockoutUntilUtc = result.LockoutUntilUtc
+                }, statusCode: StatusCodes.Status401Unauthorized);
+            }
+
             var decisionFailure = _redirectResolver.ResolveFailure(authFlow, ctx, result.FailureReason ?? AuthFailureReason.Unknown, result);
 
             return decisionFailure.Enabled
@@ -149,6 +170,19 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
         }
 
         var decision = _redirectResolver.ResolveSuccess(authFlow, ctx);
+
+        if (ctx.Request.HasFormContentType)
+        {
+            var form = await ctx.GetCachedFormAsync();
+
+            if (form?["__uauth_response_mode"].FirstOrDefault() == "fetch")
+            {
+                return Results.Ok(new
+                {
+                    RedirectUrl = decision.Enabled ? decision.TargetUrl : null
+                });
+            }
+        }
 
         return decision.Enabled
             ? Results.Redirect(decision.TargetUrl!)
@@ -220,7 +254,7 @@ internal sealed class LoginEndpointHandler : ILoginEndpointHandler
                     request.CredentialType,
                     deviceId.Value,
                     request.Identifier,
-                    authFlow.ClientProfile,
+                    authFlow.ApplicationProfile,
                     fingerprint,
                     _clock.UtcNow.Add(_options.Login.TryLoginDuration));
 

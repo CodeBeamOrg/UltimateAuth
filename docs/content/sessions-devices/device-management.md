@@ -260,21 +260,24 @@ See [Authentication Modes](/docs/fundamentals/auth-modes).
 
 ## Session and Device Limits
 
-Applications may need to limit how many authentication sessions or client environments a user can maintain.
+UltimateAuth supports **optional, server-enforced limits on distinct active devices** through `options.DeviceLimits`.
 
-UltimateAuth's session configuration provides the architectural place for managing supported session and chain constraints.
+Applications can configure a global device limit, per-device-type limits, and the behavior applied when a new device exceeds those restrictions.
 
-Depending on the configured capabilities, these constraints may concern:
+Two admission behaviors are supported:
 
-- The number of chains associated with a user.
-- The number of sessions associated with a chain.
-- Session expiration and activity behavior.
-- The treatment of device context changes.
-- Revocation and lifecycle rules.
+- `RejectNewLogin` — Reject new device authentication without revoking existing sessions.
+- `RevokeOldest` — Revoke eligible older active devices to free capacity.
 
-The exact available options and enforcement behavior depend on the authentication mode and session configuration.
+Unlike reserved `options.Session.MaxChainsPerUser` settings, these limits are enforced during session admission.
 
-Device management should not be understood as a separate enforcement system operating independently of session management.
+Multiple active chains associated with the same `DeviceId` count as one device.
+
+Built-in Blazor web clients classify both desktop and mobile browsers as `web`.
+
+Existing active chains with the earlier `desktop` classification are not automatically rewritten.
+
+See [Device Limits](/docs/sessions-devices/device-limits) for complete configuration examples, counting semantics, persistence requirements, and v0.2.0 migration guidance.
 
 ## Operational Visibility
 

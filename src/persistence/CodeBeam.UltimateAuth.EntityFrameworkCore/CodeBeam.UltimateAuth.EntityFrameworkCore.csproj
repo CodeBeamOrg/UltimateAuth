@@ -29,6 +29,10 @@
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.14" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.14" />
 	</ItemGroup>
+	<ItemGroup Condition=" '$(TargetFramework)' == 'net11.0' ">
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="11.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="11.0.0" />
+	</ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\CodeBeam.UltimateAuth.Core\CodeBeam.UltimateAuth.Core.csproj" />

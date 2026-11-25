@@ -1,7 +1,9 @@
-﻿using CodeBeam.UltimateAuth.Core.Abstractions;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Abstractions;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Endpoints;
@@ -12,7 +14,6 @@ using CodeBeam.UltimateAuth.Server.Services;
 using CodeBeam.UltimateAuth.Server.Stores;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using CodeBeam.UltimateAuth.Users;
-using AwesomeAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
@@ -369,7 +370,7 @@ public sealed class LoginEndpointHandlerTests
             CredentialType.Password,
             deviceId.Value,
             identifier,
-            fixture.Flow.ClientProfile,
+            fixture.Flow.ApplicationProfile,
             fingerprint,
             Now.AddMinutes(5));
 
@@ -474,7 +475,7 @@ public sealed class LoginEndpointHandlerTests
             CredentialType.Password,
             deviceId.Value,
             identifier,
-            fixture.Flow.ClientProfile,
+            fixture.Flow.ApplicationProfile,
             fingerprint,
             Now.AddMinutes(5));
 
@@ -572,7 +573,7 @@ public sealed class LoginEndpointHandlerTests
             CredentialType.Password,
             deviceId.Value,
             identifier,
-            fixture.Flow.ClientProfile,
+            fixture.Flow.ApplicationProfile,
             fingerprint,
             Now.AddMinutes(5));
 
@@ -655,7 +656,7 @@ public sealed class LoginEndpointHandlerTests
             CredentialType.Password,
             deviceId.Value,
             identifier,
-            fixture.Flow.ClientProfile,
+            fixture.Flow.ApplicationProfile,
             LoginPreviewFingerprint.Create(
                 fixture.Flow.Tenant,
                 identifier,
@@ -723,6 +724,134 @@ public sealed class LoginEndpointHandlerTests
         fixture.AuthStore.Verify(x => x.ConsumeAsync(
             It.IsAny<AuthArtifactKey>(),
             It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LoginAsync_HeaderDeliveryWithoutFetch_ReturnsBadRequest(bool sessionHeader)
+    {
+        var headerDelivery = new EffectiveGrantDelivery(
+            sessionHeader ? GrantKind.Session : GrantKind.AccessToken,
+            sessionHeader ? TokenFormat.Opaque : TokenFormat.Jwt,
+            GrantDeliveryMode.Header,
+            name: sessionHeader ? "uas" : "uat");
+
+        var response = new EffectiveAuthResponse(
+            sessionHeader
+                ? headerDelivery
+                : EffectiveGrantDelivery.Disabled(GrantKind.Session),
+            sessionHeader
+                ? EffectiveGrantDelivery.Disabled(GrantKind.AccessToken)
+                : headerDelivery,
+            EffectiveGrantDelivery.Disabled(GrantKind.RefreshToken),
+            EffectiveRedirectResponse.Disabled);
+
+        var fixture = CreateFixture(
+            AuthFlowTestFactory.New(response: response));
+
+        fixture.HttpContext.Request.ContentType =
+            "application/x-www-form-urlencoded";
+
+        fixture.HttpContext.Request.Form = new FormCollection(
+            new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>
+            {
+                ["Identifier"] = "alice",
+                ["Secret"] = "password"
+            });
+
+        var result = await fixture.Sut.LoginAsync(fixture.HttpContext);
+
+        ((IStatusCodeHttpResult)result).StatusCode
+            .Should().Be(StatusCodes.Status400BadRequest);
+
+        fixture.InternalFlow.VerifyNoOtherCalls();
+        fixture.CredentialWriter.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task LoginAsync_FetchFailure_ReturnsJson401WithoutRedirect()
+    {
+        var fixture = CreateFixture();
+
+        fixture.HttpContext.Request.ContentType =
+            "application/x-www-form-urlencoded";
+
+        fixture.HttpContext.Request.Form = new FormCollection(
+            new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>
+            {
+                ["Identifier"] = "alice",
+                ["Secret"] = "wrong",
+                ["__uauth_response_mode"] = "fetch"
+            });
+
+        fixture.InternalFlow.Setup(x => x.LoginAsync(
+                fixture.Flow,
+                It.IsAny<LoginRequest>(),
+                It.IsAny<LoginExecutionOptions>(),
+                fixture.HttpContext.RequestAborted))
+            .ReturnsAsync(LoginResult.Failed(
+                AuthFailureReason.InvalidCredentials));
+
+        var result = await fixture.Sut.LoginAsync(fixture.HttpContext);
+
+        ((IStatusCodeHttpResult)result).StatusCode
+            .Should().Be(StatusCodes.Status401Unauthorized);
+
+        fixture.CredentialWriter.VerifyNoOtherCalls();
+        fixture.RedirectResolver.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task LoginAsync_SuccessfulFetch_ReturnsRedirectInBody()
+    {
+        var fixture = CreateFixture();
+
+        fixture.HttpContext.Request.ContentType =
+            "application/x-www-form-urlencoded";
+
+        fixture.HttpContext.Request.Form = new FormCollection(
+            new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>
+            {
+                ["Identifier"] = "alice",
+                ["Secret"] = "password",
+                ["__uauth_response_mode"] = "fetch"
+            });
+
+        var sessionId = TestIds.Session("test-session");
+
+        fixture.InternalFlow.Setup(x => x.LoginAsync(
+                fixture.Flow,
+                It.IsAny<LoginRequest>(),
+                It.IsAny<LoginExecutionOptions>(),
+                fixture.HttpContext.RequestAborted))
+            .ReturnsAsync(LoginResult.Success(sessionId));
+
+        fixture.CredentialWriter.Setup(x => x.Write(
+            fixture.HttpContext,
+            GrantKind.Session,
+            sessionId));
+
+        fixture.RedirectResolver.Setup(x => x.ResolveSuccess(
+                fixture.Flow,
+                fixture.HttpContext))
+            .Returns(RedirectDecision.To("/home"));
+
+        var result = await fixture.Sut.LoginAsync(fixture.HttpContext);
+
+        ((IStatusCodeHttpResult)result).StatusCode.Should().Be(StatusCodes.Status200OK);
+
+        var json = JsonSerializer.SerializeToElement(
+            ((IValueHttpResult)result).Value,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+        json.GetProperty("redirectUrl").GetString()
+            .Should().Be("/home");
+
+        fixture.CredentialWriter.Verify(x => x.Write(
+            fixture.HttpContext,
+            GrantKind.Session,
+            sessionId), Times.Once);
     }
 
     // =====================================================================

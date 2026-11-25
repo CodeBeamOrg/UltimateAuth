@@ -1,13 +1,14 @@
-﻿using CodeBeam.UltimateAuth.Core;
+﻿using AwesomeAssertions;
+using CodeBeam.UltimateAuth.Core;
 using CodeBeam.UltimateAuth.Core.Contracts;
-using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Server.Auth;
 using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
-using AwesomeAssertions;
+using Microsoft.Extensions.Options;
+using Moq;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 
@@ -21,7 +22,7 @@ public class EffectiveServerOptionsProviderTests
         var provider = TestHelpers.CreateEffectiveOptionsProvider(baseOptions);
         var ctx = TestHttpContext.Create();
 
-        var effective = provider.GetEffective(ctx, UAuthClientProfile.BlazorServer);
+        var effective = provider.GetEffective(ctx, UAuthApplicationProfile.BlazorServer);
         effective.Options.Token.AccessTokenLifetime = TimeSpan.FromSeconds(10);
 
         Assert.NotEqual(baseOptions.Token.AccessTokenLifetime, effective.Options.Token.AccessTokenLifetime);
@@ -34,9 +35,9 @@ public class EffectiveServerOptionsProviderTests
 
         var provider = TestHelpers.CreateEffectiveOptionsProvider(baseOptions);
         var ctx = TestHttpContext.Create();
-        var effective = provider.GetEffective(ctx, UAuthClientProfile.Api);
+        var effective = provider.GetEffective(ctx, UAuthApplicationProfile.Api);
 
-        Assert.Equal(UAuthMode.PureJwt, effective.Mode);
+        Assert.Equal(UAuthMode.Hybrid, effective.Mode);
     }
 
     [Fact]
@@ -46,7 +47,7 @@ public class EffectiveServerOptionsProviderTests
 
         var provider = TestHelpers.CreateEffectiveOptionsProvider(baseOptions);
         var ctx = TestHttpContext.Create();
-        var effective = provider.GetEffective(ctx, UAuthClientProfile.BlazorServer);
+        var effective = provider.GetEffective(ctx, UAuthApplicationProfile.BlazorServer);
 
         Assert.True(effective.Options.Session.SlidingExpiration);
         Assert.NotNull(effective.Options.Session.IdleTimeout);
@@ -64,7 +65,7 @@ public class EffectiveServerOptionsProviderTests
 
         var provider = TestHelpers.CreateEffectiveOptionsProvider(baseOptions);
         var ctx = TestHttpContext.Create();
-        var effective = provider.GetEffective(ctx, UAuthClientProfile.BlazorServer);
+        var effective = provider.GetEffective(ctx, UAuthApplicationProfile.BlazorServer);
 
         Assert.Equal(TimeSpan.FromMinutes(1), effective.Options.Token.AccessTokenLifetime);
     }
@@ -77,8 +78,8 @@ public class EffectiveServerOptionsProviderTests
         var provider = TestHelpers.CreateEffectiveOptionsProvider(baseOptions);
         var ctx = TestHttpContext.Create();
 
-        var first = provider.GetEffective(ctx, UAuthClientProfile.BlazorServer);
-        var second = provider.GetEffective(ctx, UAuthClientProfile.BlazorServer);
+        var first = provider.GetEffective(ctx, UAuthApplicationProfile.BlazorServer);
+        var second = provider.GetEffective(ctx, UAuthApplicationProfile.BlazorServer);
 
         Assert.NotSame(first.Options, second.Options);
     }
@@ -95,7 +96,7 @@ public class EffectiveServerOptionsProviderTests
         var original = new UAuthServerOptions();
         var provider = CreateProviderForMode(original, mode);
 
-        var effective = provider.GetEffective(TenantKey.Single, UAuthClientProfile.BlazorServer);
+        var effective = provider.GetEffective(TenantKey.Single, UAuthApplicationProfile.BlazorServer);
 
         effective.Mode.Should().Be(mode);
         effective.Options.Should().NotBeSameAs(original);
@@ -115,7 +116,7 @@ public class EffectiveServerOptionsProviderTests
 
         var provider = CreateProviderForMode(original, UAuthMode.SemiHybrid);
 
-        var effective = provider.GetEffective(TenantKey.Single, UAuthClientProfile.BlazorServer);
+        var effective = provider.GetEffective(TenantKey.Single, UAuthApplicationProfile.BlazorServer);
 
         effective.Options.Session.SlidingExpiration.Should().BeFalse();
         effective.Options.Session.TouchInterval.Should().BeNull();
@@ -144,7 +145,7 @@ public class EffectiveServerOptionsProviderTests
 
         var effective = provider.GetEffective(
             TenantKey.Single,
-            UAuthClientProfile.BlazorServer);
+            UAuthApplicationProfile.BlazorServer);
 
         var token = effective.Options.Token;
 
@@ -164,7 +165,7 @@ public class EffectiveServerOptionsProviderTests
 
         var effective = provider.GetEffective(
             TenantKey.Single,
-            UAuthClientProfile.BlazorServer);
+            UAuthApplicationProfile.BlazorServer);
 
         effective.Options.Cookie.AccessToken.Lifetime.IdleBuffer
             .Should().Be(TimeSpan.FromMinutes(5));
@@ -189,7 +190,7 @@ public class EffectiveServerOptionsProviderTests
 
         var effective = provider.GetEffective(
             TenantKey.Single,
-            UAuthClientProfile.BlazorServer);
+            UAuthApplicationProfile.BlazorServer);
 
         effective.Options.Session.IdleTimeout.Should().Be(TimeSpan.FromDays(7));
         effective.Options.Session.TouchInterval.Should().Be(TimeSpan.FromDays(1));
@@ -204,11 +205,8 @@ public class EffectiveServerOptionsProviderTests
         effective.Options.Cookie.Session.Lifetime.IdleBuffer
             .Should().Be(TimeSpan.FromDays(2));
 
-        effective.Options.AuthResponse.RefreshTokenDelivery.Mode
-            .Should().Be(TokenResponseMode.None);
-
-        effective.Options.AuthResponse.RefreshTokenDelivery.TokenFormat
-            .Should().Be(TokenFormat.Opaque);
+        effective.Options.GrantDelivery.RefreshToken.Mode
+            .Should().BeNull();
     }
 
     [Fact]
@@ -228,7 +226,7 @@ public class EffectiveServerOptionsProviderTests
 
         var effective = provider.GetEffective(
             TenantKey.Single,
-            UAuthClientProfile.BlazorServer);
+            UAuthApplicationProfile.BlazorServer);
 
         effective.Options.Session.IdleTimeout.Should().Be(TimeSpan.FromHours(4));
         effective.Options.Session.TouchInterval.Should().Be(TimeSpan.FromMinutes(15));
@@ -244,7 +242,7 @@ public class EffectiveServerOptionsProviderTests
 
         var effective = provider.GetEffective(
             TenantKey.Single,
-            UAuthClientProfile.BlazorServer);
+            UAuthApplicationProfile.BlazorServer);
 
         var options = effective.Options;
 
@@ -262,11 +260,8 @@ public class EffectiveServerOptionsProviderTests
         options.Cookie.RefreshToken.Lifetime.IdleBuffer
             .Should().Be(TimeSpan.FromMinutes(5));
 
-        options.AuthResponse.RefreshTokenDelivery.Mode
-            .Should().Be(TokenResponseMode.Cookie);
-
-        options.AuthResponse.RefreshTokenDelivery.TokenFormat
-            .Should().Be(TokenFormat.Opaque);
+        options.GrantDelivery.RefreshToken.Mode
+            .Should().BeNull();
     }
 
     [Fact]
@@ -287,7 +282,7 @@ public class EffectiveServerOptionsProviderTests
 
         var effective = provider.GetEffective(
             TenantKey.Single,
-            UAuthClientProfile.Api);
+            UAuthApplicationProfile.Api);
 
         var options = effective.Options;
 
@@ -313,19 +308,15 @@ public class EffectiveServerOptionsProviderTests
     }
 
     [Fact]
-    public void Unsupported_auth_mode_should_throw()
+    public void Invalid_auth_mode_returned_by_resolver_should_throw()
     {
-        var provider = CreateProviderForMode(
-            new UAuthServerOptions(),
-            (UAuthMode)999);
+        var provider = CreateProviderForMode(new UAuthServerOptions(), (UAuthMode)999);
 
-        Action act = () => provider.GetEffective(
-            TenantKey.Single,
-            UAuthClientProfile.Api);
+        Action act = () => provider.GetEffective(TenantKey.Single, UAuthApplicationProfile.Api);
 
         act.Should()
             .Throw<InvalidOperationException>()
-            .WithMessage("*Unsupported UAuthMode*");
+            .WithMessage("*Invalid authentication mode*");
     }
 
     [Fact]
@@ -343,7 +334,7 @@ public class EffectiveServerOptionsProviderTests
 
         var effective = provider.GetEffective(
             TenantKey.Single,
-            UAuthClientProfile.BlazorServer);
+            UAuthApplicationProfile.BlazorServer);
 
         effective.Options.Token.AccessTokenLifetime
             .Should().Be(TimeSpan.FromMinutes(3));
@@ -353,6 +344,127 @@ public class EffectiveServerOptionsProviderTests
         // The base configuration is not mutated.
         original.Token.AccessTokenLifetime.Should().Be(TimeSpan.FromMinutes(10));
         original.Session.SlidingExpiration.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Explicit_mode_should_not_invoke_custom_resolver()
+    {
+        var resolver = new Mock<IEffectiveAuthModeResolver>();
+
+        var options = new UAuthServerOptions
+        {
+            AuthMode = UAuthMode.PureJwt
+        };
+
+        var provider = new EffectiveServerOptionsProvider(
+            Options.Create(options),
+            resolver.Object);
+
+        var effective = provider.GetEffective(
+            TenantKey.Single, UAuthApplicationProfile.BlazorServer);
+
+        effective.Mode.Should().Be(UAuthMode.PureJwt);
+
+        resolver.Verify(
+            x => x.Resolve(It.IsAny<AuthModeResolutionContext>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void Custom_resolver_should_receive_tenant_and_profile()
+    {
+        var resolver = new Mock<IEffectiveAuthModeResolver>();
+
+        resolver.Setup(x => x.Resolve(
+                It.IsAny<AuthModeResolutionContext>()))
+            .Returns(UAuthMode.Hybrid);
+
+        var provider = new EffectiveServerOptionsProvider(
+            Options.Create(new UAuthServerOptions()),
+            resolver.Object);
+
+        provider.GetEffective(
+            TenantKey.Single, UAuthApplicationProfile.Api);
+
+        resolver.Verify(x => x.Resolve(
+            It.Is<AuthModeResolutionContext>(c =>
+                c.Tenant == TenantKey.Single &&
+                c.ApplicationProfile == UAuthApplicationProfile.Api)),
+            Times.Once);
+    }
+
+    [Fact]
+    public void Custom_resolver_cannot_bypass_allowed_modes()
+    {
+        var resolver = new Mock<IEffectiveAuthModeResolver>();
+
+        resolver.Setup(x => x.Resolve(
+                It.IsAny<AuthModeResolutionContext>()))
+            .Returns(UAuthMode.Hybrid);
+
+        var options = new UAuthServerOptions
+        {
+            AllowedModes = [UAuthMode.PureJwt]
+        };
+
+        var provider = new EffectiveServerOptionsProvider(
+            Options.Create(options),
+            resolver.Object);
+
+        Action act = () => provider.GetEffective(
+            TenantKey.Single, UAuthApplicationProfile.Api);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*not allowed*");
+    }
+
+    [Fact]
+    public void Explicit_mode_outside_allowed_modes_should_fail_validation()
+    {
+        var options = new UAuthServerOptions
+        {
+            AuthMode = UAuthMode.Hybrid,
+            AllowedModes = [UAuthMode.PureJwt]
+        };
+
+        var result = new UAuthServerOptionsValidator()
+            .Validate(null, options);
+
+        result.Failed.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Conflicting_mode_configuration_should_fail_validation()
+    {
+        var options = new UAuthServerOptions
+        {
+            AuthMode = UAuthMode.PureJwt
+        };
+
+        options.ApplicationProfileModes[UAuthApplicationProfile.Api] =
+            UAuthMode.Hybrid;
+
+        var result = new UAuthServerOptionsValidator()
+            .Validate(null, options);
+
+        result.Failed.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Clone_should_not_share_profile_mode_mappings()
+    {
+        var options = new UAuthServerOptions();
+
+        options.ApplicationProfileModes[UAuthApplicationProfile.Api] =
+            UAuthMode.PureJwt;
+
+        var clone = options.Clone();
+
+        clone.ApplicationProfileModes[UAuthApplicationProfile.Api] =
+            UAuthMode.Hybrid;
+
+        options.ApplicationProfileModes[UAuthApplicationProfile.Api]
+            .Should().Be(UAuthMode.PureJwt);
     }
 
     private static EffectiveServerOptionsProvider CreateProviderForMode(
@@ -373,7 +485,7 @@ public class EffectiveServerOptionsProviderTests
             _mode = mode;
         }
 
-        public UAuthMode Resolve(UAuthClientProfile clientProfile)
+        public UAuthMode Resolve(AuthModeResolutionContext context)
         {
             return _mode;
         }
@@ -395,14 +507,13 @@ public class EffectiveServerOptionsProviderTests
     //    var login = provider.GetEffective(
     //        ctx,
     //        AuthFlowType.Login,
-    //        UAuthClientProfile.Api);
+    //        UAuthApplicationProfile.Api);
 
     //    var api = provider.GetEffective(
     //        ctx,
     //        AuthFlowType.ApiAccess,
-    //        UAuthClientProfile.Api);
+    //        UAuthApplicationProfile.Api);
 
     //    Assert.NotEqual(login.Mode, api.Mode);
     //}
-
 }
