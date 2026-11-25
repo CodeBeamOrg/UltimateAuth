@@ -1,11 +1,14 @@
-﻿using Bunit;
+﻿using AwesomeAssertions;
+using Bunit;
+using Bunit.TestDoubles;
 using CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Options;
-using AwesomeAssertions;
+using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
 
@@ -34,7 +37,9 @@ public sealed class UAuthRequestClientTests : BunitContext
         if (basePath is not null)
             options.Endpoints.BasePath = basePath;
 
-        return new UAuthRequestClient(JSInterop.JSRuntime, _bootstrapper.Object, Options.Create(options));
+        var navigation = Services.GetRequiredService<NavigationManager>();
+
+        return new UAuthRequestClient(JSInterop.JSRuntime, _bootstrapper.Object, Options.Create(options), new InMemoryUAuthTokenStore(), navigation);
     }
 
     [Fact]
@@ -210,6 +215,244 @@ public sealed class UAuthRequestClientTests : BunitContext
         GetProperty<string?>(options, "trustedOrigin")
             .Should().Be(expectedOrigin);
     }
+
+
+    [Theory]
+    [InlineData(true, "logout")]
+    [InlineData(false, "logout-observe")]
+    public async Task LogoutTransport_UsesExpectedJavascriptMode(bool navigate, string expectedMode)
+    {
+        var expected = new UAuthTransportResult
+        {
+            Ok = true,
+            Status = 200
+        };
+
+        JSInterop
+            .Setup<UAuthTransportResult>("uauth.post", _ => true)
+            .SetResult(expected);
+
+        var result = await CreateSut().SendFormAsync(
+            "/auth/logout",
+            null,
+            navigateOnSuccess: navigate, Xunit.TestContext.Current.CancellationToken);
+
+        result.Should().BeSameAs(expected);
+
+        var invocation = JSInterop.Invocations
+            .Single(x => x.Identifier == "uauth.post");
+
+        GetProperty<string>(
+            invocation.Arguments.Single()!, "mode")
+            .Should().Be(expectedMode);
+    }
+
+    [Fact]
+    public async Task LogoutTransport_RejectsNullJavascriptResponse()
+    {
+        JSInterop
+            .Setup<UAuthTransportResult>("uauth.post", _ => true)
+            .SetResult(null!);
+
+        var act = () => CreateSut().SendFormAsync(
+            "/auth/logout",
+            null,
+            navigateOnSuccess: false);
+
+        await act.Should().ThrowAsync<UAuthProtocolException>()
+            .WithMessage("*logout transport response*");
+    }
+
+    [Fact]
+    public async Task LogoutTransport_RejectsUnconfirmedNetworkResult()
+    {
+        JSInterop
+            .Setup<UAuthTransportResult>("uauth.post", _ => true)
+            .SetResult(new UAuthTransportResult
+            {
+                Status = 0
+            });
+
+        var act = () => CreateSut().SendFormAsync(
+            "/auth/logout",
+            null,
+            navigateOnSuccess: true);
+
+        await act.Should()
+            .ThrowAsync<UAuthTransportException>()
+            .WithMessage("Could not confirm server logout.");
+    }
+
+    [Fact]
+    public async Task GetLoginTransportAsync_DeserializesCapabilities()
+    {
+        JSInterop
+            .Setup<UAuthTransportResult>("uauth.getLoginTransport", _ => true)
+            .SetResult(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200,
+                Body = System.Text.Json.JsonSerializer.SerializeToElement(
+                    new
+                    {
+                        supported = true,
+                        navigationSupported = false,
+                        accessTokenInHeader = true
+                    })
+            });
+
+        var result = await CreateSut().GetLoginTransportAsync("/auth/login/transport", Xunit.TestContext.Current.CancellationToken);
+
+        result.Supported.Should().BeTrue();
+        result.NavigationSupported.Should().BeFalse();
+        result.AccessTokenInHeader.Should().BeTrue();
+
+        JSInterop.VerifyInvoke("uauth.getLoginTransport", 1);
+    }
+
+    [Theory]
+    [InlineData(false, 200)]
+    [InlineData(true, 401)]
+    public async Task GetLoginTransportAsync_RejectsFailedResponse(bool ok, int status)
+    {
+        JSInterop
+            .Setup<UAuthTransportResult>("uauth.getLoginTransport", _ => true)
+            .SetResult(new UAuthTransportResult
+            {
+                Ok = ok,
+                Status = status
+            });
+
+        var act = () => CreateSut().GetLoginTransportAsync(
+            "/auth/login/transport");
+
+        await act.Should().ThrowAsync<UAuthProtocolException>();
+    }
+
+    [Theory]
+    [InlineData("https://evil.example/")]
+    [InlineData("//evil.example/")]
+    [InlineData(@"\\evil.example\")]
+    public async Task NavigateToUrlAsync_RejectsUnsafeDestination(
+        string destination)
+    {
+        var act = () => CreateSut()
+            .NavigateToUrlAsync(destination);
+
+        await act.Should().ThrowAsync<UAuthProtocolException>();
+    }
+
+    [Fact]
+    public async Task SendFormAsync_WithExplicitToken_ForwardsTokenToJavascript()
+    {
+        JSInterop
+            .Setup<UAuthTransportResult>("uauth.post", _ => true)
+            .SetResult(new UAuthTransportResult
+            {
+                Ok = true,
+                Status = 200
+            });
+
+        await CreateSut().SendFormAsync(
+            "/auth/validate",
+            form: null,
+            accessToken: "jwt-value", Xunit.TestContext.Current.CancellationToken);
+
+        var invocation = JSInterop.Invocations
+            .Single(x => x.Identifier == "uauth.post");
+
+        var argument = invocation.Arguments.Single()!;
+
+        GetProperty<string>(argument, "mode")
+            .Should().Be("fetch");
+
+        GetProperty<string?>(argument, "accessToken")
+            .Should().Be("jwt-value");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task NavigateToPkceReturnUrlAsync_UsesExpectedNavigationMode(
+    bool crossOrigin)
+    {
+        var navigation = Services.GetRequiredService<NavigationManager>();
+
+        var target = crossOrigin
+            ? "https://client.example.com/home"
+            : new Uri(new Uri(navigation.BaseUri), "home").AbsoluteUri;
+
+        var sut = CreateSut();
+
+        await sut.NavigateToPkceReturnUrlAsync(
+            target,
+            target,
+            Xunit.TestContext.Current.CancellationToken);
+
+        navigation.Uri.Should().Be(target);
+
+        var fakeNavigation = (BunitNavigationManager)navigation;
+
+        var entry = Assert.Single(fakeNavigation.History);
+
+        entry.Options.ForceLoad.Should().Be(crossOrigin);
+    }
+
+    [Theory]
+    [InlineData("/home", "/home")]
+    [InlineData("https://client.example.com/home", "/home")]
+    [InlineData("/home", "https://client.example.com/home")]
+    [InlineData("https://evil.example.com/home", "https://client.example.com/home")]
+    [InlineData("https://client.example.com/other", "https://client.example.com/home")]
+    [InlineData("https://client.example.com/home?x=1", "https://client.example.com/home")]
+    [InlineData("http://client.example.com/home", "https://client.example.com/home")]
+    [InlineData("https://client.example.com:8443/home", "https://client.example.com/home")]
+    [InlineData("ftp://client.example.com/home", "ftp://client.example.com/home")]
+    [InlineData("https://user@client.example.com/home", "https://user@client.example.com/home")]
+    public async Task NavigateToPkceReturnUrlAsync_RejectsInvalidDestination(
+    string redirectUrl,
+    string expectedReturnUrl)
+    {
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        var originalUri = navigation.Uri;
+
+        var sut = CreateSut();
+
+        Func<Task> act = () => sut.NavigateToPkceReturnUrlAsync(
+            redirectUrl,
+            expectedReturnUrl);
+
+        await act.Should()
+            .ThrowAsync<UAuthProtocolException>()
+            .WithMessage(
+                "PKCE return URL is invalid or does not match the expected destination.");
+
+        navigation.Uri.Should().Be(originalUri);
+    }
+
+    [Fact]
+    public async Task NavigateToPkceReturnUrlAsync_WhenCancelled_DoesNotNavigate()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        var originalUri = navigation.Uri;
+
+        const string target = "https://client.example.com/home";
+
+        var sut = CreateSut();
+
+        Func<Task> act = () => sut.NavigateToPkceReturnUrlAsync(
+            target,
+            target,
+            cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+
+        navigation.Uri.Should().Be(originalUri);
+    }
+
 
     private sealed class TestTryResult
     {

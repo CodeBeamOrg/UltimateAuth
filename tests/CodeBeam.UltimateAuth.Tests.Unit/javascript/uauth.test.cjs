@@ -794,12 +794,29 @@ test("submitLoginForm TryAndCommit reuses original form", async () => {
         }
     });
 
+    uauth.getLoginTransport = async options => {
+        assert.equal(options.url, "/auth/login/transport");
+        assert.equal(options.applicationProfile, "BlazorServer");
+
+        return {
+            ok: true,
+            status: 200,
+            body: {
+                supported: true,
+                navigationSupported: true,
+                accessTokenInHeader: false
+            }
+        };
+    };
+
     uauth.antiforgery.appendToForm = async () => { };
 
     const result = await uauth.submitLoginForm(form, {
         mode: "TryAndCommit",
         tryUrl: "/auth/try-login",
         commitUrl: "/auth/login",
+        transportUrl: "/auth/login/transport",
+        transport: "Navigation",
         applicationProfile: "BlazorServer",
         trustedOrigin: null,
         isPkce: false
@@ -807,7 +824,10 @@ test("submitLoginForm TryAndCommit reuses original form", async () => {
 
     assert.equal(result.isSuccess, true);
     assert.equal(form.submitCount, 1);
-    assert.equal(form.action, "https://localhost:6130/auth/login");
+    assert.equal(
+        form.action,
+        "https://localhost:6130/auth/login"
+    );
 
     assert.equal(
         form.elements.find(x => x.name === "PreviewReceipt")?.value,
@@ -818,4 +838,129 @@ test("submitLoginForm TryAndCommit reuses original form", async () => {
         form.elements.filter(x => x.name === "Secret").length,
         1
     );
+});
+
+test("submitLoginForm TryAndCommit uses fetch for header credentials", async () => {
+    const uauth = createEnvironment();
+
+    const form = new TestForm([
+        { name: "Identifier", value: "alice" },
+        { name: "Secret", value: "password123" }
+    ]);
+
+    uauth.postJson = async () => ({
+        status: 200,
+        body: {
+            isSuccess: true,
+            previewReceipt: "receipt-123"
+        }
+    });
+
+    uauth.getLoginTransport = async () => ({
+        ok: true,
+        status: 200,
+        body: {
+            supported: true,
+            navigationSupported: false,
+            accessTokenInHeader: true
+        }
+    });
+
+    const commitResponse = {
+        ok: true,
+        status: 200,
+        body: {
+            redirectUrl: null
+        }
+    };
+
+    let commitCount = 0;
+
+    uauth.commitLoginForm = async (
+        submittedForm,
+        url,
+        applicationProfile,
+        trustedOrigin
+    ) => {
+        commitCount++;
+
+        assert.equal(submittedForm, form);
+        assert.equal(url, "https://localhost:6130/auth/login");
+        assert.equal(applicationProfile, "BlazorServer");
+        assert.equal(trustedOrigin, null);
+
+        assert.equal(
+            submittedForm.elements.find(
+                x => x.name === "PreviewReceipt"
+            )?.value,
+            "receipt-123"
+        );
+
+        return commitResponse;
+    };
+
+    const result = await uauth.submitLoginForm(form, {
+        mode: "TryAndCommit",
+        tryUrl: "/auth/try-login",
+        commitUrl: "/auth/login",
+        transportUrl: "/auth/login/transport",
+        transport: "Auto",
+        returnUrl: "/home",
+        applicationProfile: "BlazorServer",
+        trustedOrigin: null,
+        isPkce: false
+    });
+
+    assert.equal(result.isSuccess, true);
+    assert.equal(result.accessTokenInHeader, true);
+    assert.equal(result.commit, commitResponse);
+
+    assert.equal(commitCount, 1);
+    assert.equal(form.submitCount, 0);
+
+    assert.equal(
+        form.elements.filter(x => x.name === "Secret").length,
+        1
+    );
+});
+
+test("submitLoginForm rejects navigation for header credentials", async () => {
+    const uauth = createEnvironment();
+
+    const form = new TestForm([
+        { name: "Identifier", value: "alice" },
+        { name: "Secret", value: "password123" }
+    ]);
+
+    uauth.getLoginTransport = async () => ({
+        ok: true,
+        status: 200,
+        body: {
+            supported: true,
+            navigationSupported: false,
+            accessTokenInHeader: true
+        }
+    });
+
+    let commitCount = 0;
+
+    uauth.commitLoginForm = async () => {
+        commitCount++;
+    };
+
+    await assert.rejects(
+        uauth.submitLoginForm(form, {
+            mode: "DirectCommit",
+            commitUrl: "/auth/login",
+            transportUrl: "/auth/login/transport",
+            transport: "Navigation",
+            applicationProfile: "BlazorServer",
+            trustedOrigin: null,
+            isPkce: false
+        }),
+        /Navigation is incompatible with header-based credential delivery/
+    );
+
+    assert.equal(form.submitCount, 0);
+    assert.equal(commitCount, 0);
 });

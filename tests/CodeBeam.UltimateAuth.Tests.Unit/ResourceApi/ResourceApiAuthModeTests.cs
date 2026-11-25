@@ -16,7 +16,7 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Server.ResourceApi;
 public sealed class ResourceApiAuthModeTests
 {
     [Fact]
-    public void DefaultResolver_UsesPureJwtForResourceApi()
+    public void DefaultResolver_UsesHybridForResourceApi()
     {
         var resolver = new EffectiveAuthModeResolver();
 
@@ -27,22 +27,23 @@ public sealed class ResourceApiAuthModeTests
                 Tenant = TenantKey.Single
             });
 
-        Assert.Equal(UAuthMode.PureJwt, result);
+        Assert.Equal(UAuthMode.Hybrid, result);
     }
 
     [Fact]
-    public void ResourceApi_DefaultMode_IsPureJwt()
+    public void ResourceApi_DefaultMode_IsHybrid()
     {
         using var provider = CreateProvider(options =>
         {
             options.Auth.Jwt = CreateJwtOptions();
+            options.Hub.BaseUrl = "https://hub.example.com";
         });
 
         var mode = provider
             .GetRequiredService<ResourceApiAuthModeProvider>()
             .Mode;
 
-        Assert.Equal(UAuthMode.PureJwt, mode);
+        Assert.Equal(UAuthMode.Hybrid, mode);
     }
 
     [Fact]
@@ -129,17 +130,17 @@ public sealed class ResourceApiAuthModeTests
     [Fact]
     public void ResourceApi_DefaultPureJwt_RequiresJwtOptions()
     {
-        using var provider = CreateProvider();
+        using var provider = CreateProvider(
+            options =>
+            {
+                options.Auth.Mode = UAuthMode.PureJwt;
+            });
 
-        var act = () => provider
-            .GetRequiredService<IOptions<UAuthResourceApiOptions>>()
-            .Value;
+        var act = () => provider.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value;
 
         var exception = Assert.Throws<OptionsValidationException>(act);
 
-        Assert.Contains(
-            exception.Failures,
-            x => x.Contains("Auth.Jwt is required"));
+        Assert.Contains(exception.Failures, x => x.Contains("Auth.Jwt is required"));
     }
 
     [Fact]
@@ -151,9 +152,7 @@ public sealed class ResourceApiAuthModeTests
             options.Hub.BaseUrl = "https://hub.example.com";
         });
 
-        var configured = provider
-            .GetRequiredService<IOptions<UAuthResourceApiOptions>>()
-            .Value;
+        var configured = provider.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value;
 
         Assert.Null(configured.Auth.Jwt);
     }
@@ -164,16 +163,14 @@ public sealed class ResourceApiAuthModeTests
         using var provider = CreateProvider(options =>
         {
             options.Auth.Jwt = CreateJwtOptions();
+            options.Hub.BaseUrl = "https://hub.example.com";
         });
 
-        var jwt = provider
-            .GetRequiredService<IOptions<UAuthJwtValidationOptions>>()
-            .Value;
+        var jwt = provider.GetRequiredService<IOptions<UAuthJwtValidationOptions>>().Value;
 
         Assert.Equal("https://auth.example.com", jwt.Issuer);
         Assert.Equal("resource-api", jwt.Audience);
-        Assert.Contains(SecurityAlgorithms.HmacSha256,
-            jwt.ValidAlgorithms);
+        Assert.Contains(SecurityAlgorithms.HmacSha256, jwt.ValidAlgorithms);
     }
 
     private static UAuthJwtValidationOptions CreateJwtOptions() => new()

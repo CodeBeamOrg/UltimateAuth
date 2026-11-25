@@ -40,9 +40,9 @@ public class RateLimitingPartitionTests
     public void EveryEndpointHasTheReviewedClassification()
     {
         var all = Enum.GetValues<UAuthEndpoint>().Select(UAuthEndpointClassification.Get).ToArray();
-        Assert.Equal(83, all.Length);
+        Assert.Equal(84, all.Length);
         Assert.Equal(21, all.Count(x => x.Group == UAuthRateLimitGroup.Sensitive));
-        Assert.Equal(57, all.Count(x => x.Group == UAuthRateLimitGroup.Standard));
+        Assert.Equal(58, all.Count(x => x.Group == UAuthRateLimitGroup.Standard));
         Assert.Equal(5, all.Count(x => x.Group == UAuthRateLimitGroup.Frequent));
         Assert.Equal(UAuthRateLimitGroup.Sensitive, UAuthEndpointClassification.Get(UAuthEndpoint.CredentialResetBeginAnonymous).Group);
         Assert.Equal(UAuthRateLimitGroup.Standard, UAuthEndpointClassification.Get(UAuthEndpoint.VerifyUserIdentifierAdmin).Group);

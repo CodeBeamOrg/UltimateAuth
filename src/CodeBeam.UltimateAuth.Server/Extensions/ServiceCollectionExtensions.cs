@@ -470,6 +470,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+
     public static IServiceCollection AddUAuthHub(this IServiceCollection services, Action<UAuthHubOptions>? configure = null)
     {
         services.PostConfigure<UAuthServerOptions>(options =>
@@ -483,28 +484,9 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IHubFlowReader, HubFlowReader>();
         services.TryAddScoped<IHubCredentialResolver, HubCredentialResolver>();
 
-        services.AddCors(options =>
-        {
-            options.AddPolicy("UAuthHub", policy =>
-            {
-                var sp = services.BuildServiceProvider();
-                var serverOptions = sp.GetRequiredService<IOptions<UAuthServerOptions>>().Value;
+        services.AddCors();
 
-                var origins = serverOptions.Hub.AllowedClientOrigins
-                    .Select(OriginHelper.Normalize)
-                    .ToArray();
-
-                if (origins.Length > 0)
-                {
-                    policy
-                        .WithOrigins(origins)
-                        .AllowAnyHeader()
-                        .AllowAnyMethod()
-                        .AllowCredentials()
-                        .WithExposedHeaders("X-UAuth-Refresh");
-                }
-            });
-        });
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CorsOptions>, UAuthHubCorsOptionsSetup>());
 
         return services;
     }
@@ -519,12 +501,10 @@ public static class ServiceCollectionExtensions
 
         services.TryAddSingleton<IOptions<UAuthJwtValidationOptions>>(sp =>
         {
-            var resource = sp.GetRequiredService<
-                IOptions<UAuthResourceApiOptions>>().Value;
+            var resource = sp.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value;
 
             var jwt = resource.Auth.Jwt
-                ?? throw new InvalidOperationException(
-                    "Auth.Jwt is required for JWT validation.");
+                ?? throw new InvalidOperationException("Auth.Jwt is required for JWT validation.");
 
             return Microsoft.Extensions.Options.Options.Create(jwt);
         });
@@ -532,12 +512,10 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IEffectiveAuthModeResolver, EffectiveAuthModeResolver>();
         services.AddSingleton<ResourceApiAuthModeProvider>();
 
-        services.AddScoped<ISessionValidator, RemoteSessionValidator>();
         services.TryAddScoped<IUAuthJwtValidator, UAuthJwtValidator>();
         services.TryAddSingleton<IJwtVerificationKeyProvider, ConfiguredJwtVerificationKeyProvider>();
 
         services.AddScoped<IUserAccessor<UserKey>, ResourceUserAccessor<UserKey>>();
-        //services.AddScoped<IAuthContextFactory, ResourceAuthContextFactory>();
         services.AddScoped<IAccessOrchestrator, UAuthResourceAccessOrchestrator>();
 
         // Server & Resource API Shared
@@ -603,7 +581,13 @@ public static class ServiceCollectionExtensions
             var options = sp.GetRequiredService<IOptions<UAuthResourceApiOptions>>().Value;
 
             client.BaseAddress = new Uri(options.Hub.BaseUrl, UriKind.Absolute);
-        });
+        })
+        .ConfigurePrimaryHttpMessageHandler(() =>
+            new HttpClientHandler
+            {
+                UseCookies = false,
+                AllowAutoRedirect = false
+            });
 
         return services;
     }

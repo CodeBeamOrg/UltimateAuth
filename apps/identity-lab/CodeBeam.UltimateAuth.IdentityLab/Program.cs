@@ -43,10 +43,10 @@ builder.Services.AddSingleton(activityEventBridge);
 builder.Services.AddUltimateAuthServer(o =>
 {
     o.Cryptography.TokenHashingKey = builder.Configuration["UltimateAuth:Cryptography:TokenHashingKey"]
-        ?? throw new InvalidOperationException("UltimateAuth token hashing key is missing.");
+        ?? o.Cryptography.TokenHashingKey;
 
     o.Cryptography.JwtSigningKey = builder.Configuration["UltimateAuth:Cryptography:JwtSigningKey"]
-        ?? throw new InvalidOperationException("UltimateAuth JWT signing key is missing.");
+        ?? o.Cryptography.JwtSigningKey;
 
     // Identity Lab uses its own trusted creation align with Sandbox management.
     o.Endpoints.DisabledActions.Add(UAuthActions.Users.CreateAnonymous);

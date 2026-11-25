@@ -70,4 +70,9 @@ public sealed class UAuthClientEndpointOptions
     /// Endpoint used to retrieve the effective public password policy.
     /// </summary>
     public string PasswordPolicy { get; set; } = "/password-policy";
+
+    /// <summary>
+    /// Returns the effective login transport capabilities for the current tenant and application profile.
+    /// </summary>
+    public string LoginTransport { get; set; } = "/login/transport";
 }

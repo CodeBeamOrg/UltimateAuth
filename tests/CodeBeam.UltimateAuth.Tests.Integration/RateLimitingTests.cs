@@ -186,12 +186,18 @@ public class RateLimitingTests
 /auth/antiforgery/token|AntiforgeryToken|Frequent
 /auth/admin/users/{userKey}/authentication/lockout/get|GetAuthenticationLockoutAdmin|Standard
 /auth/admin/users/{userKey}/authentication/unlock|UnlockAuthenticationAdmin|Sensitive
+/auth/login/transport|LoginTransport|Standard
 """;
         var actual = routes.Cast<RouteEndpoint>().Select(endpoint =>
         {
             var metadata = Assert.Single(endpoint.Metadata, m => m.GetType().Name == "UAuthRateLimitMetadata");
             var type = metadata.GetType();
-            var expectedMethods = endpoint.RoutePattern.RawText == "/auth/antiforgery/token" ? new[] { "GET" } : new[] { "POST" };
+            var expectedMethods = endpoint.RoutePattern.RawText switch
+            {
+                "/auth/antiforgery/token" => new[] { "GET" },
+                "/auth/login/transport" => new[] { "GET" },
+                _ => new[] { "POST" }
+            };
 
             Assert.Equal(expectedMethods, endpoint.Metadata.GetMetadata<HttpMethodMetadata>()!.HttpMethods);
             return $"{endpoint.RoutePattern.RawText}|{type.GetProperty("Endpoint")!.GetValue(metadata)}|{type.GetProperty("Group")!.GetValue(metadata)}";

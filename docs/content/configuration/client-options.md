@@ -280,6 +280,13 @@ Changing a client endpoint does not create or expose the corresponding server en
 | `PkceTryComplete` | `/pkce/try-complete` |
 | `PkceComplete` | `/pkce/complete` |
 | `HubLoginPath` | `/uauthhub/entry` |
+| `LoginTransport` | `/login/transport` |
+
+> The `LoginTransport` endpoint exposes the effective login transport capabilities of the authentication server.
+>
+>The client uses this information to determine whether navigation-based login is supported and whether the authentication response requires access-token processing.
+>
+>This endpoint does not select an authentication mode or negotiate the server's authentication configuration.
 
 ### Customize Individual Paths
 

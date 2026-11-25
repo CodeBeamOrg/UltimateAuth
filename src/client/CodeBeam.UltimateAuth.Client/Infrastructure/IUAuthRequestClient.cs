@@ -32,6 +32,8 @@ public interface IUAuthRequestClient
     Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form, bool navigateOnSuccess, CancellationToken ct = default)
         => SendFormAsync(endpoint, form, ct);
 
+    Task<UAuthTransportResult> SendFormAsync(string endpoint, IDictionary<string, string>? form, string? accessToken, CancellationToken ct = default);
+
     /// <summary>
     /// Sends a JSON payload to the specified endpoint and returns the result of the operation.
     /// </summary>
@@ -52,4 +54,10 @@ public interface IUAuthRequestClient
     /// <param name="ct"></param>
     /// <returns></returns>
     Task<TTryResult> TryAndCommitAsync<TTryResult>(string tryEndpoint, string commitEndpoint, object request, CancellationToken ct = default);
+
+    Task<UAuthLoginTransportInfo> GetLoginTransportAsync(string endpoint, CancellationToken ct = default);
+
+    Task NavigateToUrlAsync(string url, CancellationToken ct = default);
+
+    Task NavigateToPkceReturnUrlAsync(string redirectUrl, string expectedReturnUrl, CancellationToken ct = default);
 }

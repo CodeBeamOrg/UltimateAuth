@@ -574,7 +574,11 @@ Include the UltimateAuth JavaScript asset in the application's HTML host page.
 
 A single UAuthHub can issue different authentication credentials according to the resolved application profile and server configuration.
 
-Blazor Server defaults to PureOpaque, while Blazor WebAssembly and MAUI default to Hybrid. API-oriented profiles default to PureJwt.
+Blazor Server defaults to PureOpaque. All other application profiles default to Hybrid under the built-in authentication mode resolver.
+
+PureJwt must be explicitly selected when independent JWT-based authentication is required.
+
+UAuthHub and Resource APIs must be configured with compatible authentication modes and credential transports.
 
 JWT-enabled modes require a signing key. The UAuthHub remains responsible for protecting that key and issuing trusted access tokens.
 
@@ -751,6 +755,46 @@ dotnet add package CodeBeam.UltimateAuth.Server
 
 ### Configure services
 
+#### Hybrid Resource API
+
+Hybrid is the default authentication mode for Resource APIs.
+
+The current Hybrid Resource API implementation authenticates requests using opaque session credentials and validates those sessions through UAuthHub.
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+
+builder.Services.AddUltimateAuthResourceApi(options =>
+{
+    options.Hub.BaseUrl = "https://auth.example.com";
+    options.Cors.AllowedOrigins.Add("https://app.example.com");
+});
+
+var app = builder.Build();
+
+app.UseHttpsRedirection();
+app.UseUltimateAuthResourceApiWithAspNetCore();
+
+app.MapControllers();
+app.Run();
+```
+
+`Hub.BaseUrl` is the base address of the authentication server.
+
+The default incoming session credential transport is cookie-based.
+
+The browser must be able to send the session cookie to the Resource API. Compatible cookie scope, deployment topology, and CORS configuration are required.
+
+The Resource API forwards the selected session credential and device context to UAuthHub for validation.
+
+Hybrid-aware JWT access-token validation is not yet supported by separate Resource APIs.
+
+#### PureJwt Resource API
+
+Select PureJwt explicitly when the Resource API should validate JWT access tokens independently of UAuthHub.
+
 `PureJwt` Resource API's `Program.cs`:
 
 ```csharp
@@ -775,7 +819,7 @@ builder.Services.AddUltimateAuthResourceApi(options =>
                 ?? throw new InvalidOperationException("JWT verification key is missing.")
         });
 
-    options.Auth.AccessToken.DeliveryMode = GrantDeliveryMode.Header;
+    options.Auth.Mode = UAuthMode.PureJwt;
 
     options.Cors.AllowedOrigins.Add("https://app.example.com");
 });
@@ -789,25 +833,6 @@ app.MapControllers();
 app.Run();
 
 ```
-
-`PureOpaque` Resource API's `Program.cs`:
-
-```csharp
-builder.Services.AddUltimateAuthResourceApi(options =>
-{
-    options.Auth.Mode = UAuthMode.PureOpaque;
-
-    options.Hub.BaseUrl = "https://auth.example.com";
-
-    options.Auth.Session.DeliveryMode = GrantDeliveryMode.Cookie;
-
-    options.Auth.Session.CookieName = "uas";
-
-    options.Cors.AllowedOrigins.Add("https://app.example.com");
-});
-```
-
-`Hub.BaseUrl` is the base address of the authentication server.
 
 Notice that this example uses the Hub origin without the `/auth` suffix, matching the current Resource API samples.
 
@@ -1099,7 +1124,13 @@ The default resolver maps application profiles to authentication modes.
 
 This mapping describes the resolver's behavior, not a guarantee that every mode is currently fully supported by the server.
 
-In particular, `PureJwt` and `SemiHybrid` have implementation limitations in the current release.
+PureOpaque, Hybrid, and PureJwt are implemented authentication modes.
+
+SemiHybrid remains reserved for future implementation.
+
+Hybrid Resource APIs currently support session-based authentication. PureJwt Resource APIs support independent JWT validation.
+
+Applications must explicitly configure compatible authentication modes when the built-in defaults do not match their architecture.
 
 ### Restrict allowed modes
 

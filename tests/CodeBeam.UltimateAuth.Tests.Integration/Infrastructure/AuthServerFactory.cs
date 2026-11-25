@@ -3,6 +3,7 @@ using CodeBeam.UltimateAuth.Authorization.Contracts;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
+using CodeBeam.UltimateAuth.Core.Options;
 using CodeBeam.UltimateAuth.Credentials.Contracts;
 using CodeBeam.UltimateAuth.Credentials.Reference;
 using CodeBeam.UltimateAuth.Server.Infrastructure;
@@ -64,6 +65,8 @@ public class AuthServerFactory : WebApplicationFactory<Program>
             // Business-flow tests share a host; limiter contracts use isolated hosts.
             services.PostConfigure<UAuthServerOptions>(options =>
             {
+                // TODO: Decouple test projects and remove UAuthHub sample dependency. This is a temporary workaround to avoid UAuthHub sample's default cookie delivery mode from interfering with the tests.
+                options.GrantDelivery.Default = GrantDeliveryMode.Cookie;
                 options.RateLimiting.Enabled = false;
                 options.Login.IncludeFailureDetails = false;
                 options.DeviceLimits.MaxDevices = null;

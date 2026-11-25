@@ -12,7 +12,6 @@ using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Moq;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.Server;
@@ -124,14 +123,14 @@ public sealed class TransportCredentialResolverTests
     }
 
     [Theory]
-    [InlineData(HeaderTokenFormat.Bearer, "Bearer valid-jwt")]
-    [InlineData(HeaderTokenFormat.Raw, "valid-jwt")]
-    public async Task ResolveAsync_PureJwt_UsesConfiguredHeader(
-        HeaderTokenFormat format,
-        string value)
+    [InlineData(HeaderTokenFormat.Bearer)]
+    [InlineData(HeaderTokenFormat.Raw)]
+    public async Task ResolveAsync_PureJwt_UsesAuthorizationBearer_RegardlessOfResponseHeaderFormat(HeaderTokenFormat format)
     {
         var fixture = CreateFixture("uas=old-session");
-        fixture.Context.Request.Headers["X-UAuth-Access"] = value;
+
+        fixture.Context.Request.Headers["Authorization"] =
+            "Bearer valid-jwt";
 
         var response = CreateResponse(
             GrantDeliveryMode.Header,
@@ -144,9 +143,30 @@ public sealed class TransportCredentialResolverTests
             response);
 
         credential.Should().NotBeNull();
-        credential!.Kind.Should()
-            .Be(TransportCredentialKind.AccessToken);
+        credential!.Kind.Should().Be(TransportCredentialKind.AccessToken);
         credential.Value.Should().Be("valid-jwt");
+    }
+
+    [Theory]
+    [InlineData(HeaderTokenFormat.Bearer, "Bearer valid-jwt")]
+    [InlineData(HeaderTokenFormat.Raw, "valid-jwt")]
+    public async Task ResolveAsync_PureJwt_DoesNotUseResponseHeaderAsRequestCredential(HeaderTokenFormat format, string value)
+    {
+        var fixture = CreateFixture("uas=old-session");
+
+        fixture.Context.Request.Headers["X-UAuth-Access"] = value;
+
+        var response = CreateResponse(
+            GrantDeliveryMode.Header,
+            headerName: "X-UAuth-Access",
+            headerFormat: format);
+
+        var credential = await fixture.Sut.ResolveAsync(
+            fixture.Context,
+            UAuthMode.PureJwt,
+            response);
+
+        credential.Should().BeNull();
     }
 
     [Fact]

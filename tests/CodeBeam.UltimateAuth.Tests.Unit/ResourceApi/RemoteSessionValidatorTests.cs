@@ -4,25 +4,23 @@ using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.Infrastructure;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;
 using CodeBeam.UltimateAuth.Core.Options;
+using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.ResourceApi;
 using CodeBeam.UltimateAuth.Tests.Unit.Helpers;
-using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit.ResourceApi;
 
 public sealed class RemoteSessionValidatorTests
 {
-    private const string SessionValue =
-        "session-00000000000000000000000000000001";
+    private const string SessionValue = "session-00000000000000000000000000000001";
 
-    private static readonly TenantKey Tenant =
-        TenantKey.FromExternal("tenant-a");
+    private static readonly TenantKey Tenant = TenantKey.FromExternal("tenant-a");
 
     [Fact]
-    public async Task ValidateSessionAsync_ShouldPostSessionAndTenantToValidationEndpoint()
+    public async Task ValidateSessionAsync_ShouldPostSessionCookieToValidationEndpoint()
     {
         var handler = new TestHttpMessageHandler
         {
@@ -30,59 +28,54 @@ public sealed class RemoteSessionValidatorTests
         };
 
         var sut = CreateSut(handler);
-
         var context = CreateValidationContext();
 
-        await sut.ValidateSessionAsync(context, ct: TestContext.Current.CancellationToken);
+        await sut.ValidateSessionAsync(
+            context,
+            ct: TestContext.Current.CancellationToken);
 
         handler.Method.Should().Be(HttpMethod.Post);
 
         handler.RequestUri.Should()
             .Be(new Uri("https://uauth.test/auth/validate"));
 
-        handler.Body.Should().NotBeNullOrWhiteSpace();
+        handler.Cookie.Should()
+            .Be($"uas={context.SessionId.Value}");
 
-        using var json = JsonDocument.Parse(handler.Body!);
-
-        json.RootElement
-            .GetProperty("sessionId")
-            .GetString()
-            .Should()
-            .Be(context.SessionId.Value);
-
-        json.RootElement
-            .GetProperty("tenant")
-            .GetString()
-            .Should()
-            .Be(Tenant.Value);
+        handler.Body.Should().BeNull();
     }
 
     [Fact]
-    public async Task ValidateSessionAsync_WhenIncomingRequestContainsCookie_ShouldForwardCookie()
+    public async Task ValidateSessionAsync_ShouldUseConfiguredHubSessionCookieName()
     {
         var handler = new TestHttpMessageHandler
         {
             Response = CreateFailureResponse(HttpStatusCode.Unauthorized)
         };
 
-        var httpContext = new DefaultHttpContext();
+        var options = new UAuthResourceApiOptions
+        {
+            Hub = new UAuthResourceHubOptions
+            {
+                SessionCookieName = "custom-session"
+            }
+        };
 
-        httpContext.Request.Headers.Cookie =
-            "uauth_session=session-cookie; other=value";
-
-        var sut = CreateSut(
-            handler,
-            httpContext);
+        var sut = CreateSut(handler, options);
+        var context = CreateValidationContext();
 
         await sut.ValidateSessionAsync(
-            CreateValidationContext(), ct: TestContext.Current.CancellationToken);
+            context,
+            ct: TestContext.Current.CancellationToken);
 
         handler.Cookie.Should()
-            .Be("uauth_session=session-cookie; other=value");
+            .Be($"custom-session={context.SessionId.Value}");
     }
 
-    [Fact]
-    public async Task ValidateSessionAsync_WhenIncomingRequestDoesNotContainCookie_ShouldNotAddCookieHeader()
+    [Theory]
+    [InlineData("session-00000000000000000000000000000001")]
+    [InlineData("session-00000000000000000000000000000002")]
+    public async Task ValidateSessionAsync_ShouldSendExactRequestedSession(string sessionValue)
     {
         var handler = new TestHttpMessageHandler
         {
@@ -91,10 +84,14 @@ public sealed class RemoteSessionValidatorTests
 
         var sut = CreateSut(handler);
 
-        await sut.ValidateSessionAsync(
-            CreateValidationContext(), ct: TestContext.Current.CancellationToken);
+        var context = CreateValidationContext() with
+        {
+            SessionId = AuthSessionId.Parse(sessionValue, null)
+        };
 
-        handler.Cookie.Should().BeNull();
+        await sut.ValidateSessionAsync(context, ct: TestContext.Current.CancellationToken);
+
+        handler.Cookie.Should().Be($"uas={sessionValue}");
     }
 
     [Theory]
@@ -127,7 +124,7 @@ public sealed class RemoteSessionValidatorTests
     }
 
     [Fact]
-    public async Task ValidateSessionAsync_WhenHubReturnsJsonNull_ShouldReturnNotFound()
+    public async Task ValidateSessionAsync_WhenHubReturnsJsonNull_ShouldReturnInvalid()
     {
         var handler = new TestHttpMessageHandler
         {
@@ -138,17 +135,15 @@ public sealed class RemoteSessionValidatorTests
         };
 
         var sut = CreateSut(handler);
-
         var context = CreateValidationContext();
 
-        var result =
-            await sut.ValidateSessionAsync(context, ct: TestContext.Current.CancellationToken);
+        var result = await sut.ValidateSessionAsync(
+            context,
+            ct: TestContext.Current.CancellationToken);
 
         result.IsValid.Should().BeFalse();
-        result.State.Should().Be(SessionState.NotFound);
-
-        result.SessionId.Should()
-            .Be(context.SessionId);
+        result.State.Should().Be(SessionState.Invalid);
+        result.SessionId.Should().Be(context.SessionId);
     }
 
     [Fact]
@@ -449,24 +444,14 @@ public sealed class RemoteSessionValidatorTests
     }
 
 
-    private static RemoteSessionValidator CreateSut(TestHttpMessageHandler handler, HttpContext? httpContext = null)
+    private static RemoteSessionValidator CreateSut(TestHttpMessageHandler handler, UAuthResourceApiOptions? options = null)
     {
         var httpClient = new HttpClient(handler)
         {
-            BaseAddress =
-                new Uri("https://uauth.test")
+            BaseAddress = new Uri("https://uauth.test")
         };
 
-        var accessor =
-            new HttpContextAccessor
-            {
-                HttpContext =
-                    httpContext ?? new DefaultHttpContext()
-            };
-
-        return new RemoteSessionValidator(
-            httpClient,
-            accessor);
+        return new RemoteSessionValidator(httpClient, Options.Create(options ?? new UAuthResourceApiOptions()));
     }
 
     private static SessionValidationContext CreateValidationContext()

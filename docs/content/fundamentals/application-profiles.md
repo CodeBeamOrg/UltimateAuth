@@ -215,7 +215,7 @@ A Blazor WebAssembly application communicating with a separate API may benefit f
 
 These are architectural recommendations, not inherent limitations of the runtimes.
 
-### Recommended defaults
+### Recommended Authentication Modes
 
 | Application environment | Recommended mode | Reason |
 |---|---|---|

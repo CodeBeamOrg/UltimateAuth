@@ -86,6 +86,7 @@ public enum UAuthEndpoint
     AntiforgeryToken,
     GetAuthenticationLockoutAdmin,
     UnlockAuthenticationAdmin,
+    LoginTransport,
 }
 
 internal enum UAuthRateLimitGroup { Sensitive, Standard, Frequent }

@@ -403,16 +403,15 @@ UltimateAuth resolves the effective authentication mode using the application pr
 | WebServer | Hybrid |
 | BlazorWasm | Hybrid |
 | Maui | Hybrid |
-| Api | PureJwt |
-| ResourceApi | PureJwt |
+| UAuthHub | Hybrid |
+| Api | Hybrid |
+| ResourceApi | Hybrid |
 
 The server controls the effective authentication mode. Application profile metadata is not an authorization boundary.
 
 `AuthMode` forces a single mode for the server, while `ApplicationProfileModes` provides explicit profile-specific mappings. These configuration mechanisms cannot be combined.
 
 `AllowedModes` restricts permitted modes but does not select a mode.
-
-PureJwt is implemented. SemiHybrid remains unavailable.
 
 ### Explicit PureJwt Configuration
 
@@ -1191,40 +1190,91 @@ The application should return valid, trusted navigation destinations.
 
 Avoid constructing redirects from unvalidated user-controlled URLs.
 
-## 22. Authentication Response Options
+## 22. Credential Delivery and Authentication Responses
 
-`options.AuthResponse` controls how authentication credentials and redirect behavior are represented in responses.
+UltimateAuth separates credential delivery from navigation behavior.
 
-The available groups are:
+Credential delivery is configured through `options.GrantDelivery`:
 
 ```csharp
-options.AuthResponse.SessionIdDelivery
-options.AuthResponse.AccessTokenDelivery
-options.AuthResponse.RefreshTokenDelivery
-
-options.AuthResponse.Login
-options.AuthResponse.Logout
+options.GrantDelivery.Default
+options.GrantDelivery.Session
+options.GrantDelivery.AccessToken
+options.GrantDelivery.RefreshToken
 ```
 
-These settings govern credential delivery and authentication response behavior.
+Each grant can have its own delivery configuration.
 
-### Important: Mode-Specific Response Defaults
+### Mode-Specific Delivery Defaults
 
-UltimateAuth provides response templates for authentication modes.
+| Authentication Mode | Session | Access Token | Refresh Token |
+|---|---|---|---|
+| PureOpaque | Cookie | Not issued | Not issued |
+| Hybrid | Cookie | Header | Cookie |
+| PureJwt | Not issued | Header | Cookie |
 
-For example, `PureOpaque` uses a session-oriented cookie response, while `Hybrid` combines session and token delivery behavior.
+These are the built-in defaults before application-profile adaptation and explicit configuration.
 
-The effective response may therefore depend on the resolved authentication mode and flow.
+For MAUI, grants that would otherwise use cookie delivery default to header delivery.
 
-Do not assume that a single globally configured response delivery setting applies unchanged to every authentication mode.
+### Configure Grant Delivery
+
+```csharp
+builder.Services.AddUltimateAuthServer(options =>
+{
+    options.AuthMode = UAuthMode.PureJwt;
+
+    options.GrantDelivery.AccessToken.Mode = GrantDeliveryMode.Header;
+    options.GrantDelivery.RefreshToken.Mode = GrantDeliveryMode.Cookie;
+});
+```
+
+An explicit per-grant delivery mode takes precedence over the global delivery default and the built-in mode-specific default.
+
+Only credentials available in the selected authentication mode can be configured for delivery.
+
+### Credential Delivery Versus Request Authentication
+
+Response headers deliver newly issued credentials to the client.
+
+The default credential response header names are:
+
+| Credential | Response Header |
+|---|---|
+| Session | `uas` |
+| Access token | `uat` |
+| Refresh token | `uar` |
+
+These response headers must not be confused with the headers used to authenticate subsequent requests.
+
+For example, the Blazor client receives an access token through the configured response header and sends it on subsequent authenticated requests using `Authorization: Bearer`.
+
+### Redirect Configuration
+
+Login and logout redirect behavior is configured separately:
+
+```csharp
+options.Redirect.Login
+options.Redirect.Logout
+```
+
+A redirect is a navigation concern, not an authentication credential.
+
+### Login Transport Discovery
+
+The client discovers whether the effective server configuration supports navigation-based login or requires fetch-based submission.
+
+Header-delivered access tokens require a transport that allows the client to observe and process the authentication response.
+
+Applications should normally allow the client to select the appropriate login transport automatically.
 
 ### Security Considerations
 
-Credential delivery settings determine whether sensitive authentication material is exposed through cookies, headers, or other response mechanisms.
+Credential delivery must be compatible with the selected authentication mode, application profile, and deployment topology.
 
-Only customize them when the application has a clear requirement and the selected transport is appropriate for the client platform.
+Browser cookie restrictions, CORS policies, trusted origins, and token storage behavior remain relevant regardless of the selected transport.
 
-For advanced response customization, see [Advanced Configuration](/docs/configuration/advanced-configuration).
+For additional client-side behavior, see [Authentication](/docs/client-sdk/authentication).
 
 ## 23. Diagnostics Options
 

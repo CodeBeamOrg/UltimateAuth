@@ -60,6 +60,9 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
 
         if (options.Endpoints.Authentication != false)
         {
+            group.MapGet("/login/transport", UAuthLoginTransportEndpoint.Get)
+                .WithMetadata(new AuthFlowMetadata(AuthFlowType.Login)).WithUAuthRateLimit(UAuthEndpoint.LoginTransport);
+
             group.MapPost("/login", async ([FromServices] ILoginEndpointHandler h, HttpContext ctx)
                 => await h.LoginAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.Login), new UAuthCsrfMetadata(UAuthCsrfOperation.Login)).WithUAuthRateLimit(UAuthEndpoint.Login);
 

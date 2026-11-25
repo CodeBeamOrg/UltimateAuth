@@ -13,10 +13,16 @@ internal sealed class TransportCredentialResolver : ITransportCredentialResolver
         return mode switch
         {
             UAuthMode.PureJwt or UAuthMode.SemiHybrid =>
-                await ResolveDeliveryAsync(context, response.AccessTokenDelivery, TransportCredentialKind.AccessToken),
+                await ResolveDeliveryAsync(
+                    context,
+                    response.AccessTokenDelivery,
+                    TransportCredentialKind.AccessToken),
 
             UAuthMode.PureOpaque or UAuthMode.Hybrid =>
-                await ResolveDeliveryAsync(context, response.SessionIdDelivery, TransportCredentialKind.Session),
+                await ResolveDeliveryAsync(
+                    context,
+                    response.SessionIdDelivery,
+                    TransportCredentialKind.Session),
 
             _ => null
         };
@@ -29,8 +35,18 @@ internal sealed class TransportCredentialResolver : ITransportCredentialResolver
             GrantDeliveryMode.Cookie =>
                 ReadCookie(context, delivery.Cookie?.Name),
 
+            GrantDeliveryMode.Header
+                when kind == TransportCredentialKind.AccessToken =>
+                ReadHeader(
+                    context,
+                    "Authorization",
+                    HeaderTokenFormat.Bearer),
+
             GrantDeliveryMode.Header =>
-                ReadHeader(context, delivery.Name, delivery.HeaderFormat),
+                ReadHeader(
+                    context,
+                    delivery.Name,
+                    delivery.HeaderFormat),
 
             _ => null
         };
@@ -47,7 +63,9 @@ internal sealed class TransportCredentialResolver : ITransportCredentialResolver
         };
     }
 
-    private static string? ReadCookie(HttpContext context, string? name)
+    private static string? ReadCookie(
+        HttpContext context,
+        string? name)
     {
         if (string.IsNullOrWhiteSpace(name))
             return null;
@@ -58,9 +76,13 @@ internal sealed class TransportCredentialResolver : ITransportCredentialResolver
                 : null;
     }
 
-    private static string? ReadHeader(HttpContext context, string? name, HeaderTokenFormat format)
+    private static string? ReadHeader(
+        HttpContext context,
+        string? name,
+        HeaderTokenFormat format)
     {
-        if (string.IsNullOrWhiteSpace(name) || !context.Request.Headers.TryGetValue(name, out var header))
+        if (string.IsNullOrWhiteSpace(name) ||
+            !context.Request.Headers.TryGetValue(name, out var header))
         {
             return null;
         }
@@ -71,7 +93,9 @@ internal sealed class TransportCredentialResolver : ITransportCredentialResolver
         {
             const string prefix = "Bearer ";
 
-            if (!value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            if (!value.StartsWith(
+                    prefix,
+                    StringComparison.OrdinalIgnoreCase))
             {
                 return null;
             }

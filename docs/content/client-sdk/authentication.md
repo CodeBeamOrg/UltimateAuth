@@ -79,11 +79,62 @@ var request = new LoginRequest
 await UAuthClient.Flows.LoginAsync(request);
 ```
 
-The method returns `Task`, not a structured login result.
+`LoginAsync` returns a structured login result describing the outcome of the submission.
 
-It submits the login payload through the configured navigation-based transport.
+The client discovers the effective login transport supported by the server.
 
-Depending on the hosting environment, this may initiate navigation or redirect behavior.
+Depending on the authentication mode, credential delivery configuration, and return URL, login may use browser navigation or a fetch-based request.
+
+A navigation submission does not itself confirm successful server-side authentication. A fetch-based submission allows the client to observe the server response and process delivered credentials.
+
+### Login Transport Selection
+
+UltimateAuth supports three login transport strategies:
+
+| Transport | Behavior |
+|---|---|
+| `Auto` | Automatically selects a compatible transport |
+| `Navigation` | Submits the login through browser navigation |
+| `Fetch` | Submits the login through an HTTP request and processes the response |
+
+`Auto` is the default and recommended strategy.
+
+```csharp
+var result = await UAuthClient.Flows.LoginAsync(
+    request,
+    returnUrl: "/dashboard",
+    transport: UAuthLoginTransport.Auto);
+```
+
+Navigation is suitable when the effective credential delivery configuration supports browser-managed authentication credentials.
+
+Fetch is required when the client must observe a header-delivered access token.
+
+Applications can explicitly request fetch-based login:
+
+```csharp
+var result = await UAuthClient.Flows.LoginAsync(
+    request,
+    transport: UAuthLoginTransport.Fetch);
+```
+
+An explicitly requested transport must be compatible with the effective server configuration.
+
+The client does not silently downgrade an incompatible explicit navigation request.
+
+### Processing Header-Delivered Access Tokens
+
+When login delivers an access token through a response header, UltimateAuth processes the token and stores it in the client-side token store.
+
+The default token store is in-memory.
+
+Applications using the UltimateAuth client do not need to manually extract JWTs from login responses or construct authorization headers.
+
+The client attaches the access token to supported authenticated requests and clears expired credentials from the token store.
+
+In-memory storage does not persist access tokens across a full application reload.
+
+Authentication continuation after a reload depends on the available refresh credential and the effective server configuration.
 
 ### LoginRequest Properties
 
@@ -479,6 +530,32 @@ This is useful when the current PKCE context can no longer be used.
 
 The application should not repeatedly resubmit the same invalid authorization code and verifier.
 
+### UAuthHub Handoff and Credential Ownership
+
+A PKCE flow initiated by an application retains the initiating application's authentication context.
+
+When the user completes login through UAuthHub, the resulting credentials belong to the initiating application, not to the Hub's interactive login interface.
+
+The Hub completes the authentication flow and returns the user to the validated application return URL.
+
+Header-delivered access tokens associated with the initiating application must not be installed into the Hub's local authentication state.
+
+After returning to the initiating application, the client can restore authentication through the available session or refresh credentials.
+
+This behavior preserves the original application and device context throughout the authentication journey.
+
+### Authentication Recovery
+
+The client may recover a header-delivered access token when the application starts without a usable token but a compatible refresh credential remains available.
+
+This allows authentication to continue after a full application reload or a supported UAuthHub handoff.
+
+Recovery does not bypass refresh-token validation, device binding, expiration, rotation, or server-side authentication policies.
+
+Recovery can fail when the refresh credential has expired, has been revoked, or is unavailable because of browser cookie restrictions.
+
+Cross-site browser deployments must not assume that refresh cookies will always be available.
+
 ## 8. Direct Credential Posting Restrictions
 
 UltimateAuth restricts direct credential posting according to the configured application profile.
@@ -741,7 +818,11 @@ Explicit validation is useful when an application needs to check current server-
 await UAuthClient.Flows.LogoutAsync();
 ```
 
-The method uses the configured logout endpoint and navigation transport.
+The method submits logout to the configured endpoint and observes the server response before clearing the local access token and publishing the logout event.
+
+Automatic navigation can be disabled without disabling server-side logout.
+
+A failed logout response does not represent a successfully terminated authentication context.
 
 Depending on the application profile and configuration, logout may involve navigation and authentication state changes.
 

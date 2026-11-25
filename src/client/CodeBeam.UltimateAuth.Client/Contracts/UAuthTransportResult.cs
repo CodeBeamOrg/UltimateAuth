@@ -35,6 +35,24 @@ public sealed class UAuthTransportResult
     public string? RefreshOutcome { get; init; }
 
     /// <summary>
+    /// Raw access credential returned by the transport, when the configured delivery mechanism exposes it.
+    /// </summary>
+    [JsonPropertyName("accessToken")]
+    public string? AccessToken { get; init; }
+
+    /// <summary>
+    /// Access token expiration metadata supplied by the issuer.
+    /// </summary>
+    [JsonPropertyName("accessTokenExpiresAt")]
+    public string? AccessTokenExpiresAt { get; init; }
+
+    [JsonPropertyName("accessTokenFormat")]
+    public string? AccessTokenFormat { get; init; }
+
+    [JsonPropertyName("accessTokenHeaderFormat")]
+    public string? AccessTokenHeaderFormat { get; init; }
+
+    /// <summary>
     /// Gets the response body as JSON, when a body is available.
     /// </summary>
     [JsonPropertyName("body")]

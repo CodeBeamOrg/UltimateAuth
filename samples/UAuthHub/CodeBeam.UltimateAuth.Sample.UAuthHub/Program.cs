@@ -29,7 +29,6 @@ builder.Services.AddMudExtensions();
 builder.Services.AddScoped<DarkModeManager>();
 
 builder.Services.AddUltimateAuthServer(o => {
-    //o.AuthMode = UAuthMode.PureJwt;
     //o.GrantDelivery.Default = GrantDeliveryMode.Cookie;
     o.Cryptography.JwtSigningKey = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("UltimateAuth-Development-JWT-Signing-Key-2026-Only"));
 

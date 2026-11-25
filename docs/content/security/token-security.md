@@ -156,9 +156,9 @@ UltimateAuth selects credential behavior according to the configured authenticat
 | Mode | Access mechanism | Continuation mechanism | Protected request authority |
 |---|---|---|---|
 | **PureOpaque** | Opaque session credential | Session lifecycle | Server-managed session state |
-| **Hybrid** | Opaque access credential | Opaque refresh credential | Server-managed session state |
+| **Hybrid** | Opaque session credential and JWT access token | Opaque refresh credential | Server-managed session state for the current session-backed path |
 | **SemiHybrid** | JWT access token | Server-managed refresh flow | Locally validated JWT |
-| **PureJwt** | JWT access token | Optional refresh mechanism | Locally validated JWT |
+| **PureJwt** | JWT access token | Stateful refresh-token rotation | Locally validated JWT |
 
 ### PureOpaque
 
@@ -172,13 +172,15 @@ Session lifecycle operations govern the continuation and validity of authenticat
 
 ### Hybrid
 
-Hybrid uses distinct opaque access and refresh credentials.
+Hybrid establishes server-side sessions and issues JWT access tokens together with opaque refresh credentials.
 
-Access requests are validated against authoritative server-managed state.
+The current session-backed authentication path relies on authoritative server-managed session state.
 
-Refresh operations use the refresh credential to continue authentication according to the configured lifecycle and rotation behavior.
+Refresh operations validate the relevant session and refresh credential before issuing replacement credentials.
 
-**Hybrid does not require JWT access tokens.**
+Hybrid-aware JWT validation in separate Resource APIs is not yet implemented.
+
+JWT payloads are readable by their holders. The use of signed JWTs does not provide payload confidentiality.
 
 ### SemiHybrid
 
@@ -276,7 +278,13 @@ They are intended for the authentication system's refresh operation, not for gen
 
 In UltimateAuth, refresh behavior is mode-dependent.
 
-PureOpaque does not require a separate refresh credential pair, while Hybrid and SemiHybrid use refresh flows. PureJwt can support an optional refresh mechanism.
+PureOpaque does not issue a separate access-token and refresh-token pair.
+
+Hybrid uses refresh-token rotation together with session validation.
+
+PureJwt uses stateful refresh-token rotation without requiring an authentication session.
+
+SemiHybrid is intended to combine JWT authentication with server-managed session lifecycle operations.
 
 ### Refresh Security Requirements
 

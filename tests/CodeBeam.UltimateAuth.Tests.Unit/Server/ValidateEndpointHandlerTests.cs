@@ -488,11 +488,37 @@ public sealed class ValidateEndpointHandlerTests
 
 
     [Fact]
+    public async Task ValidateAsync_PureJwt_NoCredential_ReturnsUnauthorizedNotFound()
+    {
+        var fixture = CreatePureJwtFixture(
+            AuthenticateResult.NoResult());
+
+        var result = await fixture.Sut.ValidateAsync(
+            fixture.HttpContext,
+            TestContext.Current.CancellationToken);
+
+        var json = result.Should()
+            .BeOfType<JsonHttpResult<AuthValidationResult>>()
+            .Subject;
+
+        json.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+        json.Value!.State.Should().Be(SessionState.NotFound);
+        json.Value.Snapshot.Should().BeNull();
+
+        fixture.CredentialResolver.VerifyNoOtherCalls();
+        fixture.SessionValidator.VerifyNoOtherCalls();
+        fixture.SnapshotFactory.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task ValidateAsync_PureJwt_AuthenticationFails_ReturnsUnauthorizedInvalid()
     {
-        var fixture = CreatePureJwtFixture(AuthenticateResult.NoResult());
+        var fixture = CreatePureJwtFixture(
+            AuthenticateResult.Fail("Invalid access token"));
 
-        var result = await fixture.Sut.ValidateAsync(fixture.HttpContext, TestContext.Current.CancellationToken);
+        var result = await fixture.Sut.ValidateAsync(
+            fixture.HttpContext,
+            TestContext.Current.CancellationToken);
 
         var json = result.Should()
             .BeOfType<JsonHttpResult<AuthValidationResult>>()

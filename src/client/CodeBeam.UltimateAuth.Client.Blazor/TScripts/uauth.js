@@ -195,7 +195,8 @@ window.uauth.post = async function (options) {
         mode,
         data,
         applicationProfile,
-        trustedOrigin
+        trustedOrigin,
+        accessToken = null
     } = options;
 
     const validatedUrl = window.uauth.validateAuthUrl(
@@ -255,6 +256,7 @@ window.uauth.post = async function (options) {
         allowCrossOriginCredentials: true,
         antiforgery: true,
         trustedOrigin,
+        accessToken,
         navigateOnSuccess: mode === "logout",
         headers: isLogout
             ? { "X-UAuth-Logout-Mode": "observe" }
@@ -274,6 +276,7 @@ window.uauth.postJson = function (options) {
         payload: options.payload,
         applicationProfile: options.applicationProfile,
         contentType: "json",
+        accessToken: options.accessToken ?? null,
         credentials: "include",
         allowCrossOriginCredentials: true,
         antiforgery: true,
@@ -291,6 +294,7 @@ window.uauth.request = async function (options) {
         applicationProfile = "",
         contentType = "json",
         credentials = "same-origin",
+        accessToken = null,
         headers: customHeaders = {}
     } = options;
 
@@ -331,6 +335,31 @@ window.uauth.request = async function (options) {
         "X-Requested-With": "UAuth"
     };
 
+    if (accessToken !== null) {
+        if (typeof accessToken !== "string" ||
+            accessToken.length === 0 ||
+            /[\r\n]/.test(accessToken)) {
+            throw new Error("Invalid authentication access token.");
+        }
+
+        if (requestUrl.protocol !== "https:" &&
+            !["localhost", "127.0.0.1", "[::1]"].includes(requestUrl.hostname)) {
+            throw new Error("Bearer access token requests require HTTPS.");
+        }
+
+        // Only send the credential to the validated authentication origin.
+        const trustedUrl = window.uauth.validateAuthUrl(
+            requestUrl.href,
+            options.trustedOrigin
+        );
+
+        if (new URL(trustedUrl).origin !== requestUrl.origin) {
+            throw new Error("Invalid authentication token destination.");
+        }
+
+        headers["Authorization"] = `Bearer ${accessToken}`;
+    }
+
     let body = null;
 
     if (payload !== null && payload !== undefined) {
@@ -366,7 +395,7 @@ window.uauth.request = async function (options) {
             throw new Error("UAuth antiforgery token origin differs from request origin.");
         }
 
-        const token = await window.uauth.antiforgery.getToken(options.trustedOrigin);
+        const token = await window.uauth.antiforgery.getToken(options.trustedOrigin, accessToken, applicationProfile);
         headers[token.headerName] = token.requestToken;
     }
 
@@ -425,11 +454,33 @@ window.uauth.request = async function (options) {
         }
     }
 
+    const accessTokenHeader = response.headers.get("X-UAuth-Access-Header");
+
+    let responseAccessToken = null;
+    let accessTokenExpiresAt = null;
+    let accessTokenFormat = null;
+    let accessTokenHeaderFormat = null;
+
+    if (response.ok && accessTokenHeader) {
+        if (!/^[A-Za-z0-9!#$%&'*+.^_`|~-]+$/.test(accessTokenHeader)) {
+            throw new Error("Invalid access token header name.");
+        }
+
+        responseAccessToken = response.headers.get(accessTokenHeader);
+        accessTokenExpiresAt = response.headers.get("X-UAuth-Access-Expires");
+        accessTokenFormat = response.headers.get("X-UAuth-Access-Format");
+        accessTokenHeaderFormat = response.headers.get("X-UAuth-Access-HeaderFormat");
+    }
+
     return {
         retryAfter: response.headers.get("Retry-After"),
         ok: response.ok,
         status: response.status,
         refreshOutcome: response.headers.get("X-UAuth-Refresh"),
+        accessToken: responseAccessToken,
+        accessTokenExpiresAt,
+        accessTokenFormat,
+        accessTokenHeaderFormat,
         body: responseBody
     };
 };
@@ -442,6 +493,7 @@ window.uauth.resourceRequest = async function (options) {
         payload = null,
         applicationProfile = "",
         credentials = "Auto",
+        accessToken = null,
         requestId
     } = options;
 
@@ -528,6 +580,21 @@ window.uauth.resourceRequest = async function (options) {
         "X-UAuth-ApplicationProfile": applicationProfile,
         "X-Requested-With": "UAuth"
     };
+
+    if (accessToken !== null) {
+        if (typeof accessToken !== "string" ||
+            accessToken.length === 0 ||
+            /[\r\n]/.test(accessToken)) {
+            throw new Error("Invalid Resource API access token.");
+        }
+
+        if (requestUrl.protocol !== "https:" &&
+            !["localhost", "127.0.0.1", "[::1]"].includes(requestUrl.hostname)) {
+            throw new Error("Bearer access token requests require HTTPS.");
+        }
+
+        headers["Authorization"] = `Bearer ${accessToken}`;
+    }
 
     let body = null;
 
@@ -646,6 +713,59 @@ window.uauth.validateAuthUrl = function (url, trustedOrigin = null) {
     return target.href;
 };
 
+window.uauth.commitLoginForm = async function (
+    form,
+    commitUrl,
+    applicationProfile,
+    trustedOrigin
+) {
+    const fields = new FormData(form);
+    const payload = Object.create(null);
+
+    for (const [key, value] of fields.entries()) {
+        if (typeof value !== "string") {
+            throw new Error("File values are not supported in login forms.");
+        }
+
+        if (Object.hasOwn(payload, key)) {
+            throw new Error(`Duplicate login form field: ${key}.`);
+        }
+
+        payload[key] = value;
+    }
+
+    if (Object.hasOwn(payload, "__uauth_response_mode")) {
+        throw new Error("Reserved UAuth form field.");
+    }
+
+    payload.__uauth_response_mode = "fetch";
+
+    return window.uauth.post({
+        url: commitUrl,
+        mode: "fetch",
+        data: payload,
+        applicationProfile,
+        trustedOrigin
+    });
+};
+
+window.uauth.getLoginTransport = function (options) {
+    const url = window.uauth.validateAuthUrl(
+        options.url,
+        options.trustedOrigin
+    );
+
+    return window.uauth.request({
+        url,
+        method: "GET",
+        applicationProfile: options.applicationProfile,
+        credentials: "include",
+        allowCrossOriginCredentials: true,
+        antiforgery: false,
+        trustedOrigin: options.trustedOrigin
+    });
+};
+
 window.uauth.antiforgery = {
     tokenUrl: null,
 
@@ -660,7 +780,7 @@ window.uauth.antiforgery = {
         );
     },
 
-    getToken: async function (trustedOrigin) {
+    getToken: async function (trustedOrigin, accessToken = null, applicationProfile = "") {
         if (!this.tokenUrl) {
             throw new Error("UAuth antiforgery is not configured.");
         }
@@ -670,18 +790,40 @@ window.uauth.antiforgery = {
             trustedOrigin
         );
 
+        const headers = {
+            "X-UDID": window.uauth.deviceId,
+            "X-UAuth-ApplicationProfile": applicationProfile
+        };
+
+        if (accessToken !== null) {
+            if (typeof accessToken !== "string" ||
+                accessToken.length === 0 ||
+                /[\r\n]/.test(accessToken)) {
+                throw new Error("Invalid UAuth access token.");
+            }
+
+            const target = new URL(url);
+
+            if (target.protocol !== "https:" &&
+                !["localhost", "127.0.0.1", "[::1]"].includes(target.hostname)) {
+                throw new Error("Bearer access token requests require HTTPS.");
+            }
+
+            headers["Authorization"] = `Bearer ${accessToken}`;
+        }
+
         const response = await fetch(url, {
             method: "GET",
             credentials: "include",
             cache: "no-store",
             redirect: "error",
-            headers: {
-                "X-UDID": window.uauth.deviceId
-            }
+            headers
         });
 
         if (!response.ok) {
-            throw new Error(`Unable to obtain UAuth antiforgery token: HTTP ${response.status}.`);
+            throw new Error(
+                `Unable to obtain UAuth antiforgery token: HTTP ${response.status}.`
+            );
         }
 
         const token = await response.json();
@@ -723,7 +865,10 @@ window.uauth.submitLoginForm = async function (form, options) {
         commitUrl,
         applicationProfile,
         trustedOrigin,
-        isPkce
+        isPkce,
+        transport = "Auto",
+        transportUrl,
+        returnUrl
     } = options;
 
     if (!["TryOnly", "TryAndCommit", "DirectCommit"].includes(mode)) {
@@ -795,9 +940,62 @@ window.uauth.submitLoginForm = async function (form, options) {
         form.action = validatedCommitUrl;
     }
 
+    const commit = async () => {
+        if (!["Auto", "Fetch", "Navigation"].includes(transport)) {
+            throw new Error("Unsupported login transport.");
+        }
+
+        const capabilitiesResponse = await window.uauth.getLoginTransport({
+            url: transportUrl,
+            applicationProfile,
+            trustedOrigin
+        });
+
+        if (!capabilitiesResponse?.ok ||
+            !capabilitiesResponse.body?.supported) {
+            throw new Error("Login transport is unavailable or unsupported.");
+        }
+
+        const info = capabilitiesResponse.body;
+
+        const selected = transport === "Auto"
+            ? info.navigationSupported && Boolean(returnUrl)
+                ? "Navigation"
+                : "Fetch"
+            : transport;
+
+        if (selected === "Navigation") {
+            if (!info.navigationSupported) {
+                throw new Error(
+                    "Navigation is incompatible with header-based credential delivery."
+                );
+            }
+
+            await window.uauth.submitForm(form, trustedOrigin);
+            return null;
+        }
+
+        const response = await window.uauth.commitLoginForm(
+            form,
+            form.action,
+            applicationProfile,
+            trustedOrigin
+        );
+
+        if (!response?.ok) {
+            throw new Error(
+                `Login commit failed: HTTP ${response?.status ?? 0}.`
+            );
+        }
+
+        return {
+            commit: response,
+            accessTokenInHeader: info.accessTokenInHeader
+        };
+    };
+
     if (mode === "DirectCommit") {
-        await window.uauth.submitForm(form, trustedOrigin);
-        return null;
+        return await commit();
     }
 
     const payload = {
@@ -876,7 +1074,14 @@ window.uauth.submitLoginForm = async function (form, options) {
             receipt.value = result.previewReceipt;
         }
 
-        await window.uauth.submitForm(form, trustedOrigin);
+        const completion = await commit();
+
+        if (completion) {
+            return {
+                ...result,
+                ...completion
+            };
+        }
     }
 
     // Only the non-credential authentication result crosses JS interop.

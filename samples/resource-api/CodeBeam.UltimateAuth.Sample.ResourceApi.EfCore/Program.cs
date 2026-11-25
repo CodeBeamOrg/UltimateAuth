@@ -26,8 +26,6 @@ builder.Services.AddUltimateAuthResourceApi(o =>
             Key = Convert.ToBase64String(Encoding.UTF8.GetBytes("UltimateAuth-Development-JWT-Signing-Key-2026-Only"))
         });
 
-    o.Auth.AccessToken.DeliveryMode = GrantDeliveryMode.Cookie;
-
     o.Hub.BaseUrl = "https://localhost:6112";
     o.Cors.AllowedOrigins.Add("https://localhost:6132");
     o.Cors.PolicyName = "resourceApi";

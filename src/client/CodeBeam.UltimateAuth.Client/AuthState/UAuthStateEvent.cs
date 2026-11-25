@@ -53,5 +53,17 @@ public enum UAuthStateEvent
     /// <summary>
     /// Indicates that a logout operation affecting the authentication state occurred.
     /// </summary>
-    LogoutVariant
+    LogoutVariant,
+
+    /// <summary>
+    /// Indicates that an authentication flow completed successfully
+    /// and the client should synchronize its authentication state.
+    /// </summary>
+    LoginSucceeded,
+
+    /// <summary>
+    /// Indicates that the current access credential is no longer
+    /// usable and reauthentication is required.
+    /// </summary>
+    ReauthenticationRequired,
 }

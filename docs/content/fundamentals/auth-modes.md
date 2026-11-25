@@ -42,7 +42,7 @@ Depending on the mode, it may be:
 - An opaque token resolved and validated by the server.
 - A JWT validated cryptographically without a session lookup.
 
-An access token is not necessarily a session identifier. In Hybrid, the opaque access token is a separate credential associated with a server-side session.
+An access token is not a session identifier. In Hybrid, the JWT access token is a separate credential issued alongside a server-side session. The session remains authoritative for session-backed authentication and lifecycle management.
 
 **Refresh token**
 
@@ -175,104 +175,91 @@ PureOpaque is not restricted to server-to-server communication. It can also be u
 
 ### Session-backed authentication with separate tokens
 
-Hybrid combines server-side authentication sessions with separately issued access and refresh tokens.
+Hybrid combines server-authoritative authentication sessions with JWT access tokens and opaque refresh tokens.
 
-The current implementation supports opaque session credentials and JWT access tokens. The server-side session remains authoritative for session-backed authentication and lifecycle operations.
-
-Hybrid should not be confused with PureJwt. A JWT issued within a Hybrid authentication context may retain a relationship with the server-side session.
-
-Resource API support is currently limited to the session-validation path. Automatic selection between opaque session validation and Hybrid JWT validation is not yet implemented.
-
-Consequently, applications must explicitly configure compatible credentials and validation behavior when integrating Hybrid clients with separate Resource APIs.
-
+A successful login establishes a server-side session and issues separate access and refresh credentials.
 
 ```text
-Client
-  |
-  | Opaque Access Token
-  v
-Access Token Resolution
-  |
-  v
-Associated Session
-  |
-  v
-Session Validation
-  |
-  v
-Authenticated Identity
-  |
-  v
-AccessContext
+Authentication
+      |
+      +----> Opaque Session Credential
+      |             |
+      |      Session Validation
+      |             |
+      |      Root / Chain / Session
+      |
+      +----> JWT Access Token
+      |
+      +----> Opaque Refresh Token
 ```
 
-The opaque access token and internal session identifier represent different concepts.
+The session identifier, access token, and refresh token represent different credentials with different responsibilities.
 
-The access token is a client-facing authentication credential with its own lifetime. The session represents the server-authoritative authentication state.
+The server-side session remains authoritative for session-backed authentication. Issuing a JWT does not automatically make Hybrid authentication stateless.
+
+### Current Resource API support
+
+In the current implementation, Hybrid Resource APIs authenticate requests using the opaque session credential and validate the session remotely through UAuthHub.
+
+Hybrid-aware JWT access-token validation in separate Resource APIs is not yet implemented.
+
+Applications requiring independent JWT validation should explicitly select PureJwt and configure compatible signing and verification keys.
 
 ### Refresh and session lifecycle
 
-Hybrid uses refresh tokens to continue authentication without requiring a new login.
+Hybrid uses refresh tokens to continue authentication without requiring the user to authenticate again.
 
 A successful refresh validates the relevant session and refresh-token state, applies the configured session policies, and issues replacement credentials.
 
-Access-token lifetime and session lifetime can therefore be managed separately.
-
-For example, an application may use a short-lived opaque access token while maintaining a longer-lived session, subject to refresh-token expiration and revocation rules.
-
-A valid refresh token must not be allowed to restore an expired or revoked session.
+Session lifetime, access-token lifetime, and refresh-token lifetime are separate concerns.
 
 ### Advantages
 
+**Server-authoritative authentication**
+
+Session-backed requests remain subject to server-side session validation and lifecycle policies.
+
+**Centralized session management**
+
+Applications retain access to device-associated sessions, session chains, revocation, and other session-management capabilities.
+
 **Separate credential lifetimes**
 
-Access tokens can expire independently of the underlying session.
+Access and refresh credentials can have lifetimes appropriate to their individual responsibilities.
 
-**Immediate session-based revocation**
+**Unified application integration**
 
-Because session validity is enforced during authentication, revoking the session prevents associated access tokens from authenticating on subsequent validations.
-
-**Opaque access credentials**
-
-The access token does not disclose identity claims, roles, tenant information, or other application data through a readable token payload.
-
-**Centralized security policies**
-
-Session status and related security conditions can be enforced as part of authentication.
-
-**Suitable for API-oriented clients**
-
-Applications can use access and refresh tokens while retaining server-side control over the authenticated session.
+Hybrid provides a common authentication model for browser applications, native clients, and centralized authentication deployments.
 
 ### Limitations
 
-**More complex lifecycle**
+**Server-side state**
 
-Hybrid requires access-token issuance, refresh-token management, rotation, replay protection, and session lifecycle coordination.
+Hybrid requires session infrastructure and refresh-token lifecycle management.
 
-**Server-side validation remains mandatory**
+**Remote validation dependency**
 
-Opaque access tokens do not provide stateless JWT validation. The server must resolve the token and enforce the associated session state.
+Separate Resource APIs using session validation depend on the availability of the authentication server.
 
-**Additional infrastructure dependencies**
+**JWT integration boundaries**
 
-Token resolution and session validation may require storage or cache access.
+Hybrid JWT access tokens must not be treated as interchangeable with PureJwt access tokens. The current Resource API implementation does not support Hybrid-aware JWT validation.
 
-**Credential theft remains a risk**
+**Credential confidentiality**
 
-Opaque tokens conceal claims but remain bearer credentials. Their format does not prevent unauthorized use if they are stolen.
+JWT payloads are readable by their holders. Signing protects integrity and authenticity, not confidentiality.
 
 ### Recommended applications
 
-Hybrid is generally appropriate for:
+Hybrid is particularly useful for:
 
-- Blazor WebAssembly applications communicating with an API.
-- Web applications with a separate backend API.
-- Mobile and desktop applications requiring refresh-token continuity.
-- Full-stack applications needing centrally controlled authentication.
-- Systems requiring separate access-token expiration and immediate session revocation.
+- Blazor WebAssembly applications.
+- Native and mobile applications.
+- Applications using centralized authentication through UAuthHub.
+- Applications requiring token-based credential delivery while retaining server-authoritative session management.
 
-Hybrid is particularly useful when the application benefits from access/refresh token semantics but does not want to sacrifice server-authoritative session validation.
+Hybrid is the default authentication mode for application profiles other than BlazorServer under the built-in mode resolver.
+
 
 ## SemiHybrid
 
@@ -553,7 +540,7 @@ UltimateAuth's four authentication modes represent four distinct strategies:
 
 **PureOpaque** uses a server-side session as the authentication authority and avoids a separate access/refresh token lifecycle.
 
-**Hybrid** uses separate opaque access and refresh tokens while requiring authoritative session validation for authenticated requests.
+**Hybrid** combines server-authoritative sessions with JWT access tokens and opaque refresh tokens. The current Resource API implementation authenticates Hybrid requests through remote session validation.
 
 **SemiHybrid** uses JWT access tokens for stateless request authentication while retaining server-side sessions for refresh, logout, revocation, and device management.
 

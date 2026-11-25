@@ -108,22 +108,22 @@ public partial class SampleHome : UAuthPageBase
 
     private Color GetHealthColor()
     {
-        if (Diagnostics.RefreshReauthRequiredCount > 0)
-            return Color.Warning;
-
-        if (Diagnostics.TerminatedCount > 0)
+        if (Diagnostics.IsTerminated)
             return Color.Error;
+
+        if (!AuthState.IsAuthenticated)
+            return Color.Warning;
 
         return Color.Success;
     }
 
     private string GetHealthText()
     {
-        if (Diagnostics.RefreshReauthRequiredCount > 0)
-            return "Reauthentication Required";
-
-        if (Diagnostics.TerminatedCount > 0)
+        if (Diagnostics.IsTerminated)
             return "Session Terminated";
+
+        if (!AuthState.IsAuthenticated)
+            return "Reauthentication Required";
 
         return "Healthy";
     }
