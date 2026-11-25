@@ -8,11 +8,11 @@
 
   <ItemGroup>
 	  <PackageReference Include="AwesomeAssertions" Version="9.6.0" />
-	  <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.14" />
-	  <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.14" />
-	  <PackageReference Include="xunit.v3" Version="4.0.2" />
-	  <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
-	  <PackageReference Include="Testcontainers.PostgreSql" Version="4.16.0" />
+	  <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="11.0.0" />
+	  <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="11.0.0" />
+	  <PackageReference Include="xunit.v3" Version="4.0.3" />
+	  <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="11.0.0" />
+	  <PackageReference Include="Testcontainers.PostgreSql" Version="4.17.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -21,6 +21,11 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="coverlet.MTP" Version="10.1.1" />
+    <PackageReference Update="Microsoft.Testing.Extensions.TrxReport" Version="2.5.3" />
   </ItemGroup>
 
 </Project>
