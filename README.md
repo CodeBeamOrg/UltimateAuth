@@ -10,7 +10,8 @@
 ![License](https://img.shields.io/github/license/CodeBeamOrg/UltimateAuth)
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.gg/QscA86dXSR)
 [![codecov](https://codecov.io/gh/CodeBeamOrg/UltimateAuth/branch/dev/graph/badge.svg)](https://codecov.io/gh/CodeBeamOrg/UltimateAuth)
-[![NuGet version](https://img.shields.io/nuget/v/CodeBeam.UltimateAuth.Core?color=512bd4&label=nuget%20version&logo=nuget&style=flat-square)](https://www.nuget.org/packages/CodeBeam.UltimateAuth.Core)
+[![NuGet Stable](https://img.shields.io/nuget/v/CodeBeam.UltimateAuth.Core?color=512bd4&label=nuget%20stable&logo=nuget&style=flat-square)](https://www.nuget.org/packages/CodeBeam.UltimateAuth.Core)
+[![NuGet Preview](https://img.shields.io/nuget/vpre/CodeBeam.UltimateAuth.Core?color=512bd4&label=nuget%20preview&logo=nuget&style=flat-square)](https://www.nuget.org/packages/CodeBeam.UltimateAuth.Core/absoluteLatest)
 [![NuGet downloads](https://img.shields.io/nuget/dt/CodeBeam.UltimateAuth.Core?color=512bd4&label=nuget%20downloads&logo=nuget&style=flat-square)](https://www.nuget.org/packages/CodeBeam.UltimateAuth.Core)
 <!-- Dynamic Discord badge (enable when community grows)
 [![Discord](https://img.shields.io/discord/1459498792192839774?color=%237289da&label=Discord&logo=discord&logoColor=%237289da&style=flat-square)](https://discord.gg/QscA86dXSR)
@@ -61,10 +62,12 @@ UltimateAuth is designed to deliver a simple, consistent developer experience fr
 
 | Milestone | Version | Target |
 |---|---|---|
-| **Developer Foundation** (Completed) | 0.1.x | A functional, security-conscious authentication framework with a complete core architecture, extensibility, and a developer-first API. Suitable for development and early adoption. |
-| **Production Expansion** (In Progress) | 0.2.x | Ready to power real-world applications, particularly small and medium-sized products, with expanded authentication modes, built-in rate limiting, and a proven integration experience. Larger applications can also adopt UltimateAuth when its available capabilities meet their requirements and custom implementations. |
-| **Advanced Security & Scale** (Planned) | 0.4.x | Extends production capabilities with MFA, reauthentication, distributed infrastructure, and additional security options for applications with more demanding requirements. Builds on the same simple developer experience. |
-| **Migration & Adoption** (Planned) | 0.8.x | Makes adopting UltimateAuth in existing applications easier through migration tools, guidance, and established integration patterns, without requiring new applications to wait for this milestone. |
+| **Developer Foundation** (Completed) | 0.1.x | Ready for development and early adoption. Production use requires additional caution. |
+| **Production Expansion** (In Progress) | 0.2.x | Security-audited, production-ready and real-world foundation for small and medium-sized applications, with modern security protections. |
+| **Advanced Security & Scale** (Planned) | 0.4.x | Built-in advanced security and scalability capabilities for large and demanding applications. |
+| **Universal Adoption** (Planned) | 0.8.x | Suitable for applications of all sizes, with streamlined migration and integration into existing systems. |
+
+> Milestones represent recommended adoption stages, not hard limitations. Larger applications can adopt earlier versions through custom implementations. Production readiness reflects security maturity and engineering confidence, not a guarantee of absolute security.
 
 **The UltimateAuth philosophy:** Simple from day one, more capable with every release. Version milestones describe expanding capabilities — not a progression from difficult to easy, or from unusable to usable.
 
