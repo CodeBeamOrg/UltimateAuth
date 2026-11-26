@@ -1,5 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
-using CodeBeam.UltimateAuth.Client.Errors;
+﻿using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using System.Net;
 using System.Text.Json;

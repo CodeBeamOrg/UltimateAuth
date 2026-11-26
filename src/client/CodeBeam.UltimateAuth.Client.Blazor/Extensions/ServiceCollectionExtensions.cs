@@ -1,7 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
-using CodeBeam.UltimateAuth.Client.Blazor.Device;
 using CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
-using CodeBeam.UltimateAuth.Client.Device;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Extensions;
 using CodeBeam.UltimateAuth.Client.Infrastructure;

@@ -1,5 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
-using CodeBeam.UltimateAuth.Client.Options;
+﻿using CodeBeam.UltimateAuth.Client.Options;
 
 namespace CodeBeam.UltimateAuth.Client.Infrastructure;
 

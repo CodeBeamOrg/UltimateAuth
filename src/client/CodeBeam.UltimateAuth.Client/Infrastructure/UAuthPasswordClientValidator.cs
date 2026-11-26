@@ -1,6 +1,7 @@
 ﻿using CodeBeam.UltimateAuth.Credentials.Contracts;
 
 namespace CodeBeam.UltimateAuth.Client;
+
 public static class UAuthPasswordClientValidator
 {
     public static IReadOnlyList<string> Validate(string? password, UAuthPasswordPolicyInfo policy)

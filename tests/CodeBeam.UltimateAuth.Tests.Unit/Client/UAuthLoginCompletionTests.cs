@@ -1,6 +1,5 @@
 ﻿using AwesomeAssertions;
 using CodeBeam.UltimateAuth.Client;
-using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Infrastructure;

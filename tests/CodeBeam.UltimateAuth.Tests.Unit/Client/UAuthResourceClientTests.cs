@@ -1,6 +1,6 @@
 ﻿using AwesomeAssertions;
-using CodeBeam.UltimateAuth.Client.Contracts;
-using CodeBeam.UltimateAuth.Client.Infrastructure;
+using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Services;
 using Moq;
 
@@ -10,8 +10,7 @@ public class UAuthResourceClientTests
 {
     private readonly Mock<IUAuthResourceRequestClient> _transport = new();
 
-    private UAuthResourceClient CreateClient()
-        => new(_transport.Object);
+    private UAuthResourceClient CreateClient() => new(_transport.Object);
 
     [Theory]
     [InlineData("GET")]

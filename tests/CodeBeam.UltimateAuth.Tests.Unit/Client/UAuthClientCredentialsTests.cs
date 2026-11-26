@@ -1,5 +1,4 @@
 ﻿using CodeBeam.UltimateAuth.Client;
-using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Core.Contracts;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Credentials.Contracts;

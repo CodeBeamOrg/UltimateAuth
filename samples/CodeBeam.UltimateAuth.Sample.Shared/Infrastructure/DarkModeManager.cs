@@ -1,5 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
-using CodeBeam.UltimateAuth.Client.Infrastructure;
+﻿using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Abstractions;
 
 namespace CodeBeam.UltimateAuth.Sample.Shared.Infrastructure;
 

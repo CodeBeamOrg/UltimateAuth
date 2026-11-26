@@ -1,5 +1,5 @@
 ﻿using System.Text.Json;
-using CodeBeam.UltimateAuth.Client.Contracts;
+using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Core.Contracts;
 

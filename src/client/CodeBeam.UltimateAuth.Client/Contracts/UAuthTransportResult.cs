@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace CodeBeam.UltimateAuth.Client.Contracts;
+namespace CodeBeam.UltimateAuth.Client;
 
 /// <summary>
 /// Represents the transport-level result of an UltimateAuth client request.

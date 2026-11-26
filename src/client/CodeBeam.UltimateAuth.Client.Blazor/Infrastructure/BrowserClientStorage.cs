@@ -1,5 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
-using CodeBeam.UltimateAuth.Client.Infrastructure;
+﻿using CodeBeam.UltimateAuth.Client.Abstractions;
 using Microsoft.JSInterop;
 
 namespace CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;

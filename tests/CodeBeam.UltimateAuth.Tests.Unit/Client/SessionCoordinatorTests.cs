@@ -1,6 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
-using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Domain;

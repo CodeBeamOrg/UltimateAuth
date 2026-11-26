@@ -1,5 +1,5 @@
 using Bunit;
-using CodeBeam.UltimateAuth.Client.Contracts;
+using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.IdentityLab.Components.Pages;
 using CodeBeam.UltimateAuth.IdentityLab.Contracts;
 using CodeBeam.UltimateAuth.IdentityLab.Services;
@@ -30,7 +30,7 @@ public sealed class ManagementTransportTests
     [Fact]
     public async Task Client_rejects_failed_transport_without_exposing_response_details()
     {
-        var requests = new Mock<CodeBeam.UltimateAuth.Client.Infrastructure.IUAuthRequestClient>();
+        var requests = new Mock<Client.Abstractions.IUAuthRequestClient>();
         requests.Setup(x => x.SendJsonAsync(It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new UAuthTransportResult { Status = 500, Body = JsonSerializer.SerializeToElement("private diagnostic") });
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>

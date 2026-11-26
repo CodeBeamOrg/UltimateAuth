@@ -1,12 +1,9 @@
 using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json;
 using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Abstractions;
-using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Extensions;
-using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using CodeBeam.UltimateAuth.Core.MultiTenancy;

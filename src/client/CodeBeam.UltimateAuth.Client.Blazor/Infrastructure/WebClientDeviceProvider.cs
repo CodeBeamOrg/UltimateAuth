@@ -4,7 +4,7 @@ using CodeBeam.UltimateAuth.Core.Abstractions;
 using CodeBeam.UltimateAuth.Core.Domain;
 using Microsoft.JSInterop;
 
-namespace CodeBeam.UltimateAuth.Client.Blazor;
+namespace CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
 
 internal sealed class WebClientDeviceProvider : IClientDeviceProvider
 {

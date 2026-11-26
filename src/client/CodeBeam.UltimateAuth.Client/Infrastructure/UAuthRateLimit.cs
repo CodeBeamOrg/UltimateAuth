@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Net;
-using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Core.Contracts;
 

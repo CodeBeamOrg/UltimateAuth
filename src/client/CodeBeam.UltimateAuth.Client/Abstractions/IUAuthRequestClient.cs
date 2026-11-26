@@ -1,7 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
-using CodeBeam.UltimateAuth.Core.Contracts;
-
-namespace CodeBeam.UltimateAuth.Client.Infrastructure;
+﻿namespace CodeBeam.UltimateAuth.Client.Abstractions;
 
 /// <summary>
 /// Defines a client for sending requests to the UltimateAuth server, handling navigation, form submissions, JSON payloads, and transactional operations.

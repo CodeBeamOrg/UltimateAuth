@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Client.Contracts;
+﻿namespace CodeBeam.UltimateAuth.Client;
 
 /// <summary>
 /// Specifies how tenant context is transported with UltimateAuth client requests.

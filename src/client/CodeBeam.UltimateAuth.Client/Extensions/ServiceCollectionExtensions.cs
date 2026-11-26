@@ -1,7 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Authentication;
-using CodeBeam.UltimateAuth.Client.Device;
-using CodeBeam.UltimateAuth.Client.Devices;
 using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;

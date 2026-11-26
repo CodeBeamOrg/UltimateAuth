@@ -6,8 +6,7 @@
 public enum UAuthRenderMode
 {
     /// <summary>
-    /// Does not automatically request a UI re-render in response to authentication
-    /// state change notifications.
+    /// Does not automatically request a UI re-render in response to authentication state change notifications.
     /// </summary>
     Manual = 0,
 

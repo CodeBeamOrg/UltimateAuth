@@ -1,6 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
-
-namespace CodeBeam.UltimateAuth.Client.Infrastructure;
+﻿namespace CodeBeam.UltimateAuth.Client.Abstractions;
 
 public interface IUAuthResourceRequestClient
 {

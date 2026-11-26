@@ -34,7 +34,7 @@ namespace CodeBeam.UltimateAuth.IdentityLab.Tests.Rendering;
 
 internal sealed partial class PageRenderContext : BunitContext
 {
-    public Mock<CodeBeam.UltimateAuth.Client.Infrastructure.IUAuthRequestClient> Requests { get; } = new(MockBehavior.Strict);
+    public Mock<Client.Abstractions.IUAuthRequestClient> Requests { get; } = new(MockBehavior.Strict);
     public Mock<IUAuthClient> Client { get; } = new(MockBehavior.Strict);
     public Mock<ISessionClient> Sessions { get; } = new(MockBehavior.Strict);
     public Mock<IAuthorizationClient> Authorization { get; } = new(MockBehavior.Strict);

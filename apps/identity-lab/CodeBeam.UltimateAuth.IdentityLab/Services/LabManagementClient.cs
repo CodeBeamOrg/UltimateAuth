@@ -1,4 +1,4 @@
-using CodeBeam.UltimateAuth.Client.Infrastructure;
+using CodeBeam.UltimateAuth.Client.Abstractions;
 using System.Text.Json;
 
 namespace CodeBeam.UltimateAuth.IdentityLab.Services;
