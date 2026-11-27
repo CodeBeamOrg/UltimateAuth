@@ -200,6 +200,6 @@ public abstract class UAuthClientTestBase
 
         var executor = new UAuthRefreshExecutor(transport.Object, events, tokenStore, diagnostics);
 
-        return new UAuthRefreshCoordinator(executor);
+        return new UAuthRefreshCoordinator(executor, tokenStore);
     }
 }

@@ -44,6 +44,8 @@ internal sealed class UAuthRefreshExecutor : IUAuthRefreshExecutor
             };
         }
 
+        var expected = _tokenStore.Capture();
+
         // Raw transport: never enters request recovery.
         var raw = await _transport.SendAsync();
 
@@ -70,12 +72,29 @@ internal sealed class UAuthRefreshExecutor : IUAuthRefreshExecutor
 
         if (raw.Status == 401)
         {
+            var current = _tokenStore.Capture();
+
+            if (current.Epoch != expected.Epoch)
+            {
+                return new RefreshResult
+                {
+                    IsSuccess = false,
+                    Status = 401,
+                    Outcome = RefreshOutcome.None,
+                    ErrorCode = "stale_refresh"
+                };
+            }
+
             if (trigger != UAuthRefreshTrigger.Recovery)
             {
-                _tokenStore.Clear();
-                _diagnostics.MarkRefreshReauthRequired();
+                // Do not erase a token changed by another operation.
+                if (_tokenStore.TryClear(expected))
+                {
+                    _diagnostics.MarkRefreshReauthRequired();
 
-                await _events.PublishAsync(new UAuthStateEventArgsEmpty(UAuthStateEvent.ReauthenticationRequired, UAuthStateEventHandlingMode.Patch));
+                    await _events.PublishAsync(
+                        new UAuthStateEventArgsEmpty(UAuthStateEvent.ReauthenticationRequired, UAuthStateEventHandlingMode.Patch));
+                }
             }
 
             return new RefreshResult
@@ -100,19 +119,33 @@ internal sealed class UAuthRefreshExecutor : IUAuthRefreshExecutor
             {
                 if (accessToken.IsExpired(DateTimeOffset.UtcNow))
                 {
-                    _tokenStore.Clear();
-
+                    _tokenStore.TryClear(expected);
                     throw new UAuthProtocolException("Server returned an expired access token.");
                 }
 
-                _tokenStore.Replace(accessToken);
+                if (!_tokenStore.TryRotate(expected, accessToken))
+                {
+                    return new RefreshResult
+                    {
+                        IsSuccess = false,
+                        Status = raw.Status,
+                        Outcome = RefreshOutcome.None,
+                        ErrorCode = "stale_refresh"
+                    };
+                }
+            }
+            else if (_tokenStore.Capture().Epoch != expected.Epoch)
+            {
+                return new RefreshResult
+                {
+                    IsSuccess = false,
+                    Status = raw.Status,
+                    Outcome = RefreshOutcome.None,
+                    ErrorCode = "stale_refresh"
+                };
             }
 
             RecordOutcome(outcome);
-        }
-        else if (outcome == RefreshOutcome.ReauthRequired)
-        {
-            _diagnostics.MarkRefreshReauthRequired();
         }
 
         return new RefreshResult

@@ -9,8 +9,9 @@ namespace CodeBeam.UltimateAuth.Tests.Unit.Client;
 public class UAuthRefreshCoordinatorTests
 {
     private readonly Mock<IUAuthRefreshExecutor> _executor = new();
+    private readonly Mock<IUAuthTokenStore> _tokenStore = new();
 
-    private UAuthRefreshCoordinator CreateSut() => new(_executor.Object);
+    private UAuthRefreshCoordinator CreateSut() => new(_executor.Object, _tokenStore.Object);
 
     [Fact]
     public async Task RefreshAsync_ShouldExecuteRefresh()

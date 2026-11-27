@@ -115,6 +115,8 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IUAuthStateManager, UAuthStateManager>();
         services.TryAddScoped<IDeviceIdProvider, UAuthDeviceIdProvider>();
 
+        services.TryAddScoped<IUAuthRequestRecovery, UAuthRequestRecovery>();
+
         services.TryAddScoped<IUAuthRefreshExecutor, UAuthRefreshExecutor>();
         services.TryAddScoped<IUAuthRefreshCoordinator, UAuthRefreshCoordinator>();
 

@@ -1,5 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Options;
+using CodeBeam.UltimateAuth.Core.Contracts;
 using Microsoft.Extensions.Options;
 
 namespace CodeBeam.UltimateAuth.Client.Infrastructure;
@@ -26,21 +27,28 @@ internal sealed class UAuthRequestRecovery : IUAuthRequestRecovery
 
         var snapshot = _tokenStore.Capture();
 
-        if (!_options.Proactive || snapshot.Token is null)
+        if (!_options.Proactive ||
+            snapshot.Token is null ||
+            snapshot.Token.Format != TokenFormat.Jwt)
         {
             return snapshot;
         }
 
-        var now = DateTimeOffset.UtcNow;
-
-        if (snapshot.Token.ExpiresAt - now > _options.RefreshBeforeExpiration)
+        if (snapshot.Token.ExpiresAt - DateTimeOffset.UtcNow > _options.RefreshBeforeExpiration)
         {
             return snapshot;
         }
 
-        await _coordinator.RefreshAsync(UAuthRefreshTrigger.Proactive, ct);
+        await _coordinator.RefreshIfCurrentAsync(UAuthRefreshTrigger.Proactive, snapshot, ct);
 
-        return _tokenStore.Capture();
+        var current = _tokenStore.Capture();
+
+        if (current.Epoch != snapshot.Epoch)
+        {
+            throw new OperationCanceledException("Authentication state changed during request preparation.");
+        }
+
+        return current;
     }
 
     public async Task<UAuthTokenSnapshot?> RecoverAsync(UAuthTokenSnapshot rejected, CancellationToken ct = default)
@@ -48,32 +56,17 @@ internal sealed class UAuthRequestRecovery : IUAuthRequestRecovery
         ct.ThrowIfCancellationRequested();
 
         if (!_options.Reactive || rejected.Token is null)
-        {
             return null;
-        }
 
         var current = _tokenStore.Capture();
 
-        // Never replay a request under another authentication epoch.
         if (current.Epoch != rejected.Epoch)
-        {
             return null;
-        }
 
-        // Another request may already have refreshed the token.
-        if (current.Generation != rejected.Generation)
-        {
-            return CanReplay(rejected, current)
-                ? current
-                : null;
-        }
+        if (CanReplay(rejected, current))
+            return current;
 
-        var result = await _coordinator.RefreshAsync(UAuthRefreshTrigger.Reactive, ct);
-
-        if (!result.IsSuccess)
-        {
-            return null;
-        }
+        await _coordinator.RefreshIfCurrentAsync(UAuthRefreshTrigger.Reactive, rejected, ct);
 
         current = _tokenStore.Capture();
 
