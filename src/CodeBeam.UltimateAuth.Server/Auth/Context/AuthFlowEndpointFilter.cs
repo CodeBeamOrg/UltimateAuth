@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using CodeBeam.UltimateAuth.Core.Defaults;
+using Microsoft.AspNetCore.Http;
 
 namespace CodeBeam.UltimateAuth.Server.Auth;
 
@@ -13,12 +14,27 @@ internal sealed class AuthFlowEndpointFilter : IEndpointFilter
 
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
-        var metadata = context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<AuthFlowMetadata>();
+        var endpoint = context.HttpContext.GetEndpoint();
+
+        var metadata = endpoint?.Metadata.GetMetadata<AuthFlowMetadata>();
+
+        AuthFlowContext? flowContext = null;
 
         if (metadata != null)
         {
-            await _authFlow.BeginAsync(metadata.FlowType);
+            flowContext = await _authFlow.BeginAsync(metadata.FlowType);
         }
+
+        var requiresAuthentication = endpoint?.Metadata
+            .GetMetadata<UAuthRequireAuthenticationMetadata>()
+            is not null;
+
+        if (requiresAuthentication && flowContext?.IsAuthenticated != true)
+        {
+            context.HttpContext.Response.Headers[UAuthConstants.Headers.AuthRecovery] = "challenge";
+            return Results.Unauthorized();
+        }
+
         return await next(context);
     }
 }

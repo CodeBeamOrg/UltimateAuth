@@ -477,6 +477,7 @@ window.uauth.request = async function (options) {
         ok: response.ok,
         status: response.status,
         refreshOutcome: response.headers.get("X-UAuth-Refresh"),
+        authRecovery: response.headers.get("X-UAuth-Auth-Recovery"),
         accessToken: responseAccessToken,
         accessTokenExpiresAt,
         accessTokenFormat,

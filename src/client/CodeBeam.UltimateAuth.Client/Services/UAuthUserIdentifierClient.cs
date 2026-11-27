@@ -27,7 +27,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
     public async Task<UAuthResult<PagedResult<UserIdentifierInfo>>> GetMyAsync(PageRequest? request = null)
     {
         request ??= new PageRequest();
-        var raw = await _request.SendJsonAsync(Url("/me/identifiers/get"), request, UAuthRequestAuthentication.Replayable);
+        var raw = await _request.SendJsonAsync(Url("/me/identifiers/get"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<PagedResult<UserIdentifierInfo>>(raw);
     }
 
@@ -108,7 +108,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
     public async Task<UAuthResult<PagedResult<UserIdentifierInfo>>> GetUserAsync(UserKey userKey, PageRequest? request = null)
     {
         request ??= new PageRequest();
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/get"), request, UAuthRequestAuthentication.Replayable);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/get"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<PagedResult<UserIdentifierInfo>>(raw);
     }
 

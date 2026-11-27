@@ -27,7 +27,7 @@ internal sealed class UAuthUserClient : IUserClient
     public async Task<UAuthResult<UserView>> GetMeAsync(GetProfileRequest? request = null)
     {
         request ??= new GetProfileRequest();
-        var raw = await _request.SendJsonAsync(Url("/me/profile/get"), request, UAuthRequestAuthentication.Replayable);
+        var raw = await _request.SendJsonAsync(Url("/me/profile/get"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<UserView>(raw);
     }
 
@@ -61,7 +61,7 @@ internal sealed class UAuthUserClient : IUserClient
     public async Task<UAuthResult<PagedResult<UserSummary>>> QueryAsync(UserQuery query)
     {
         query ??= new UserQuery();
-        var raw = await _request.SendJsonAsync(Url("/admin/users/query"), query, UAuthRequestAuthentication.Replayable);
+        var raw = await _request.SendJsonAsync(Url("/admin/users/query"), query, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<PagedResult<UserSummary>>(raw);
     }
 
@@ -74,7 +74,7 @@ internal sealed class UAuthUserClient : IUserClient
             UserKeys = userKeys.ToArray()
         };
 
-        var raw = await _request.SendJsonAsync(Url("/admin/users/get-by-keys"), request, UAuthRequestAuthentication.Replayable);
+        var raw = await _request.SendJsonAsync(Url("/admin/users/get-by-keys"), request, UAuthRequestAuthentication.Recoverable);
 
         return UAuthResultMapper.FromJson<IReadOnlyList<UserSummary>>(raw);
     }
@@ -162,7 +162,7 @@ internal sealed class UAuthUserClient : IUserClient
     public async Task<UAuthResult<UserView>> GetUserAsync(UserKey userKey, GetProfileRequest? request = null)
     {
         request = request ?? new GetProfileRequest();
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/profile/get"), request, UAuthRequestAuthentication.Replayable);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/profile/get"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<UserView>(raw);
     }
 
@@ -177,7 +177,7 @@ internal sealed class UAuthUserClient : IUserClient
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/authentication/lockout/get"), request, UAuthRequestAuthentication.Replayable);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/authentication/lockout/get"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<AuthenticationLockoutInfo>(raw);
     }
 

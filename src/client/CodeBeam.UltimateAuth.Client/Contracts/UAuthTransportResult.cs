@@ -53,8 +53,18 @@ public sealed class UAuthTransportResult
     public string? AccessTokenHeaderFormat { get; init; }
 
     /// <summary>
+    /// Indicates whether the server rejected the request before endpoint execution.
+    /// </summary>
+    [JsonPropertyName("authRecovery")]
+    public string? AuthRecovery { get; init; }
+
+    /// <summary>
     /// Gets the response body as JSON, when a body is available.
     /// </summary>
     [JsonPropertyName("body")]
     public JsonElement? Body { get; init; }
+
+
+    [JsonIgnore]
+    public bool CanRecoverAuthentication => Status == 401 && string.Equals(AuthRecovery, "challenge", StringComparison.Ordinal);
 }

@@ -28,7 +28,7 @@ internal sealed class UAuthSessionClient : ISessionClient
     public async Task<UAuthResult<PagedResult<SessionChainSummary>>> GetMyChainsAsync(PageRequest? request = null)
     {
         request ??= new PageRequest();
-        var raw = await _request.SendJsonAsync(Url("/me/sessions/chains"), request, UAuthRequestAuthentication.Replayable);
+        var raw = await _request.SendJsonAsync(Url("/me/sessions/chains"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<PagedResult<SessionChainSummary>>(raw);
     }
 
@@ -74,7 +74,7 @@ internal sealed class UAuthSessionClient : ISessionClient
     public async Task<UAuthResult<PagedResult<SessionChainSummary>>> GetUserChainsAsync(UserKey userKey, PageRequest? request = null)
     {
         request ??= new PageRequest();
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/sessions/chains"), request, UAuthRequestAuthentication.Replayable);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/sessions/chains"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<PagedResult<SessionChainSummary>>(raw);
     }
 

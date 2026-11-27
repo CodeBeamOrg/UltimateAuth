@@ -56,35 +56,28 @@ internal sealed class UAuthRecoveringRequestClient : IUAuthRequestClient
         CancellationToken ct = default)
         => _raw.SendJsonAsync(endpoint, payload, ct);
 
-    public async Task<UAuthTransportResult> SendJsonAsync(
-        string endpoint,
-        object? payload,
-        UAuthRequestAuthentication authentication,
-        CancellationToken ct = default)
+
+    public async Task<UAuthTransportResult> SendJsonAsync(string endpoint, object? payload, UAuthRequestAuthentication authentication, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         if (authentication == UAuthRequestAuthentication.None)
             return await _raw.SendJsonAsync(endpoint, payload, ct);
 
-        if (authentication is not (
-            UAuthRequestAuthentication.Recoverable or
-            UAuthRequestAuthentication.Replayable))
+        if (authentication is not UAuthRequestAuthentication.Recoverable)
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(authentication));
+            throw new ArgumentOutOfRangeException(nameof(authentication));
         }
 
         var snapshot = await _recovery.PrepareAsync(ct);
 
-        var first = await _raw.SendJsonRawAsync(
-            endpoint, payload, snapshot, ct);
+        var first = await _raw.SendJsonRawAsync(endpoint, payload, snapshot, ct);
 
-        if (first.Status != 401 || !_options.Reactive)
+        if (!_options.Reactive || !first.CanRecoverAuthentication)
+        {
             return first;
+        }
 
-        // Reauthentication with an unrelated or new identity
-        // must not become part of this request.
         if (_tokenStore.Capture().Epoch != snapshot.Epoch)
             return first;
 
@@ -93,23 +86,18 @@ internal sealed class UAuthRecoveringRequestClient : IUAuthRequestClient
         if (refreshed is null)
             return first;
 
-        if (authentication != UAuthRequestAuthentication.Replayable)
-            return first;
-
         ct.ThrowIfCancellationRequested();
 
         var current = _tokenStore.Capture();
 
-        if (current.Epoch != snapshot.Epoch ||
-            current.Generation != refreshed.Generation)
+        if (current.Epoch != snapshot.Epoch || current.Generation != refreshed.Generation)
         {
             return first;
         }
 
-        // Exactly one replay. A second 401 is returned as-is.
-        return await _raw.SendJsonRawAsync(
-            endpoint, payload, refreshed, ct);
+        return await _raw.SendJsonRawAsync(endpoint, payload, refreshed, ct);
     }
+
 
     public Task<TTryResult> TryAndCommitAsync<TTryResult>(
         string tryEndpoint,

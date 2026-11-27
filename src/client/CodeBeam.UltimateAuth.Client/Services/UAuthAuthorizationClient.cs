@@ -26,27 +26,27 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
 
     public async Task<UAuthResult<AuthorizationResult>> CheckAsync(AuthorizationCheckRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/me/authorization/check"), request, UAuthRequestAuthentication.Replayable);
+        var raw = await _request.SendJsonAsync(Url("/me/authorization/check"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<AuthorizationResult>(raw);
     }
 
     public async Task<UAuthResult<UserRolesGetResult>> GetMyRolesAsync(PageRequest? request = null)
     {
         request ??= new PageRequest();
-        var raw = await _request.SendJsonAsync(Url("/me/authorization/roles/get"), request, UAuthRequestAuthentication.Replayable);
+        var raw = await _request.SendJsonAsync(Url("/me/authorization/roles/get"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<UserRolesGetResult>(raw);
     }
 
     public async Task<UAuthResult<UserPermissionsResult>> GetMyPermissionsAsync()
     {
-        var raw = await _request.SendJsonAsync(Url("/me/authorization/permissions/get"), new { }, UAuthRequestAuthentication.Replayable);
+        var raw = await _request.SendJsonAsync(Url("/me/authorization/permissions/get"), new { }, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<UserPermissionsResult>(raw);
     }
 
     public async Task<UAuthResult<UserRolesGetResult>> GetUserRolesAsync(UserKey userKey, PageRequest? request = null)
     {
         request ??= new PageRequest();
-        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/users/{userKey.Value}/roles/get"), request, UAuthRequestAuthentication.Replayable);
+        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/users/{userKey.Value}/roles/get"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<UserRolesGetResult>(raw);
     }
 
@@ -86,7 +86,7 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
 
     public async Task<UAuthResult<PagedResult<RoleInfo>>> QueryRolesAsync(RoleQuery request)
     {
-        var raw = await _request.SendJsonAsync(Url("/admin/authorization/roles/query"), request, UAuthRequestAuthentication.Replayable);
+        var raw = await _request.SendJsonAsync(Url("/admin/authorization/roles/query"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<PagedResult<RoleInfo>>(raw);
     }
 

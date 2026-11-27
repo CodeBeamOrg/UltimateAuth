@@ -76,7 +76,7 @@ builder.Services.AddUltimateAuthServer(o =>
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {
     o.AutoRefresh.Proactive = true;
-    o.AutoRefresh.RefreshBeforeExpiration = TimeSpan.FromSeconds(5);
+    o.AutoRefresh.RefreshBeforeExpiration = TimeSpan.FromSeconds(25);
 
     o.Login.AllowCredentialPost = true;
     //o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);

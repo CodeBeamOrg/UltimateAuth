@@ -52,6 +52,7 @@ public static class UAuthConstants
         public const string Refresh = "X-UAuth-Refresh";
         public const string AuthState = "X-UAuth-AuthState";
         public const string DeviceType = "X-Device-Type";
+        public const string AuthRecovery = "X-UAuth-Auth-Recovery";
     }
 
     public static class Routes

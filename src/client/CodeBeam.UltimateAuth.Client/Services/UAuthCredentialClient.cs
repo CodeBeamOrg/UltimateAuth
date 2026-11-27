@@ -26,7 +26,7 @@ internal sealed class UAuthCredentialClient : ICredentialClient
 
     public async Task<UAuthResult<CredentialAddResult>> AddMyAsync(AddCredentialRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/me/credentials/add"), request, UAuthRequestAuthentication.Replayable);
+        var raw = await _request.SendJsonAsync(Url("/me/credentials/add"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<CredentialAddResult>(raw);
     }
 
@@ -118,7 +118,7 @@ internal sealed class UAuthCredentialClient : ICredentialClient
 
     public async Task<UAuthResult<UAuthPasswordPolicyInfo>> GetPasswordPolicyAsync(CancellationToken ct = default)
     {
-        var raw = await _request.SendJsonAsync(Url(_options.Endpoints.PasswordPolicy), payload: null, ct: ct);
+        var raw = await _request.SendJsonAsync(Url(_options.Endpoints.PasswordPolicy), payload: null, authentication: UAuthRequestAuthentication.Recoverable, ct: ct);
         return UAuthResultMapper.FromJson<UAuthPasswordPolicyInfo>(raw);
     }
 }

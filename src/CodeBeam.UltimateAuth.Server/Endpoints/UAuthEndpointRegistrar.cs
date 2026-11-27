@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Options;
+using CodeBeam.UltimateAuth.Server.Extensions;
 
 namespace CodeBeam.UltimateAuth.Server.Endpoints;
 
@@ -56,7 +57,7 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
 
         //var user = group.MapGroup("");
         var self = group.MapGroup("/me");
-        var admin = group.MapGroup("/admin");
+        var admin = group.MapGroup("/admin").RequireUAuthAuthentication();
 
         if (options.Endpoints.Authentication != false)
         {
@@ -150,23 +151,23 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
 
             if (Enabled(UAuthActions.Sessions.ListChainsSelf))
                 selfSession.MapPost("/chains", async ([FromServices] ISessionEndpointHandler h, HttpContext ctx)
-                => await h.GetMyChainsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession)).WithUAuthRateLimit(UAuthEndpoint.GetMyChains);
+                => await h.GetMyChainsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.GetMyChains);
 
             if (Enabled(UAuthActions.Sessions.GetChainSelf))
                 selfSession.MapPost("/chains/{chainId}", async ([FromServices] ISessionEndpointHandler h, SessionChainId chainId, HttpContext ctx)
-                => await h.GetMyChainDetailAsync(chainId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession)).WithUAuthRateLimit(UAuthEndpoint.GetMyChainDetail);
+                => await h.GetMyChainDetailAsync(chainId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.QuerySession)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.GetMyChainDetail);
 
             if (Enabled(UAuthActions.Sessions.RevokeChainSelf))
                 selfSession.MapPost("/chains/{chainId}/revoke", async ([FromServices] ISessionEndpointHandler h, SessionChainId chainId, HttpContext ctx)
-                => await h.RevokeMyChainAsync(chainId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.RevokeMyChain);
+                => await h.RevokeMyChainAsync(chainId, ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.RevokeMyChain);
 
             if (Enabled(UAuthActions.Sessions.RevokeOtherChainsSelf))
                 selfSession.MapPost("/revoke-others",async ([FromServices] ISessionEndpointHandler h, HttpContext ctx)
-                => await h.RevokeOtherChainsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.RevokeOtherChains);
+                => await h.RevokeOtherChainsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.RevokeOtherChains);
 
             if (Enabled(UAuthActions.Sessions.RevokeAllChainsSelf))
                 selfSession.MapPost("/revoke-all", async ([FromServices] ISessionEndpointHandler h, HttpContext ctx)
-                => await h.RevokeAllMyChainsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.RevokeAllMyChains);
+                => await h.RevokeAllMyChainsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.RevokeSession), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.RevokeAllMyChains);
 
 
 
@@ -218,11 +219,11 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
 
             if (Enabled(UAuthActions.Users.ChangeStatusSelf))
                 self.MapPost("/status", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.ChangeStatusSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.ChangeStatusSelf);
+                => await h.ChangeStatusSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.ChangeStatusSelf);
 
             if (Enabled(UAuthActions.Users.DeleteSelf))
                 self.MapPost("/delete", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.DeleteMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.UserDeleteSelf);
+                => await h.DeleteMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.UserDeleteSelf);
 
 
 
@@ -252,19 +253,19 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
         {
             if (Enabled(UAuthActions.UserProfiles.GetSelf))
                 self.MapPost("/profile/get", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.GetMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement)).WithUAuthRateLimit(UAuthEndpoint.ProfileGetSelf);
+                => await h.GetMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.ProfileGetSelf);
 
             if (Enabled(UAuthActions.UserProfiles.CreateSelf))
                 self.MapPost("/profile/create", async (IUserEndpointHandler h, HttpContext ctx)
-                => await h.CreateProfileSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.CreateProfileSelf);
+                => await h.CreateProfileSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.CreateProfileSelf);
 
             if (Enabled(UAuthActions.UserProfiles.UpdateSelf))
                 self.MapPost("/profile/update", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.UpdateMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.ProfileUpdateSelf);
+                => await h.UpdateMeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.ProfileUpdateSelf);
 
             if (Enabled(UAuthActions.UserProfiles.DeleteSelf))
                 self.MapPost("/profile/delete", async (IUserEndpointHandler h, HttpContext ctx)
-                => await h.DeleteProfileSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.DeleteProfileSelf);
+                => await h.DeleteProfileSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserProfileManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.DeleteProfileSelf);
 
 
 
@@ -290,31 +291,33 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
         {
             if (Enabled(UAuthActions.UserIdentifiers.GetSelf))
                 self.MapPost("/identifiers/get", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.GetMyIdentifiersAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement)).WithUAuthRateLimit(UAuthEndpoint.GetMyIdentifiers);
+                => await h.GetMyIdentifiersAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement))
+                    .RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.GetMyIdentifiers);
 
             if (Enabled(UAuthActions.UserIdentifiers.AddSelf))
                 self.MapPost("/identifiers/add", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.AddUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.AddUserIdentifierSelf);
+                => await h.AddUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation))
+                    .RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.AddUserIdentifierSelf);
 
             if (Enabled(UAuthActions.UserIdentifiers.UpdateSelf))
                 self.MapPost("/identifiers/update", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.UpdateUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.UpdateUserIdentifierSelf);
+                => await h.UpdateUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.UpdateUserIdentifierSelf);
 
             if (Enabled(UAuthActions.UserIdentifiers.SetPrimarySelf))
                 self.MapPost("/identifiers/set-primary",async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.SetPrimaryUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.SetPrimaryUserIdentifierSelf);
+                => await h.SetPrimaryUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.SetPrimaryUserIdentifierSelf);
 
             if (Enabled(UAuthActions.UserIdentifiers.UnsetPrimarySelf))
                 self.MapPost("/identifiers/unset-primary", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.UnsetPrimaryUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.UnsetPrimaryUserIdentifierSelf);
+                => await h.UnsetPrimaryUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.UnsetPrimaryUserIdentifierSelf);
 
             if (Enabled(UAuthActions.UserIdentifiers.VerifySelf))
                 self.MapPost("/identifiers/verify", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.VerifyUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.VerifyUserIdentifierSelf);
+                => await h.VerifyUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.VerifyUserIdentifierSelf);
 
             if (Enabled(UAuthActions.UserIdentifiers.DeleteSelf))
                 self.MapPost("/identifiers/delete", async ([FromServices] IUserEndpointHandler h, HttpContext ctx)
-                => await h.DeleteUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.DeleteUserIdentifierSelf);
+                => await h.DeleteUserIdentifierSelfAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.UserIdentifierManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.DeleteUserIdentifierSelf);
 
 
 
@@ -363,15 +366,15 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
 
             if (Enabled(UAuthActions.Credentials.AddSelf))
                 selfCredentials.MapPost("/add", async ([FromServices] ICredentialEndpointHandler h, HttpContext ctx)
-                => await h.AddAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.CredentialAddSelf);
+                => await h.AddAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.CredentialAddSelf);
 
             if (Enabled(UAuthActions.Credentials.ChangeSelf))
                 selfCredentials.MapPost("/change", async ([FromServices] ICredentialEndpointHandler h, HttpContext ctx)
-                => await h.ChangeSecretAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.CredentialChangeSelf);
+                => await h.ChangeSecretAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.CredentialChangeSelf);
 
             if (Enabled(UAuthActions.Credentials.RevokeSelf))
                 selfCredentials.MapPost("/revoke", async ([FromServices] ICredentialEndpointHandler h, HttpContext ctx)
-                => await h.RevokeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).WithUAuthRateLimit(UAuthEndpoint.CredentialRevokeSelf);
+                => await h.RevokeAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.CredentialManagement), new UAuthCsrfMetadata(UAuthCsrfOperation.AuthenticatedMutation)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.CredentialRevokeSelf);
 
 
             if (Enabled(UAuthActions.Credentials.BeginResetAnonymous))
@@ -416,15 +419,15 @@ public class UAuthEndpointRegistrar : IAuthEndpointRegistrar
 
             // TODO: Add enabled actions here
                 selfAuthz.MapPost("/check", async ([FromServices] IAuthorizationEndpointHandler h, HttpContext ctx)
-                => await h.CheckAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement)).WithUAuthRateLimit(UAuthEndpoint.AuthorizationCheck);
+                => await h.CheckAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.AuthorizationCheck);
 
             if (Enabled(UAuthActions.Authorization.Roles.GetSelf))
                 selfAuthz.MapPost("/roles/get", async ([FromServices] IAuthorizationEndpointHandler h, HttpContext ctx)
-                => await h.GetMyRolesAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement)).WithUAuthRateLimit(UAuthEndpoint.GetMyRoles);
+                => await h.GetMyRolesAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.GetMyRoles);
 
             if (Enabled(UAuthActions.Authorization.Permissions.GetSelf))
                 selfAuthz.MapPost("/permissions/get", async ([FromServices] IAuthorizationEndpointHandler h, HttpContext ctx)
-                => await h.GetMyPermissionsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement)).WithUAuthRateLimit(UAuthEndpoint.GetMyPermissions);
+                => await h.GetMyPermissionsAsync(ctx)).WithMetadata(new AuthFlowMetadata(AuthFlowType.AuthorizationManagement)).RequireUAuthAuthentication().WithUAuthRateLimit(UAuthEndpoint.GetMyPermissions);
 
 
             if (Enabled(UAuthActions.Authorization.Roles.GetAdmin))
