@@ -33,7 +33,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
 
     public async Task<UAuthResult> AddMyAsync(AddUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/me/identifiers/add"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/identifiers/add"), request, UAuthRequestAuthentication.Recoverable);
         var result = UAuthResultMapper.From(raw);
 
         if (result.IsSuccess)
@@ -47,7 +47,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
 
     public async Task<UAuthResult> UpdateMyAsync(UpdateUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/me/identifiers/update"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/identifiers/update"), request, UAuthRequestAuthentication.Recoverable);
         var result = UAuthResultMapper.From(raw);
 
         if (result.IsSuccess)
@@ -59,7 +59,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
 
     public async Task<UAuthResult> SetMyPrimaryAsync(SetPrimaryUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/me/identifiers/set-primary"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/identifiers/set-primary"), request, UAuthRequestAuthentication.Recoverable);
         var result = UAuthResultMapper.From(raw);
 
         if (result.IsSuccess)
@@ -71,7 +71,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
 
     public async Task<UAuthResult> UnsetMyPrimaryAsync(UnsetPrimaryUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/me/identifiers/unset-primary"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/identifiers/unset-primary"), request, UAuthRequestAuthentication.Recoverable);
         var result = UAuthResultMapper.From(raw);
 
         if (result.IsSuccess)
@@ -83,7 +83,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
 
     public async Task<UAuthResult> VerifyMyAsync(VerifyUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/me/identifiers/verify"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/identifiers/verify"), request, UAuthRequestAuthentication.Recoverable);
         var result = UAuthResultMapper.From(raw);
 
         if (result.IsSuccess)
@@ -95,7 +95,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
 
     public async Task<UAuthResult> DeleteMyAsync(DeleteUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/me/identifiers/delete"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/identifiers/delete"), request, UAuthRequestAuthentication.Recoverable);
         var result = UAuthResultMapper.From(raw);
 
         if (result.IsSuccess)
@@ -108,43 +108,43 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
     public async Task<UAuthResult<PagedResult<UserIdentifierInfo>>> GetUserAsync(UserKey userKey, PageRequest? request = null)
     {
         request ??= new PageRequest();
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/get"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/get"), request, UAuthRequestAuthentication.Replayable);
         return UAuthResultMapper.FromJson<PagedResult<UserIdentifierInfo>>(raw);
     }
 
     public async Task<UAuthResult> AddUserAsync(UserKey userKey, AddUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/add"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/add"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> UpdateUserAsync(UserKey userKey, UpdateUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/update"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/update"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> SetUserPrimaryAsync(UserKey userKey, SetPrimaryUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/set-primary"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/set-primary"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> UnsetUserPrimaryAsync(UserKey userKey, UnsetPrimaryUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/unset-primary"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/unset-primary"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> VerifyUserAsync(UserKey userKey, VerifyUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/verify"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/verify"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult> DeleteUserAsync(UserKey userKey, DeleteUserIdentifierRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/delete"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/identifiers/delete"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.From(raw);
     }
 

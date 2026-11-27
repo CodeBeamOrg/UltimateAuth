@@ -39,7 +39,7 @@ public static class ServiceCollectionExtensions
     {
 
         services.TryAddScoped<UAuthRequestClient>();
-        services.TryAddScoped<IUAuthRequestClient>(sp => sp.GetRequiredService<UAuthRequestClient>());
+        services.TryAddScoped<IUAuthRequestClient, UAuthRecoveringRequestClient>();
         services.TryAddScoped<IUAuthRefreshTransport, UAuthRefreshTransport>();
 
         services.TryAddScoped<IUAuthResourceRequestClient, UAuthResourceRequestClient>();

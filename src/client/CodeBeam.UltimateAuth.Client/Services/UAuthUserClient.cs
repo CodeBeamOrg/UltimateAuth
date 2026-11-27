@@ -27,13 +27,13 @@ internal sealed class UAuthUserClient : IUserClient
     public async Task<UAuthResult<UserView>> GetMeAsync(GetProfileRequest? request = null)
     {
         request ??= new GetProfileRequest();
-        var raw = await _request.SendJsonAsync(Url("/me/profile/get"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/profile/get"), request, UAuthRequestAuthentication.Replayable);
         return UAuthResultMapper.FromJson<UserView>(raw);
     }
 
     public async Task<UAuthResult> UpdateMyProfileAsync(UpdateProfileRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/me/profile/update"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/profile/update"), request, UAuthRequestAuthentication.Recoverable);
         var result = UAuthResultMapper.From(raw);
 
         if (result.IsSuccess)
@@ -47,7 +47,7 @@ internal sealed class UAuthUserClient : IUserClient
 
     public async Task<UAuthResult> DeleteMeAsync()
     {
-        var raw = await _request.SendJsonAsync(Url("/me/delete"));
+        var raw = await _request.SendJsonAsync(Url("/me/delete"), null, UAuthRequestAuthentication.Recoverable);
         var result = UAuthResultMapper.From(raw);
 
         if (result.IsSuccess)
@@ -61,7 +61,7 @@ internal sealed class UAuthUserClient : IUserClient
     public async Task<UAuthResult<PagedResult<UserSummary>>> QueryAsync(UserQuery query)
     {
         query ??= new UserQuery();
-        var raw = await _request.SendJsonAsync(Url("/admin/users/query"), query);
+        var raw = await _request.SendJsonAsync(Url("/admin/users/query"), query, UAuthRequestAuthentication.Replayable);
         return UAuthResultMapper.FromJson<PagedResult<UserSummary>>(raw);
     }
 
@@ -74,14 +74,14 @@ internal sealed class UAuthUserClient : IUserClient
             UserKeys = userKeys.ToArray()
         };
 
-        var raw = await _request.SendJsonAsync(Url("/admin/users/get-by-keys"), request);
+        var raw = await _request.SendJsonAsync(Url("/admin/users/get-by-keys"), request, UAuthRequestAuthentication.Replayable);
 
         return UAuthResultMapper.FromJson<IReadOnlyList<UserSummary>>(raw);
     }
 
     public async Task<UAuthResult> CreateMyProfileAsync(CreateProfileRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/me/profile/create"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/profile/create"), request, UAuthRequestAuthentication.Recoverable);
 
         var result = UAuthResultMapper.From(raw);
 
@@ -96,19 +96,19 @@ internal sealed class UAuthUserClient : IUserClient
 
     public async Task<UAuthResult> CreateUserProfileAsync(UserKey userKey, CreateProfileRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/profile/create"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/profile/create"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult<UserCreateResult>> CreateAsync(CreateUserRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/users/create"), request);
+        var raw = await _request.SendJsonAsync(Url("/users/create"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<UserCreateResult>(raw);
     }
 
     public async Task<UAuthResult> DeleteMyProfileAsync(DeleteProfileRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/me/profile/delete"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/profile/delete"), request, UAuthRequestAuthentication.Recoverable);
 
         var result = UAuthResultMapper.From(raw);
 
@@ -123,19 +123,19 @@ internal sealed class UAuthUserClient : IUserClient
 
     public async Task<UAuthResult> DeleteUserProfileAsync(UserKey userKey, DeleteProfileRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/profile/delete"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/profile/delete"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.From(raw);
     }
 
     public async Task<UAuthResult<UserCreateResult>> CreateAsAdminAsync(CreateUserRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/admin/users/create"), request);
+        var raw = await _request.SendJsonAsync(Url("/admin/users/create"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<UserCreateResult>(raw);
     }
 
     public async Task<UAuthResult<UserStatusChangeResult>> ChangeMyStatusAsync(ChangeUserStatusSelfRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/me/status"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/status"), request, UAuthRequestAuthentication.Recoverable);
         var result = UAuthResultMapper.FromJson<UserStatusChangeResult>(raw);
 
         if (result.IsSuccess)
@@ -149,26 +149,26 @@ internal sealed class UAuthUserClient : IUserClient
 
     public async Task<UAuthResult<UserStatusChangeResult>> ChangeUserStatusAsync(UserKey userKey, ChangeUserStatusAdminRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/status"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/status"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<UserStatusChangeResult>(raw);
     }
 
     public async Task<UAuthResult<UserDeleteResult>> DeleteUserAsync(UserKey userKey, DeleteUserRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/delete"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/delete"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<UserDeleteResult>(raw);
     }
 
     public async Task<UAuthResult<UserView>> GetUserAsync(UserKey userKey, GetProfileRequest? request = null)
     {
         request = request ?? new GetProfileRequest();
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/profile/get"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/profile/get"), request, UAuthRequestAuthentication.Replayable);
         return UAuthResultMapper.FromJson<UserView>(raw);
     }
 
     public async Task<UAuthResult> UpdateUserProfileAsync(UserKey userKey, UpdateProfileRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/profile/update"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/profile/update"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.From(raw);
     }
 
@@ -177,7 +177,7 @@ internal sealed class UAuthUserClient : IUserClient
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/authentication/lockout/get"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/authentication/lockout/get"), request, UAuthRequestAuthentication.Replayable);
         return UAuthResultMapper.FromJson<AuthenticationLockoutInfo>(raw);
     }
 
@@ -185,7 +185,7 @@ internal sealed class UAuthUserClient : IUserClient
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/authentication/unlock"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/authentication/unlock"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<AuthenticationUnlockResult>(raw);
     }
 }

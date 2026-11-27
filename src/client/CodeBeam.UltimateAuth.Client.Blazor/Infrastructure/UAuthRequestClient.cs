@@ -119,8 +119,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
 
         if (_tokenStore.Capture().Epoch != snapshot.Epoch)
         {
-            throw new OperationCanceledException(
-                "Authentication state changed before request execution.");
+            throw new OperationCanceledException("Authentication state changed before request execution.");
         }
 
         var token = snapshot.Token;
@@ -144,8 +143,7 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
             });
 
         if (result is null)
-            throw new UAuthProtocolException(
-                "Invalid error response format.");
+            throw new UAuthProtocolException("Invalid error response format.");
 
         if (result.Status == 0)
             throw new UAuthTransportException("Network error.");
