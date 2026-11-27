@@ -1,29 +1,81 @@
-﻿using System.Threading;
-using CodeBeam.UltimateAuth.Client.Abstractions;
+﻿using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Core.Contracts;
 
 namespace CodeBeam.UltimateAuth.Client.Infrastructure;
 
-/// <summary>
-/// Stores a single access token in managed memory.
-/// </summary>
-/// <remarks>
-/// The instance must be scoped to the current client or user.
-/// It does not persist credentials across application restarts.
-/// </remarks>
 internal sealed class InMemoryUAuthTokenStore : IUAuthTokenStore
 {
-    private AccessToken? _token;
+    private readonly object _sync = new();
 
-    public AccessToken? Read()
-        => Volatile.Read(ref _token);
+    private UAuthTokenSnapshot _snapshot = new(null, 0, 0);
+
+    public AccessToken? Read() => Capture().Token;
+
+    public UAuthTokenSnapshot Capture() => Volatile.Read(ref _snapshot);
 
     public void Replace(AccessToken token)
     {
         ArgumentNullException.ThrowIfNull(token);
-        Volatile.Write(ref _token, token);
+
+        lock (_sync)
+        {
+            var current = _snapshot;
+
+            Volatile.Write(
+                ref _snapshot,
+                new UAuthTokenSnapshot(token, current.Generation + 1, current.Epoch + 1));
+        }
     }
 
     public void Clear()
-        => Volatile.Write(ref _token, null);
+    {
+        lock (_sync)
+        {
+            var current = _snapshot;
+
+            Volatile.Write(
+                ref _snapshot,
+                new UAuthTokenSnapshot(null, current.Generation + 1, current.Epoch + 1));
+        }
+    }
+
+    public bool TryRotate(UAuthTokenSnapshot expected, AccessToken token)
+    {
+        ArgumentNullException.ThrowIfNull(token);
+
+        lock (_sync)
+        {
+            var current = _snapshot;
+
+            if (current.Epoch != expected.Epoch || current.Generation != expected.Generation)
+            {
+                return false;
+            }
+
+            Volatile.Write(
+                ref _snapshot,
+                new UAuthTokenSnapshot(token, current.Generation + 1, current.Epoch));
+
+            return true;
+        }
+    }
+
+    public bool TryClear(UAuthTokenSnapshot expected)
+    {
+        lock (_sync)
+        {
+            var current = _snapshot;
+
+            if (current.Epoch != expected.Epoch || current.Generation != expected.Generation)
+            {
+                return false;
+            }
+
+            Volatile.Write(
+                ref _snapshot,
+                new UAuthTokenSnapshot(null, current.Generation + 1, current.Epoch + 1));
+
+            return true;
+        }
+    }
 }

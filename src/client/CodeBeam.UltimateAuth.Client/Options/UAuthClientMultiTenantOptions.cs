@@ -1,6 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
-
-namespace CodeBeam.UltimateAuth.Client.Options;
+﻿namespace CodeBeam.UltimateAuth.Client.Options;
 
 /// <summary>
 /// Options for multi-tenant support in the UAuth client.

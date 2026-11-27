@@ -1,4 +1,5 @@
-﻿using CodeBeam.UltimateAuth.Client.Events;
+﻿using CodeBeam.UltimateAuth.Client.Abstractions;
+using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Core.Contracts;
@@ -27,7 +28,7 @@ internal sealed class UAuthSessionClient : ISessionClient
     public async Task<UAuthResult<PagedResult<SessionChainSummary>>> GetMyChainsAsync(PageRequest? request = null)
     {
         request ??= new PageRequest();
-        var raw = await _request.SendJsonAsync(Url("/me/sessions/chains"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/sessions/chains"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<PagedResult<SessionChainSummary>>(raw);
     }
 
@@ -39,7 +40,7 @@ internal sealed class UAuthSessionClient : ISessionClient
 
     public async Task<UAuthResult<RevokeResult>> RevokeMyChainAsync(SessionChainId chainId)
     {
-        var raw = await _request.SendJsonAsync(Url($"/me/sessions/chains/{chainId.Value}/revoke"));
+        var raw = await _request.SendJsonAsync(Url($"/me/sessions/chains/{chainId.Value}/revoke"), null, UAuthRequestAuthentication.Recoverable);
         var result = UAuthResultMapper.FromJson<RevokeResult>(raw);
 
         if (result.IsSuccess && result.Value?.CurrentChain == true)
@@ -73,7 +74,7 @@ internal sealed class UAuthSessionClient : ISessionClient
     public async Task<UAuthResult<PagedResult<SessionChainSummary>>> GetUserChainsAsync(UserKey userKey, PageRequest? request = null)
     {
         request ??= new PageRequest();
-        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/sessions/chains"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/users/{userKey.Value}/sessions/chains"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<PagedResult<SessionChainSummary>>(raw);
     }
 

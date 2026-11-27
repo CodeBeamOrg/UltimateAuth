@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Client.Device;
+﻿namespace CodeBeam.UltimateAuth.Client;
 
 /// <summary>
 /// Represents a storage mechanism for device identifiers.

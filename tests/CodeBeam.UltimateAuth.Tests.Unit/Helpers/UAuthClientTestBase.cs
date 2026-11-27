@@ -1,6 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Abstractions;
-using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
@@ -93,14 +92,23 @@ public abstract class UAuthClientTestBase
 
         var diagnostics = new UAuthClientDiagnostics();
 
+        var tokenStore = new InMemoryUAuthTokenStore();
+
+        var refreshCoordinator = CreateRefreshCoordinator(
+            request.Object,
+            events.Object,
+            tokenStore,
+            diagnostics,
+            "/auth/refresh");
+
         return new UAuthFlowClient(
             request.Object,
             events.Object,
             deviceProvider.Object,
             returnUrlProvider.Object,
             options,
-            diagnostics,
-            new InMemoryUAuthTokenStore());
+            tokenStore,
+            refreshCoordinator);
     }
 
     protected IUAuthClient CreateCredentialClient()
@@ -176,4 +184,22 @@ public abstract class UAuthClientTestBase
             Status = 200,
             Body = JsonSerializer.SerializeToElement(body)
         };
+
+    protected static IUAuthRefreshCoordinator CreateRefreshCoordinator(
+        IUAuthRequestClient request,
+        IUAuthClientEvents events,
+        IUAuthTokenStore tokenStore,
+        UAuthClientDiagnostics diagnostics,
+        string refreshEndpoint)
+    {
+        var transport = new Mock<IUAuthRefreshTransport>();
+
+        transport
+            .Setup(x => x.SendAsync(It.IsAny<CancellationToken>()))
+            .Returns((CancellationToken ct) => request.SendFormAsync(refreshEndpoint, form: null, ct: ct));
+
+        var executor = new UAuthRefreshExecutor(transport.Object, events, tokenStore, diagnostics);
+
+        return new UAuthRefreshCoordinator(executor, tokenStore);
+    }
 }

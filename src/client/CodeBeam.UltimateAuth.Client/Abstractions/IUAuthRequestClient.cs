@@ -1,7 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
-using CodeBeam.UltimateAuth.Core.Contracts;
-
-namespace CodeBeam.UltimateAuth.Client.Infrastructure;
+﻿namespace CodeBeam.UltimateAuth.Client.Abstractions;
 
 /// <summary>
 /// Defines a client for sending requests to the UltimateAuth server, handling navigation, form submissions, JSON payloads, and transactional operations.
@@ -43,6 +40,9 @@ public interface IUAuthRequestClient
     /// <returns></returns>
     Task<UAuthTransportResult> SendJsonAsync(string endpoint, object? payload = null, CancellationToken ct = default);
 
+
+    Task<UAuthTransportResult> SendJsonAsync(string endpoint, object? payload, UAuthRequestAuthentication authentication, CancellationToken ct = default)
+        => SendJsonAsync(endpoint, payload, ct);
 
     /// <summary>
     /// Attempts to perform a transactional operation by first trying the specified endpoint and, if successful, committing the operation to another endpoint. Returns the result of the try operation.

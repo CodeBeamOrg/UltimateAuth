@@ -2,7 +2,7 @@
 using Bunit;
 using Bunit.TestDoubles;
 using CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
-using CodeBeam.UltimateAuth.Client.Contracts;
+using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;

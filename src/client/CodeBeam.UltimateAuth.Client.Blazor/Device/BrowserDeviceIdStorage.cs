@@ -1,8 +1,6 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
-using CodeBeam.UltimateAuth.Client.Device;
-using CodeBeam.UltimateAuth.Client.Infrastructure;
+﻿using CodeBeam.UltimateAuth.Client.Abstractions;
 
-namespace CodeBeam.UltimateAuth.Client.Blazor.Device;
+namespace CodeBeam.UltimateAuth.Client.Blazor;
 
 /// <summary>
 /// Represents a device ID storage implementation that uses browser client storage to persist the device ID.

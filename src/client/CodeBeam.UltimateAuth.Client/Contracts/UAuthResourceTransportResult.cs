@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace CodeBeam.UltimateAuth.Client.Contracts;
+namespace CodeBeam.UltimateAuth.Client;
 
 /// <summary>
 /// Represents an HTTP response from an application resource.

@@ -1,5 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Client.Device;
-using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
 
 namespace CodeBeam.UltimateAuth.Client;
 

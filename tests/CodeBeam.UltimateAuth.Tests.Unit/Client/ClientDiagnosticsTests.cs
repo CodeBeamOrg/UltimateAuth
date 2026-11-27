@@ -1,7 +1,5 @@
-﻿using System;
-using CodeBeam.UltimateAuth.Client.Contracts;
+﻿using CodeBeam.UltimateAuth.Client;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
-using Xunit;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 

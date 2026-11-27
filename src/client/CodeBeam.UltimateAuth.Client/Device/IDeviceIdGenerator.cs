@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Client.Device;
+namespace CodeBeam.UltimateAuth.Client;
 
 /// <summary>
 /// Represents a generator for device identifiers.

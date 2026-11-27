@@ -1,6 +1,4 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
-using CodeBeam.UltimateAuth.Client.Contracts;
-using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Extensions;
@@ -26,21 +24,25 @@ internal class UAuthFlowClient : IFlowClient
     private readonly IClientDeviceProvider _clientDeviceProvider;
     private readonly IReturnUrlProvider _returnUrlProvider;
     private readonly UAuthClientOptions _options;
-    private readonly UAuthClientDiagnostics _diagnostics;
     private readonly IUAuthTokenStore _tokenStore;
+    private readonly IUAuthRefreshCoordinator _refreshCoordinator;
 
-    private DateTimeOffset _refreshNotBefore;
-    private RefreshResult? _refreshThrottle;
-
-    public UAuthFlowClient(IUAuthRequestClient post, IUAuthClientEvents events, IClientDeviceProvider clientDeviceProvider, IReturnUrlProvider returnUrlProvider, IOptions<UAuthClientOptions> options, UAuthClientDiagnostics diagnostics, IUAuthTokenStore tokenStore)
+    public UAuthFlowClient(
+        IUAuthRequestClient post,
+        IUAuthClientEvents events,
+        IClientDeviceProvider clientDeviceProvider,
+        IReturnUrlProvider returnUrlProvider,
+        IOptions<UAuthClientOptions> options,
+        IUAuthTokenStore tokenStore,
+        IUAuthRefreshCoordinator refreshCoordinator)
     {
         _post = post;
         _events = events;
         _clientDeviceProvider = clientDeviceProvider;
         _returnUrlProvider = returnUrlProvider;
         _options = options.Value;
-        _diagnostics = diagnostics;
         _tokenStore = tokenStore;
+        _refreshCoordinator = refreshCoordinator;
     }
 
     private string Url(string path) => UAuthUrlBuilder.Build(_options.Endpoints.BasePath, path, _options.MultiTenant);
@@ -245,12 +247,14 @@ internal class UAuthFlowClient : IFlowClient
 
     public Task<RefreshResult> RefreshAsync(bool isAuto = false)
     {
-        return RefreshCoreAsync(isAuto, isRecovery: false);
+        return _refreshCoordinator.RefreshAsync(isAuto
+            ? UAuthRefreshTrigger.Background
+            : UAuthRefreshTrigger.Manual);
     }
 
     public Task<RefreshResult> RecoverAsync()
     {
-        return RefreshCoreAsync(isAuto: true, isRecovery: true);
+        return _refreshCoordinator.RefreshAsync(UAuthRefreshTrigger.Recovery);
     }
 
 
@@ -268,7 +272,6 @@ internal class UAuthFlowClient : IFlowClient
 
         if (accessToken is not null && accessToken.IsExpired(DateTimeOffset.UtcNow))
         {
-            _tokenStore.Clear();
             accessToken = null;
         }
 
@@ -569,116 +572,6 @@ internal class UAuthFlowClient : IFlowClient
     {
         var raw = await _post.SendJsonAsync(Url($"/admin/users/{userKey.Value}/logout-all"));
         return UAuthResultMapper.From(raw);
-    }
-
-
-    private async Task<RefreshResult> RefreshCoreAsync(bool isAuto, bool isRecovery)
-    {
-        if (!isAuto)
-            _diagnostics.MarkManualRefresh();
-
-        var now = DateTimeOffset.UtcNow;
-
-        if (_refreshThrottle is not null && now < _refreshNotBefore)
-            return _refreshThrottle with { RetryAfter = _refreshNotBefore - now };
-
-        var raw = await _post.SendFormAsync(Url(_options.Endpoints.Refresh));
-        if (raw.Status == 429)
-        {
-            _refreshThrottle = new RefreshResult
-            {
-                Status = 429,
-                IsSuccess = false,
-                Outcome = RefreshOutcome.None,
-                ErrorCode = "rate_limited",
-                RetryAfter = UAuthRateLimit.ParseRetryAfter(raw.RetryAfter, DateTimeOffset.UtcNow)
-            };
-            _refreshNotBefore = UAuthRateLimit.NotBefore(DateTimeOffset.UtcNow, _refreshThrottle.RetryAfter);
-            return _refreshThrottle;
-        }
-        _refreshThrottle = null;
-
-        if (raw.Status == 401)
-        {
-            if (!isRecovery)
-            {
-                _tokenStore.Clear();
-                _diagnostics.MarkRefreshReauthRequired();
-
-                await _events.PublishAsync(
-                    new UAuthStateEventArgsEmpty(
-                        UAuthStateEvent.ReauthenticationRequired,
-                        UAuthStateEventHandlingMode.Patch));
-            }
-
-            return new RefreshResult
-            {
-                IsSuccess = false,
-                Status = 401,
-                Outcome = RefreshOutcome.ReauthRequired
-            };
-        }
-
-        EnsureValidHttpStatus(raw);
-
-        var outcome = RefreshOutcomeParser.Parse(raw.RefreshOutcome);
-        var isSuccess = raw.Status is >= 200 and < 300 && raw.Ok;
-
-        if (isSuccess)
-        {
-            var accessToken = UAuthLoginCompletion.ReadAccessToken(raw);
-
-            if (accessToken is not null)
-            {
-                if (accessToken.IsExpired(DateTimeOffset.UtcNow))
-                {
-                    _tokenStore.Clear();
-
-                    throw new UAuthProtocolException("Server returned an expired access token.");
-                }
-
-                _tokenStore.Replace(accessToken);
-            }
-        }
-
-        // Never record a successful refresh outcome
-        // for a failed HTTP response.
-        if (isSuccess)
-        {
-            switch (outcome)
-            {
-                case RefreshOutcome.NoOp:
-                    _diagnostics.MarkRefreshNoOp();
-                    break;
-
-                case RefreshOutcome.Touched:
-                    _diagnostics.MarkRefreshTouched();
-                    break;
-
-                case RefreshOutcome.Rotated:
-                    _diagnostics.MarkRefreshRotated();
-                    break;
-
-                case RefreshOutcome.ReauthRequired:
-                    _diagnostics.MarkRefreshReauthRequired();
-                    break;
-
-                case RefreshOutcome.Success:
-                    _diagnostics.MarkRefreshSuccess();
-                    break;
-            }
-        }
-        else if (outcome == RefreshOutcome.ReauthRequired)
-        {
-            _diagnostics.MarkRefreshReauthRequired();
-        }
-
-        return new RefreshResult
-        {
-            IsSuccess = isSuccess,
-            Status = raw.Status,
-            Outcome = outcome
-        };
     }
 
     private void EnsureCanPost()

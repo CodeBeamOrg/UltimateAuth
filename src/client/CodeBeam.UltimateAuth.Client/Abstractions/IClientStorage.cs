@@ -1,6 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
-
-namespace CodeBeam.UltimateAuth.Client.Infrastructure;
+﻿namespace CodeBeam.UltimateAuth.Client.Abstractions;
 
 /// <summary>
 /// Represents a storage mechanism for client-side data, allowing for setting, retrieving, removing, and checking the existence of key-value pairs within specified storage scopes.

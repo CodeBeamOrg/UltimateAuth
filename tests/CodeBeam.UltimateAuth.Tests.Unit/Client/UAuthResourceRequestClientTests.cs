@@ -1,11 +1,10 @@
 ﻿using AwesomeAssertions;
 using CodeBeam.UltimateAuth.Client;
+using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
-using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
-using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 using Moq;
@@ -16,6 +15,7 @@ public class UAuthResourceRequestClientTests
 {
     private readonly Mock<IJSRuntime> _js = new();
     private readonly Mock<IUAuthClientBootstrapper> _bootstrapper = new();
+    private readonly Mock<IUAuthRequestRecovery> _requestRecovery = new();
 
     private UAuthResourceRequestClient CreateClient(
         string? baseAddress = "https://localhost:6120",
@@ -35,6 +35,7 @@ public class UAuthResourceRequestClientTests
             _js.Object,
             _bootstrapper.Object,
             new InMemoryUAuthTokenStore(),
+            _requestRecovery.Object,
             options);
     }
 

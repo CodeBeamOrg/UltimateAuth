@@ -1,6 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Core.Domain;
 
-namespace CodeBeam.UltimateAuth.Client.Contracts;
+namespace CodeBeam.UltimateAuth.Client;
 
 /// <summary>
 /// Represents the result of an UltimateAuth session or token refresh operation.

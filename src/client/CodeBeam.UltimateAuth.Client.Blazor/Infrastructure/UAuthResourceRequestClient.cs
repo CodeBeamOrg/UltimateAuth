@@ -1,5 +1,4 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
-using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
@@ -13,13 +12,15 @@ internal sealed class UAuthResourceRequestClient : IUAuthResourceRequestClient
     private readonly IJSRuntime _js;
     private readonly IUAuthClientBootstrapper _bootstrapper;
     private readonly IUAuthTokenStore _tokenStore;
+    private readonly IUAuthRequestRecovery _recovery;
     private readonly UAuthClientOptions _options;
 
-    public UAuthResourceRequestClient(IJSRuntime js, IUAuthClientBootstrapper bootstrapper, IUAuthTokenStore tokenStore, IOptions<UAuthClientOptions> options)
+    public UAuthResourceRequestClient(IJSRuntime js, IUAuthClientBootstrapper bootstrapper, IUAuthTokenStore tokenStore, IUAuthRequestRecovery recovery, IOptions<UAuthClientOptions> options)
     {
         _js = js;
         _bootstrapper = bootstrapper;
         _tokenStore = tokenStore;
+        _recovery = recovery;
         _options = options.Value;
     }
 
@@ -27,7 +28,28 @@ internal sealed class UAuthResourceRequestClient : IUAuthResourceRequestClient
     {
         ct.ThrowIfCancellationRequested();
 
-        await _bootstrapper.EnsureStartedAsync();
+        var snapshot = await _recovery.PrepareAsync(ct);
+
+        var first = await SendRawAsync(method, endpoint, payload, snapshot, ct);
+
+        if (first.Status != 401 || !string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase))
+        {
+            return first;
+        }
+
+        var refreshed = await _recovery.RecoverAsync(snapshot, ct);
+
+        if (refreshed is null)
+            return first;
+
+        return await SendRawAsync(method, endpoint, payload, refreshed, ct);
+    }
+
+    private async Task<UAuthResourceTransportResult> SendRawAsync(string method, string endpoint, object? payload, UAuthTokenSnapshot snapshot, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        await _bootstrapper.EnsureStartedAsync(ct);
 
         ct.ThrowIfCancellationRequested();
 
@@ -38,45 +60,39 @@ internal sealed class UAuthResourceRequestClient : IUAuthResourceRequestClient
             _ = CancelRequestAsync(requestId);
         });
 
-        try
+        var token = snapshot.Token;
+
+        if (token is not null && token.IsExpired(DateTimeOffset.UtcNow))
         {
-            var accessToken = _tokenStore.Read();
-
-            if (accessToken is not null && accessToken.IsExpired(DateTimeOffset.UtcNow))
-            {
-                _tokenStore.Clear();
-                accessToken = null;
-            }
-
-            var result = await _js.InvokeAsync<UAuthResourceTransportResult>("uauth.resourceRequest", ct,
-                new
-                {
-                    url = endpoint,
-                    baseAddress = _options.Resource.BaseAddress,
-                    method,
-                    payload,
-                    applicationProfile = _options.ApplicationProfile.ToString(),
-                    credentials = _options.Resource.Credentials.ToString(),
-                    accessToken = accessToken?.Token,
-                    requestId
-                });
-
-            if (result is null)
-            {
-                throw new UAuthProtocolException("Invalid Resource API transport response.");
-            }
-
-            if (result.Status == 0)
-            {
-                throw new UAuthTransportException("Resource API network error.");
-            }
-
-            return result;
+            token = null;
         }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+
+        var result = await _js.InvokeAsync<UAuthResourceTransportResult>(
+            "uauth.resourceRequest",
+            ct,
+            new
+            {
+                url = endpoint,
+                baseAddress = _options.Resource.BaseAddress,
+                method,
+                payload,
+                applicationProfile = _options.ApplicationProfile.ToString(),
+                credentials = _options.Resource.Credentials.ToString(),
+                accessToken = token?.Token,
+                requestId
+            });
+
+        if (result is null)
         {
-            throw;
+            throw new UAuthProtocolException("Invalid Resource API transport response.");
         }
+
+        if (result.Status == 0)
+        {
+            throw new UAuthTransportException("Resource API network error.");
+        }
+
+        return result;
     }
 
     private async Task CancelRequestAsync(string requestId)

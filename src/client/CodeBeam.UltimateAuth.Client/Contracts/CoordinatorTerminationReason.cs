@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Client.Contracts;
+﻿namespace CodeBeam.UltimateAuth.Client;
 
 /// <summary>
 /// Specifies why an UltimateAuth session coordinator stopped its active coordination cycle.

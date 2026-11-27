@@ -1,8 +1,6 @@
 ﻿using CodeBeam.UltimateAuth.Client;
-using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Events;
-using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
 using CodeBeam.UltimateAuth.Client.Services;
 using CodeBeam.UltimateAuth.Core.Contracts;
@@ -11,6 +9,7 @@ using AwesomeAssertions;
 using Microsoft.Extensions.Options;
 using Moq;
 using System.Text.Json;
+using CodeBeam.UltimateAuth.Client.Abstractions;
 
 namespace CodeBeam.UltimateAuth.Tests.Unit;
 

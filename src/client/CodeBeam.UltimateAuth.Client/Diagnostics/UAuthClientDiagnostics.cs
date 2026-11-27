@@ -1,6 +1,4 @@
-﻿using CodeBeam.UltimateAuth.Client.Contracts;
-
-namespace CodeBeam.UltimateAuth.Client.Diagnostics;
+﻿namespace CodeBeam.UltimateAuth.Client.Diagnostics;
 
 /// <summary>
 /// Represents diagnostic information for the UAuth client, tracking its lifecycle events and refresh attempts.

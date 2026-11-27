@@ -1,7 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
-using CodeBeam.UltimateAuth.Client.Blazor.Device;
 using CodeBeam.UltimateAuth.Client.Blazor.Infrastructure;
-using CodeBeam.UltimateAuth.Client.Device;
 using CodeBeam.UltimateAuth.Client.Diagnostics;
 using CodeBeam.UltimateAuth.Client.Extensions;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
@@ -39,7 +37,11 @@ public static class ServiceCollectionExtensions
     /// </summary>
     private static IServiceCollection AddUltimateAuthClientBlazorInternal(this IServiceCollection services)
     {
-        services.TryAddScoped<IUAuthRequestClient, UAuthRequestClient>();
+
+        services.TryAddScoped<UAuthRequestClient>();
+        services.TryAddScoped<IUAuthRequestClient, UAuthRecoveringRequestClient>();
+        services.TryAddScoped<IUAuthRefreshTransport, UAuthRefreshTransport>();
+
         services.TryAddScoped<IUAuthResourceRequestClient, UAuthResourceRequestClient>();
 
         services.TryAddScoped<IUAuthAuthorizationEvaluator, UAuthAuthorizationEvaluator>();

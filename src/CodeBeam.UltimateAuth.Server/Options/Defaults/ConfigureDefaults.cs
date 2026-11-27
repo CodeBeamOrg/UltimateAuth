@@ -57,8 +57,6 @@ internal static class ConfigureDefaults
 
         token.IssueJwt = true;
         token.IssueOpaque = true;
-        token.AccessTokenLifetime = TimeSpan.FromMinutes(10);
-        token.RefreshTokenLifetime = TimeSpan.FromDays(7);
 
         cookie.Session.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
 
@@ -76,12 +74,9 @@ internal static class ConfigureDefaults
 
         token.IssueJwt = true;
         token.IssueOpaque = true;
-        token.AccessTokenLifetime = TimeSpan.FromMinutes(10);
-        token.RefreshTokenLifetime = TimeSpan.FromDays(7);
         token.AddJwtIdClaim = true;
 
         cookie.AccessToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
-
         cookie.RefreshToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);
     }
 
@@ -100,8 +95,6 @@ internal static class ConfigureDefaults
         token.IssueJwt = true;
         token.IssueOpaque = false;
         token.IssueRefresh = true;
-        token.AccessTokenLifetime = TimeSpan.FromMinutes(10);
-        token.RefreshTokenLifetime = TimeSpan.FromDays(7);
         token.AddJwtIdClaim = true;
 
         cookie.AccessToken.Lifetime.IdleBuffer = TimeSpan.FromMinutes(5);

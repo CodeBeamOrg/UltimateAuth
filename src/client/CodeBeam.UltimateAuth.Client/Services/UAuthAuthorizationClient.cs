@@ -1,4 +1,5 @@
 ﻿using CodeBeam.UltimateAuth.Authorization.Contracts;
+using CodeBeam.UltimateAuth.Client.Abstractions;
 using CodeBeam.UltimateAuth.Client.Events;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
@@ -25,33 +26,33 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
 
     public async Task<UAuthResult<AuthorizationResult>> CheckAsync(AuthorizationCheckRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/me/authorization/check"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/authorization/check"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<AuthorizationResult>(raw);
     }
 
     public async Task<UAuthResult<UserRolesGetResult>> GetMyRolesAsync(PageRequest? request = null)
     {
         request ??= new PageRequest();
-        var raw = await _request.SendJsonAsync(Url("/me/authorization/roles/get"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/authorization/roles/get"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<UserRolesGetResult>(raw);
     }
 
     public async Task<UAuthResult<UserPermissionsResult>> GetMyPermissionsAsync()
     {
-        var raw = await _request.SendJsonAsync(Url("/me/authorization/permissions/get"), new { });
+        var raw = await _request.SendJsonAsync(Url("/me/authorization/permissions/get"), new { }, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<UserPermissionsResult>(raw);
     }
 
     public async Task<UAuthResult<UserRolesGetResult>> GetUserRolesAsync(UserKey userKey, PageRequest? request = null)
     {
         request ??= new PageRequest();
-        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/users/{userKey.Value}/roles/get"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/users/{userKey.Value}/roles/get"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<UserRolesGetResult>(raw);
     }
 
     public async Task<UAuthResult> AssignRoleToUserAsync(AssignRoleRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/users/{request.UserKey.Value}/roles/assign"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/users/{request.UserKey.Value}/roles/assign"), request, UAuthRequestAuthentication.Recoverable);
 
         var result = UAuthResultMapper.From(raw);
 
@@ -65,7 +66,7 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
 
     public async Task<UAuthResult> RemoveRoleFromUserAsync(RemoveRoleRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/users/{request.UserKey.Value}/roles/remove"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/users/{request.UserKey.Value}/roles/remove"), request, UAuthRequestAuthentication.Recoverable);
 
         var result = UAuthResultMapper.From(raw);
 
@@ -79,19 +80,19 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
 
     public async Task<UAuthResult<RoleInfo>> CreateRoleAsync(CreateRoleRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url("/admin/authorization/roles/create"), request);
+        var raw = await _request.SendJsonAsync(Url("/admin/authorization/roles/create"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<RoleInfo>(raw);
     }
 
     public async Task<UAuthResult<PagedResult<RoleInfo>>> QueryRolesAsync(RoleQuery request)
     {
-        var raw = await _request.SendJsonAsync(Url("/admin/authorization/roles/query"), request);
+        var raw = await _request.SendJsonAsync(Url("/admin/authorization/roles/query"), request, UAuthRequestAuthentication.Recoverable);
         return UAuthResultMapper.FromJson<PagedResult<RoleInfo>>(raw);
     }
 
     public async Task<UAuthResult> RenameRoleAsync(RenameRoleRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/roles/{request.Id.Value}/rename"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/roles/{request.Id.Value}/rename"), request, UAuthRequestAuthentication.Recoverable);
         var result = UAuthResultMapper.From(raw);
 
         if (result.IsSuccess)
@@ -104,7 +105,7 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
 
     public async Task<UAuthResult> SetRolePermissionsAsync(SetRolePermissionsRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/roles/{request.RoleId.Value}/permissions"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/roles/{request.RoleId.Value}/permissions"), request, UAuthRequestAuthentication.Recoverable);
         var result = UAuthResultMapper.From(raw);
 
         if (result.IsSuccess)
@@ -117,7 +118,7 @@ internal sealed class UAuthAuthorizationClient : IAuthorizationClient
 
     public async Task<UAuthResult<RoleDeleteResult>> DeleteRoleAsync(DeleteRoleRequest request)
     {
-        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/roles/{request.Id.Value}/delete"), request);
+        var raw = await _request.SendJsonAsync(Url($"/admin/authorization/roles/{request.Id.Value}/delete"), request, UAuthRequestAuthentication.Recoverable);
         var result = UAuthResultMapper.FromJson<RoleDeleteResult>(raw);
 
         if (result.IsSuccess)

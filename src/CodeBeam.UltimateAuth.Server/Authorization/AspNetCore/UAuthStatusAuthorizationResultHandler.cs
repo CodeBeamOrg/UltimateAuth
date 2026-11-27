@@ -9,6 +9,7 @@ using CodeBeam.UltimateAuth.Server.Extensions;
 using CodeBeam.UltimateAuth.Server.Options;
 using CodeBeam.UltimateAuth.Server.ResourceApi;
 using CodeBeam.UltimateAuth.Server.Runtime;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Http;
@@ -26,6 +27,27 @@ internal sealed class UAuthStatusAuthorizationResultHandler : IAuthorizationMidd
     {
         if (!authorizeResult.Succeeded)
         {
+            if (authorizeResult.Challenged)
+            {
+                var isUAuthChallenge =
+                    policy.AuthenticationSchemes.Count == 1 &&
+                    policy.AuthenticationSchemes.Contains(UAuthConstants.SchemeDefaults.GlobalScheme);
+
+                if (policy.AuthenticationSchemes.Count == 0)
+                {
+                    var schemes = context.RequestServices.GetRequiredService<IAuthenticationSchemeProvider>();
+
+                    var scheme = await schemes.GetDefaultChallengeSchemeAsync();
+
+                    isUAuthChallenge = scheme?.Name == UAuthConstants.SchemeDefaults.GlobalScheme;
+                }
+
+                if (isUAuthChallenge)
+                {
+                    context.Response.Headers[UAuthConstants.Headers.AuthRecovery] = "challenge";
+                }
+            }
+
             await _default.HandleAsync(next, context, policy, authorizeResult);
             return;
         }

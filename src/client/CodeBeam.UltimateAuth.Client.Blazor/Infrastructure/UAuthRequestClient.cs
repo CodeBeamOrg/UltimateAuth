@@ -1,5 +1,4 @@
 ﻿using CodeBeam.UltimateAuth.Client.Abstractions;
-using CodeBeam.UltimateAuth.Client.Contracts;
 using CodeBeam.UltimateAuth.Client.Errors;
 using CodeBeam.UltimateAuth.Client.Infrastructure;
 using CodeBeam.UltimateAuth.Client.Options;
@@ -105,11 +104,30 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
         return result;
     }
 
-    public async Task<UAuthTransportResult> SendJsonAsync(string endpoint, object? payload = default, CancellationToken ct = default)
+
+    public Task<UAuthTransportResult> SendJsonAsync(string endpoint, object? payload = default, CancellationToken ct = default)
+    {
+        return SendJsonRawAsync(endpoint, payload, _tokenStore.Capture(), ct);
+    }
+    internal async Task<UAuthTransportResult> SendJsonRawAsync(string endpoint, object? payload, UAuthTokenSnapshot snapshot, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         await _bootstrapper.EnsureStartedAsync(ct);
+
+        ct.ThrowIfCancellationRequested();
+
+        if (_tokenStore.Capture().Epoch != snapshot.Epoch)
+        {
+            throw new OperationCanceledException("Authentication state changed before request execution.");
+        }
+
+        var token = snapshot.Token;
+
+        var accessToken = token is not null &&
+                          !token.IsExpired(DateTimeOffset.UtcNow)
+            ? token.Token
+            : null;
 
         var result = await InvokeAsync<UAuthTransportResult>(
             "uauth.postJson",
@@ -118,8 +136,9 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
             {
                 url = endpoint,
                 payload,
-                accessToken = GetAccessToken(),
-                applicationProfile = _options.ApplicationProfile.ToString(),
+                accessToken,
+                applicationProfile =
+                    _options.ApplicationProfile.ToString(),
                 trustedOrigin = ResolveTrustedOrigin()
             });
 
@@ -246,7 +265,6 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
 
         if (token.IsExpired(DateTimeOffset.UtcNow))
         {
-            _tokenStore.Clear();
             return null;
         }
 

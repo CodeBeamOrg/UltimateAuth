@@ -18,6 +18,21 @@ public sealed class UAuthClientAutoRefreshOptions
     /// </summary>
     public TimeSpan? Interval { get; set; }
 
+    /// <summary>
+    /// Enables automatic authentication recovery following a recoverable authentication failure.
+    /// </summary>
+    public bool Reactive { get; set; } = true;
+
+    /// <summary>
+    /// Enables expiration-aware access token refresh before authenticated requests.
+    /// </summary>
+    public bool Proactive { get; set; } = true;
+
+    /// <summary>
+    /// Determines how early an access token becomes eligible for proactive refresh.
+    /// </summary>
+    public TimeSpan RefreshBeforeExpiration { get; set; } = TimeSpan.FromMinutes(1);
+
     // TODO: Future enhancement: Add jitter to avoid synchronized refresh storms in multi-tab scenarios.
     ///// <summary>
     ///// Optional jitter to avoid synchronized refresh storms.

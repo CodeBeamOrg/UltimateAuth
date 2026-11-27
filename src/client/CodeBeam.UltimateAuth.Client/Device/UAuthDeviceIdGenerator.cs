@@ -1,8 +1,7 @@
-﻿using CodeBeam.UltimateAuth.Client.Device;
-using CodeBeam.UltimateAuth.Core.Domain;
+﻿using CodeBeam.UltimateAuth.Core.Domain;
 using System.Security.Cryptography;
 
-namespace CodeBeam.UltimateAuth.Client.Devices;
+namespace CodeBeam.UltimateAuth.Client;
 
 internal sealed class UAuthDeviceIdGenerator : IDeviceIdGenerator
 {

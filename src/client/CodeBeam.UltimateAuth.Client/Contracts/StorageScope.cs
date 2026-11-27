@@ -1,4 +1,4 @@
-﻿namespace CodeBeam.UltimateAuth.Client.Contracts;
+﻿namespace CodeBeam.UltimateAuth.Client;
 
 /// <summary>
 /// Specifies the browser storage scope used for UltimateAuth client data.
