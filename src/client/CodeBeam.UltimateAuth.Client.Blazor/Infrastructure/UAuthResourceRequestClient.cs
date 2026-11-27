@@ -43,7 +43,6 @@ internal sealed class UAuthResourceRequestClient : IUAuthResourceRequestClient
 
             if (accessToken is not null && accessToken.IsExpired(DateTimeOffset.UtcNow))
             {
-                _tokenStore.Clear();
                 accessToken = null;
             }
 

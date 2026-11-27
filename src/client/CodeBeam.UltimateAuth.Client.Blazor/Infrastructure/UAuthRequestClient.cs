@@ -245,7 +245,6 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
 
         if (token.IsExpired(DateTimeOffset.UtcNow))
         {
-            _tokenStore.Clear();
             return null;
         }
 

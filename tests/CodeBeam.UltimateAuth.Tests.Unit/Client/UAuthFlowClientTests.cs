@@ -57,14 +57,25 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             }
         });
 
+        var actualEvents = clientEvents ?? events.Object;
+        var actualDiagnostics = diagnostics ?? new UAuthClientDiagnostics();
+        var actualStore = tokenStore ?? new InMemoryUAuthTokenStore();
+
+        var refreshCoordinator = CreateRefreshCoordinator(
+            request.Object,
+            actualEvents,
+            actualStore,
+            actualDiagnostics,
+            "/auth/refresh");
+
         return new UAuthFlowClient(
             request.Object,
-            clientEvents ?? events.Object,
+            actualEvents,
             deviceProvider.Object,
             returnUrlProvider.Object,
             options,
-            diagnostics ?? new UAuthClientDiagnostics(),
-            tokenStore ?? new InMemoryUAuthTokenStore());
+            actualStore,
+            refreshCoordinator);
     }
 
     private static AccessToken CreateStoredToken()
@@ -325,8 +336,8 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             Mock.Of<IClientDeviceProvider>(),
             Mock.Of<IReturnUrlProvider>(),
             options,
-            new UAuthClientDiagnostics(),
-            new InMemoryUAuthTokenStore());
+            new InMemoryUAuthTokenStore(),
+            Mock.Of<IUAuthRefreshCoordinator>());
 
         Func<Task> act = async () => await client.TryLoginAsync(new LoginRequest(), UAuthSubmitMode.TryOnly);
         await act.Should().ThrowAsync<InvalidOperationException>();
@@ -628,8 +639,8 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             Mock.Of<IClientDeviceProvider>(),
             Mock.Of<IReturnUrlProvider>(),
             options,
-            new UAuthClientDiagnostics(),
-            new InMemoryUAuthTokenStore());
+            new InMemoryUAuthTokenStore(),
+            Mock.Of<IUAuthRefreshCoordinator>());
 
         Func<Task> act = async () => await client.BeginPkceAsync();
         await act.Should().ThrowAsync<InvalidOperationException>();
@@ -735,8 +746,8 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             Mock.Of<IClientDeviceProvider>(),
             Mock.Of<IReturnUrlProvider>(),
             options,
-            new UAuthClientDiagnostics(),
-            new InMemoryUAuthTokenStore());
+            new InMemoryUAuthTokenStore(),
+            Mock.Of<IUAuthRefreshCoordinator>());
 
         await client.BeginPkceAsync();
         mock.Verify(x => x.NavigateAsync("/auth/hub/login", It.IsAny<IDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -928,8 +939,8 @@ public class UAuthFlowClientTests : UAuthClientTestBase
             Mock.Of<IClientDeviceProvider>(),
             Mock.Of<IReturnUrlProvider>(),
             options,
-            new UAuthClientDiagnostics(),
-            new InMemoryUAuthTokenStore());
+            new InMemoryUAuthTokenStore(),
+            Mock.Of<IUAuthRefreshCoordinator>());
 
         Func<Task> act = async () => await client.CompletePkceLoginAsync(new PkceCompleteRequest
         {

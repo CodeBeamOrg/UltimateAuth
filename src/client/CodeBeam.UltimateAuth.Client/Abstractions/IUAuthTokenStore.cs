@@ -16,6 +16,8 @@ public interface IUAuthTokenStore
     /// </summary>
     AccessToken? Read();
 
+    UAuthTokenSnapshot Capture();
+
     /// <summary>
     /// Atomically replaces the current access token.
     /// </summary>
@@ -25,4 +27,8 @@ public interface IUAuthTokenStore
     /// Removes the current access token.
     /// </summary>
     void Clear();
+
+    bool TryRotate(UAuthTokenSnapshot expected, AccessToken token);
+
+    bool TryClear(UAuthTokenSnapshot expected);
 }

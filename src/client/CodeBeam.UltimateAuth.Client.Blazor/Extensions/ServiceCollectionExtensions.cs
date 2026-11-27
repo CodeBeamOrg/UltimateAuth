@@ -37,7 +37,11 @@ public static class ServiceCollectionExtensions
     /// </summary>
     private static IServiceCollection AddUltimateAuthClientBlazorInternal(this IServiceCollection services)
     {
-        services.TryAddScoped<IUAuthRequestClient, UAuthRequestClient>();
+
+        services.TryAddScoped<UAuthRequestClient>();
+        services.TryAddScoped<IUAuthRequestClient>(sp => sp.GetRequiredService<UAuthRequestClient>());
+        services.TryAddScoped<IUAuthRefreshTransport, UAuthRefreshTransport>();
+
         services.TryAddScoped<IUAuthResourceRequestClient, UAuthResourceRequestClient>();
 
         services.TryAddScoped<IUAuthAuthorizationEvaluator, UAuthAuthorizationEvaluator>();
