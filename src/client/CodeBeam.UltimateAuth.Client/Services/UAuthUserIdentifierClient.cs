@@ -27,7 +27,7 @@ internal class UAuthUserIdentifierClient : IUserIdentifierClient
     public async Task<UAuthResult<PagedResult<UserIdentifierInfo>>> GetMyAsync(PageRequest? request = null)
     {
         request ??= new PageRequest();
-        var raw = await _request.SendJsonAsync(Url("/me/identifiers/get"), request);
+        var raw = await _request.SendJsonAsync(Url("/me/identifiers/get"), request, UAuthRequestAuthentication.Replayable);
         return UAuthResultMapper.FromJson<PagedResult<UserIdentifierInfo>>(raw);
     }
 

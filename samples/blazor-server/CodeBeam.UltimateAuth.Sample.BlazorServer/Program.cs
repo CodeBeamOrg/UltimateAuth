@@ -45,6 +45,9 @@ builder.Services.AddScoped<DarkModeManager>();
 
 builder.Services.AddUltimateAuthServer(o =>
 {
+    o.AuthMode = UAuthMode.PureJwt;
+    o.Token.AccessTokenLifetime = TimeSpan.FromSeconds(30);
+
     o.Diagnostics.EnableRefreshDetails = true;
     o.Login.MaxFailedAttempts = 2;
     o.Login.LockoutDuration = TimeSpan.FromSeconds(10);
@@ -72,6 +75,9 @@ builder.Services.AddUltimateAuthServer(o =>
 
 builder.Services.AddUltimateAuthClientBlazor(o =>
 {
+    o.AutoRefresh.Proactive = false;
+    o.AutoRefresh.RefreshBeforeExpiration = TimeSpan.FromSeconds(5);
+
     o.Login.AllowCredentialPost = true;
     //o.AutoRefresh.Interval = TimeSpan.FromSeconds(5);
     o.Reauth.Behavior = ReauthBehavior.RaiseEvent;

@@ -104,11 +104,31 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
         return result;
     }
 
-    public async Task<UAuthTransportResult> SendJsonAsync(string endpoint, object? payload = default, CancellationToken ct = default)
+
+    public Task<UAuthTransportResult> SendJsonAsync(string endpoint, object? payload = default, CancellationToken ct = default)
+    {
+        return SendJsonRawAsync(endpoint, payload, _tokenStore.Capture(), ct);
+    }
+    internal async Task<UAuthTransportResult> SendJsonRawAsync(string endpoint, object? payload, UAuthTokenSnapshot snapshot, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         await _bootstrapper.EnsureStartedAsync(ct);
+
+        ct.ThrowIfCancellationRequested();
+
+        if (_tokenStore.Capture().Epoch != snapshot.Epoch)
+        {
+            throw new OperationCanceledException(
+                "Authentication state changed before request execution.");
+        }
+
+        var token = snapshot.Token;
+
+        var accessToken = token is not null &&
+                          !token.IsExpired(DateTimeOffset.UtcNow)
+            ? token.Token
+            : null;
 
         var result = await InvokeAsync<UAuthTransportResult>(
             "uauth.postJson",
@@ -117,13 +137,15 @@ internal sealed class UAuthRequestClient : IUAuthRequestClient
             {
                 url = endpoint,
                 payload,
-                accessToken = GetAccessToken(),
-                applicationProfile = _options.ApplicationProfile.ToString(),
+                accessToken,
+                applicationProfile =
+                    _options.ApplicationProfile.ToString(),
                 trustedOrigin = ResolveTrustedOrigin()
             });
 
         if (result is null)
-            throw new UAuthProtocolException("Invalid error response format.");
+            throw new UAuthProtocolException(
+                "Invalid error response format.");
 
         if (result.Status == 0)
             throw new UAuthTransportException("Network error.");

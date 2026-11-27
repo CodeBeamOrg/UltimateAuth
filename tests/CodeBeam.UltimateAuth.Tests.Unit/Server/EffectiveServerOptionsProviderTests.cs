@@ -90,8 +90,7 @@ public class EffectiveServerOptionsProviderTests
     [InlineData(UAuthMode.Hybrid)]
     [InlineData(UAuthMode.SemiHybrid)]
     [InlineData(UAuthMode.PureJwt)]
-    public void Effective_options_should_apply_defaults_for_each_auth_mode(
-        UAuthMode mode)
+    public void Effective_options_should_apply_defaults_for_each_auth_mode(UAuthMode mode)
     {
         var original = new UAuthServerOptions();
         var provider = CreateProviderForMode(original, mode);
@@ -152,8 +151,8 @@ public class EffectiveServerOptionsProviderTests
         token.IssueJwt.Should().BeTrue();
         token.IssueOpaque.Should().BeTrue();
         token.AddJwtIdClaim.Should().BeTrue();
-        token.AccessTokenLifetime.Should().Be(TimeSpan.FromMinutes(10));
-        token.RefreshTokenLifetime.Should().Be(TimeSpan.FromDays(7));
+        token.AccessTokenLifetime.Should().Be(TimeSpan.FromHours(1));
+        token.RefreshTokenLifetime.Should().Be(TimeSpan.FromHours(2));
     }
 
     [Fact]
@@ -465,6 +464,37 @@ public class EffectiveServerOptionsProviderTests
 
         options.ApplicationProfileModes[UAuthApplicationProfile.Api]
             .Should().Be(UAuthMode.PureJwt);
+    }
+
+    [Theory]
+    [InlineData(UAuthMode.Hybrid)]
+    [InlineData(UAuthMode.SemiHybrid)]
+    [InlineData(UAuthMode.PureJwt)]
+    public void Effective_options_should_preserve_explicit_token_lifetimes(UAuthMode mode)
+    {
+        var original = new UAuthServerOptions
+        {
+            AuthMode = mode,
+            Token =
+        {
+            AccessTokenLifetime = TimeSpan.FromSeconds(30),
+            RefreshTokenLifetime = TimeSpan.FromHours(2)
+        }
+        };
+
+        var provider = CreateProviderForMode(original, mode);
+
+        var effective = provider.GetEffective(
+            TenantKey.Single,
+            UAuthApplicationProfile.BlazorServer);
+
+        effective.Mode.Should().Be(mode);
+
+        effective.Options.Token.AccessTokenLifetime
+            .Should().Be(TimeSpan.FromSeconds(30));
+
+        effective.Options.Token.RefreshTokenLifetime
+            .Should().Be(TimeSpan.FromHours(2));
     }
 
     private static EffectiveServerOptionsProvider CreateProviderForMode(

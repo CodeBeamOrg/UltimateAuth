@@ -41,6 +41,9 @@ public interface IUAuthRequestClient
     Task<UAuthTransportResult> SendJsonAsync(string endpoint, object? payload = null, CancellationToken ct = default);
 
 
+    Task<UAuthTransportResult> SendJsonAsync(string endpoint, object? payload, UAuthRequestAuthentication authentication, CancellationToken ct = default)
+        => SendJsonAsync(endpoint, payload, ct);
+
     /// <summary>
     /// Attempts to perform a transactional operation by first trying the specified endpoint and, if successful, committing the operation to another endpoint. Returns the result of the try operation.
     /// </summary>
